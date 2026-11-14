@@ -71,6 +71,16 @@ Clone `https://github.com/kroix-ovo/mars-outpost.git`, then import `project.godo
 
 Read `GAME_DESIGN.md` for the design direction, `SCIENCE.md` before adding simulation quantities, and `ATTRIBUTION.md` when importing external assets.
 
+## Three-person implementation plan
+
+Start with the [shared product requirements](PRD.md), which define the interfaces, integration milestones, and acceptance criteria for all three contributors.
+
+1. [Simulation and colony systems](TASK_01_SIMULATION.md): resources, life support, power, hazards, progression, and persistence.
+2. [3D world, construction, and integration](TASK_02_WORLD.md): terrain, camera, buildings, navigation services, assets, and delivery.
+3. [Crew management, EVA, and player interface](TASK_03_CREW_AND_UI.md): assignments, work, salvage expeditions, HUD, and onboarding.
+
+Each task starts at six work packages and 24 relative effort points. Rebalance after the first integrated loop using actual progress.
+
 ## Development principles
 
 - Keep simulation logic separate from rendering and interface code.
