@@ -18,9 +18,58 @@ The aim is to advance the game as far as possible. The initial research report's
 
 ## Current status
 
-Repository initialized. There is no playable build or implemented simulation yet. Engine selection, implementation, assets, and deployment are still to come.
+Godot project scaffold initialized using the research report's repository structure. There is no playable build or implemented simulation yet.
 
-The research report proposes Godot 4 with GDScript; this repository does not yet commit to an engine or toolchain.
+## Stack
+
+- Engine: Godot 4.x, GDScript, Compatibility renderer.
+- Models: Blender to glTF/GLB.
+- Data: JSON or Godot Resource files.
+- Audio: WAV/OGG.
+- Repository: GitHub; planned CI: GitHub Actions.
+- Planned delivery: itch.io browser build and native desktop backup.
+
+## Repository structure
+
+```text
+mars-outpost/
+├── README.md
+├── SCIENCE.md
+├── GAME_DESIGN.md
+├── ATTRIBUTION.md
+├── project.godot
+├── assets/
+│   ├── models/
+│   ├── textures/
+│   ├── audio/
+│   └── nasa/
+├── data/
+│   ├── buildings/
+│   ├── crew/
+│   ├── events/
+│   └── tech/
+├── scenes/
+│   ├── world/
+│   ├── buildings/
+│   ├── crew/
+│   └── ui/
+├── scripts/
+│   ├── simulation/
+│   ├── systems/
+│   ├── crew/
+│   ├── tasks/
+│   ├── world/
+│   └── ui/
+└── tests/
+```
+
+Empty directories contain `.gitkeep` files so Git preserves the scaffold. Repository housekeeping also includes `AGENTS.md`, `.gitignore`, and `.gitattributes`.
+
+## Getting started
+
+Clone `https://github.com/kroix-ovo/mars-outpost.git`, then import `project.godot` in Godot 4. A main scene has not been created yet.
+
+Read `GAME_DESIGN.md` for the design direction, `SCIENCE.md` before adding simulation quantities, and `ATTRIBUTION.md` when importing external assets.
 
 ## Development principles
 
