@@ -18,7 +18,7 @@ The aim is to advance the game as far as possible. The initial research report's
 
 ## Current status
 
-Godot project scaffold initialized using the research report's repository structure. There is no playable build or implemented simulation yet.
+Godot project scaffold initialized using the research report's repository structure. Task 1's A1 foundation now runs headlessly: validated synthetic initialization, shared snapshots, control commands, and the simulation clock. There is no playable build yet; resource/power/life-support systems remain to be implemented. See [simulation verification](tests/simulation/README.md) for the test command and exact implementation boundary.
 
 ## Stack
 
@@ -75,7 +75,7 @@ Read `GAME_DESIGN.md` for the design direction, `SCIENCE.md` before adding simul
 
 Start with the [shared product requirements](PRD.md), which define the interfaces, integration milestones, and acceptance criteria for all three contributors.
 
-Before implementing shared boundaries, read [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md): the established v2 command payloads, snapshot schemas, fixed-step/pause rules, resource accounting, world queries, crew adapter, and save/load contract. This is the implementation baseline for all three tasks; runtime code is still to be built.
+Before implementing shared boundaries, read [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md): the established v2 command payloads, snapshot schemas, fixed-step/pause rules, resource accounting, world queries, crew adapter, and save/load contract. This is the implementation baseline for all three tasks; the A1 foundation implements part of it, with later systems still to be built.
 
 The [simulation reconciliation](SIMULATION_RECONCILIATION.md) records the review decisions behind contract 2.0.0. [Fixture tooling](tests/simulation/tools/README.md) regenerates and checks the synthetic reference outputs; Godot runtime conformance remains to be implemented and tested.
 

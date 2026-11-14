@@ -2,7 +2,7 @@
 
 Decision date: 2026-11-14. Reviewed input: revision 3 of `SIMULATION_DESIGN_PROPOSAL.md` and the synthetic fixtures under `tests/simulation/fixtures/`.
 
-**Implementation authority: [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md), contract 2.0.0.** The proposal remains design history. The fixtures have now been regenerated with repository-owned tooling against 2.0.0. No simulation runtime has been implemented or tested yet.
+**Implementation authority: [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md), contract 2.0.0.** The proposal remains design history. The fixtures have been regenerated with repository-owned tooling against 2.0.0. The A1 state/clock/control foundation now has engine-run checks; see [simulation verification](tests/simulation/README.md). The review records below describe what was verified at each earlier stage.
 
 ## Accepted decisions
 

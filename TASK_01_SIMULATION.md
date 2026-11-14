@@ -2,6 +2,8 @@
 
 **Required interface baseline:** [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md). Implement its exact commands, state schemas, time/accounting rules, and persistence contract. Earlier interface sketches in planning documents defer to this spec.
 
+**A1 implementation:** shared state initialization, clock, normalized command queue, core controls, and detached snapshots are implemented under `scripts/simulation/`. See [headless verification and remaining boundaries](tests/simulation/README.md). Full gameplay command handlers depend on later work packages and peer services.
+
 ## 1. Executive summary
 
 Build the authoritative simulation that makes the outpost behave like connected engineering systems. Give the other owners stable state, commands, forecasts, and events so buildings, crew, and UI all act on the same colony.

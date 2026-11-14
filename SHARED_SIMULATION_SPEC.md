@@ -1,6 +1,8 @@
 # Mars Outpost — shared simulation contract
 
-**Contract version: 2.0.0. Status: reconciled implementation baseline; runtime not yet implemented.**
+**Contract version: 2.0.0. Status: reconciled implementation baseline; A1 foundation partially implemented.**
+
+See `tests/simulation/README.md` for the actual implemented boundary and headless checks. This specification describes the complete intended contract; A1 alone does not implement resource ticks, gameplay handlers, or persistence.
 
 Version 2 reconciles revision 3 of `SIMULATION_DESIGN_PROPOSAL.md`. It replaces 1.0.0 because nullable resource capacity, required adapter proposal fields, and save metadata change compatibility. Snapshot schema is 2; save schema is 2; the stored `crew_tasks` record remains schema 1. Reproducible synthetic reference fixtures now target these versions; they do not yet establish Godot runtime conformance. See `SIMULATION_RECONCILIATION.md` for decisions and validation evidence.
 
