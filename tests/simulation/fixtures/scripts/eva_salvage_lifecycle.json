@@ -1,24 +1,24 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "eva_salvage_lifecycle",
-  "description": "Reject two unsafe launches, launch a valid EVA, salvage, return.",
+  "contract_version": "2.0.0",
+  "description": "Two rejected launches, a valid EVA, salvage, return.",
   "metadata": {
     "status": "synthetic_test_fixture"
   },
-  "depends_on_decisions": [
-    "D1",
-    "D2",
-    "D3",
-    "D17"
+  "depends_on": [
+    "EVA check order",
+    "suit/cargo balances in expedition records",
+    "returned crew switch to base immediately"
   ],
   "init_config": "res://tests/simulation/fixtures/init/salvage_6crew.json",
   "world_service": "stub_world_fixture_flat_16",
-  "crew_adapter": "stub_crew_policy_v1",
+  "crew_adapter": "stub_crew_policy_v2",
   "steps": [
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000001",
         "type": "start_eva",
         "payload": {
@@ -42,12 +42,12 @@
         "duplicate": false,
         "result": null
       },
-      "note": "Passes reserve policy but exceeds 0.2 kg suit capacity: capacity_exceeded."
+      "note": "Passes reserve policy, exceeds 0.2 kg suit capacity."
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000002",
         "type": "start_eva",
         "payload": {
@@ -71,12 +71,12 @@
         "duplicate": false,
         "result": null
       },
-      "note": "0.10 - 40 s * 0.002 = 0.02 < 0.25 * 0.10: reserve_insufficient."
+      "note": "0.10 - 40 * 0.002 = 0.02 < 0.25 * 0.10."
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000003",
         "type": "start_eva",
         "payload": {
@@ -106,6 +106,7 @@
       "expect": {
         "tick_index": 1,
         "revision": 2,
+        "state_changed_emissions": 1,
         "command_resolved": [
           [
             "fixture:000001",
@@ -189,7 +190,10 @@
                 "type": "eva_launched",
                 "tick_index": 0,
                 "entity_ids": [
-                  "expedition_000001"
+                  "crew_000001",
+                  "crew_000002",
+                  "expedition_000001",
+                  "site_cargo_a"
                 ],
                 "data": {
                   "site_id": "site_cargo_a",
@@ -214,15 +218,28 @@
           "raw_water_kg": 0.0,
           "wastewater_kg": 0.996
         },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        },
         "snapshot": "res://tests/simulation/fixtures/snapshots/eva_outbound_tick1.json"
       },
-      "note": "Launch at boundary (0.24 kg O2 and 0.012 kWh leave base once); interval 0 outbound 1 m."
+      "note": "Launch: 0.24 kg O2 and 0.012 kWh leave base once."
     },
     {
       "op": "step",
+      "repeat": 9,
       "expect": {
         "tick_index": 10,
         "revision": 11,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -237,16 +254,28 @@
           "raw_water_kg": 0.0,
           "wastewater_kg": 0.96
         },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        },
         "snapshot": "res://tests/simulation/fixtures/snapshots/eva_working_tick10.json"
       },
-      "note": "Arrive at site end of interval 9. [Execute step() 9 times; expectations apply after the last.]",
-      "repeat_before": 9
+      "note": "Arrive at site."
     },
     {
       "op": "step",
+      "repeat": 5,
       "expect": {
         "tick_index": 15,
         "revision": 16,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -261,16 +290,27 @@
           "raw_water_kg": 0.0,
           "wastewater_kg": 0.94
         },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        },
         "snapshot": "res://tests/simulation/fixtures/snapshots/eva_working_tick15.json"
-      },
-      "repeat_before": 5,
-      "note": " [Execute step() 5 times; expectations apply after the last.]"
+      }
     },
     {
       "op": "step",
+      "repeat": 15,
       "expect": {
         "tick_index": 30,
         "revision": 31,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -285,16 +325,28 @@
           "raw_water_kg": 0.0,
           "wastewater_kg": 0.8799999999999999
         },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        },
         "snapshot": "res://tests/simulation/fixtures/snapshots/eva_returning_tick30.json"
       },
-      "note": "Work 20/20 end of interval 29: salvage alloy 4, electronics 2 (carry cap 6); returning. [Execute step() 15 times; expectations apply after the last.]",
-      "repeat_before": 15
+      "note": "Salvage alloy 4, electronics 2 (carry 6); returning."
     },
     {
       "op": "step",
+      "repeat": 10,
       "expect": {
         "tick_index": 40,
         "revision": 41,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [
           {
@@ -306,10 +358,16 @@
                 "type": "eva_returned",
                 "tick_index": 39,
                 "entity_ids": [
+                  "crew_000001",
+                  "crew_000002",
                   "expedition_000001"
                 ],
                 "data": {
-                  "salvage_completed": true
+                  "crew_ids": [
+                    "crew_000001",
+                    "crew_000002"
+                  ],
+                  "salvage_collected": true
                 }
               },
               {
@@ -336,15 +394,25 @@
           "raw_water_kg": 0.0,
           "wastewater_kg": 0.8399999999999999
         },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        },
         "snapshot": "res://tests/simulation/fixtures/snapshots/eva_returned_tick40.json"
       },
-      "note": "Arrive end of interval 39: cargo and unused suit stores return once. [Execute step() 10 times; expectations apply after the last.]",
-      "repeat_before": 10
+      "note": "Home: cargo and suit stores return once."
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000003",
         "type": "start_eva",
         "payload": {
@@ -377,7 +445,7 @@
           }
         }
       },
-      "note": "Retry after completion: duplicate, cached result, no second load."
+      "note": "Retry after completion: cached result."
     }
   ]
 }

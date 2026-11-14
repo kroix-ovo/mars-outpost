@@ -1,27 +1,25 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "placement_and_save",
-  "description": "Place a building, reject competing/unaffordable placements, dedupe a retry, assign construction labor, save mid-job with a pending command and fractional accumulator, then resume.",
+  "contract_version": "2.0.0",
+  "description": "Placement, competing and unaffordable placements, dedupe, labor, mid-job save with a pending command and fractional accumulator, restore into a new instance, commissioning.",
   "metadata": {
     "status": "synthetic_test_fixture"
   },
-  "depends_on_decisions": [
-    "D1",
-    "D2",
-    "D3",
-    "D4",
-    "D5",
-    "D12",
-    "D18"
+  "depends_on": [
+    "construction template via apply_command",
+    "Task 01 applies labor once",
+    "persisted completion markers",
+    "save schema 2"
   ],
   "init_config": "res://tests/simulation/fixtures/init/habitat_6crew.json",
   "world_service": "stub_world_fixture_flat_16",
-  "crew_adapter": "stub_crew_policy_v1",
+  "crew_adapter": "stub_crew_policy_v2",
   "steps": [
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000001",
         "type": "place_building",
         "payload": {
@@ -47,7 +45,7 @@
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000002",
         "type": "place_building",
         "payload": {
@@ -69,12 +67,12 @@
         "duplicate": false,
         "result": null
       },
-      "note": "Same cell; accepted at submit, fails at resolution with placement_blocked."
+      "note": "Same cell: accepted at submit, placement_blocked at resolution."
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000003",
         "type": "place_building",
         "payload": {
@@ -101,7 +99,7 @@
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000001",
         "type": "place_building",
         "payload": {
@@ -128,7 +126,7 @@
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000001",
         "type": "place_building",
         "payload": {
@@ -150,12 +148,12 @@
         "duplicate": false,
         "result": null
       },
-      "note": "Same id, different content."
+      "note": "Same id, different content: command_id_conflict."
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000099",
         "type": "place_building",
         "payload": {
@@ -176,13 +174,41 @@
         "duplicate": false,
         "result": null
       },
-      "note": "Schema failure (missing rotation_quarters): rejected at submit, does not claim the id."
+      "note": "Missing rotation_quarters: invalid_schema; the id is not claimed."
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "1.0.0",
+        "command_id": "fixture:000098",
+        "type": "place_building",
+        "payload": {
+          "definition_id": "fixture_electrolyzer",
+          "cell": [
+            7,
+            5
+          ],
+          "rotation_quarters": 0
+        }
+      },
+      "expect_response": {
+        "accepted": false,
+        "command_id": "fixture:000098",
+        "reason": "contract_version must be 2.0.0",
+        "code": "unsupported_contract",
+        "receive_sequence": null,
+        "status": "rejected",
+        "duplicate": false,
+        "result": null
+      },
+      "note": "Old contract version: unsupported_contract."
     },
     {
       "op": "step",
       "expect": {
         "tick_index": 1,
         "revision": 2,
+        "state_changed_emissions": 1,
         "command_resolved": [
           [
             "fixture:000001",
@@ -276,14 +302,23 @@
           "potable_water_kg": 499.991,
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.0
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
         }
       },
-      "note": "Boundary resolves 000001 ok, 000002 placement_blocked, 000003 insufficient_resources; then interval 0."
+      "note": "One boundary flush: three command_result events in receive order; then interval 0."
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000001",
         "type": "place_building",
         "payload": {
@@ -314,12 +349,12 @@
           }
         }
       },
-      "note": "Retry after resolution: duplicate=true, status=resolved, cached result; no second spend."
+      "note": "Retry after resolution: cached result; no second spend."
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000004",
         "type": "assign_task",
         "payload": {
@@ -346,6 +381,7 @@
       "expect": {
         "tick_index": 2,
         "revision": 4,
+        "state_changed_emissions": 1,
         "command_resolved": [
           [
             "fixture:000004",
@@ -363,6 +399,7 @@
                 "type": "command_result",
                 "tick_index": 1,
                 "entity_ids": [
+                  "crew_000003",
                   "task_000001"
                 ],
                 "data": {
@@ -393,78 +430,26 @@
           "potable_water_kg": 499.98199999999997,
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.0
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
         }
       },
-      "note": "Assignment resolves at the boundary; interval 1 adds 1.0 work."
+      "note": "command_result entity_ids include the crew_ids element."
     },
     {
       "op": "step",
-      "expect": {
-        "tick_index": 3,
-        "revision": 5,
-        "command_resolved": [],
-        "flushes": [],
-        "resource_amounts": {
-          "alloy": 4,
-          "co2_kg": 0.5,
-          "electronics": 2,
-          "energy_kwh": 18.000750000000004,
-          "food_kcal": 99982.0,
-          "hydrogen_kg": 0.003,
-          "oxygen_kg": 120.00599999999999,
-          "potable_water_kg": 499.97299999999996,
-          "raw_water_kg": 0.0,
-          "wastewater_kg": 1.0
-        }
-      }
-    },
-    {
-      "op": "step",
-      "expect": {
-        "tick_index": 4,
-        "revision": 6,
-        "command_resolved": [],
-        "flushes": [],
-        "resource_amounts": {
-          "alloy": 4,
-          "co2_kg": 0.5,
-          "electronics": 2,
-          "energy_kwh": 18.001000000000005,
-          "food_kcal": 99976.0,
-          "hydrogen_kg": 0.004,
-          "oxygen_kg": 120.00799999999998,
-          "potable_water_kg": 499.96399999999994,
-          "raw_water_kg": 0.0,
-          "wastewater_kg": 1.0
-        }
-      }
-    },
-    {
-      "op": "step",
-      "expect": {
-        "tick_index": 5,
-        "revision": 7,
-        "command_resolved": [],
-        "flushes": [],
-        "resource_amounts": {
-          "alloy": 4,
-          "co2_kg": 0.5,
-          "electronics": 2,
-          "energy_kwh": 18.001250000000006,
-          "food_kcal": 99970.0,
-          "hydrogen_kg": 0.005,
-          "oxygen_kg": 120.00999999999998,
-          "potable_water_kg": 499.9549999999999,
-          "raw_water_kg": 0.0,
-          "wastewater_kg": 1.0
-        }
-      }
-    },
-    {
-      "op": "step",
+      "repeat": 4,
       "expect": {
         "tick_index": 6,
         "revision": 8,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -478,16 +463,26 @@
           "potable_water_kg": 499.9459999999999,
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.0
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
         }
       },
       "note": "Work 5.0 / 10.0."
     },
     {
-      "real_delta_s": 0.4,
       "op": "advance",
+      "real_delta_s": 0.4,
       "expect": {
         "tick_index": 6,
         "revision": 8,
+        "state_changed_emissions": 0,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -501,14 +496,15 @@
           "potable_water_kg": 499.9459999999999,
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.0
-        }
+        },
+        "reference_external_flows": {}
       },
-      "note": "advance() processes an empty boundary, accumulator 0.4, no tick."
+      "note": "Empty boundary; accumulator 0.4; no tick; no state change."
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000005",
         "type": "set_building_enabled",
         "payload": {
@@ -535,26 +531,28 @@
     {
       "op": "export_save",
       "expect_save": "res://tests/simulation/fixtures/saves/placement_mid_job_tick6.json",
-      "note": "Save at a boundary: pending command, accumulator 0.4, task 5/10."
+      "note": "Boundary save: pending command, accumulator 0.4, task 5/10."
     },
     {
       "op": "import_save_into_new_instance",
       "save": "res://tests/simulation/fixtures/saves/placement_mid_job_tick6.json",
-      "note": "Initialize a fresh simulation with habitat_6crew, import the save, then continue. Every later expectation must hold for both the original and the restored instance.",
       "expect": {
         "ok": true,
         "code": "ok",
+        "reason": "",
         "state_changed_emissions": 1,
         "flushes": []
       },
-      "expect_snapshot": "res://tests/simulation/fixtures/snapshots/placement_mid_job_tick6.json"
+      "expect_snapshot": "res://tests/simulation/fixtures/snapshots/placement_mid_job_tick6.json",
+      "note": "Fresh instance from habitat_6crew; later expectations hold for both instances."
     },
     {
-      "real_delta_s": 0.6,
       "op": "advance",
+      "real_delta_s": 0.6,
       "expect": {
         "tick_index": 7,
         "revision": 10,
+        "state_changed_emissions": 1,
         "command_resolved": [
           [
             "fixture:000005",
@@ -599,60 +597,27 @@
           "potable_water_kg": 499.9249999999999,
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.012
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 4.166666666666666e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
         }
       },
-      "note": "Boundary resolves 000005; accumulator reaches 1.0; one tick (interval 6)."
+      "note": "Boundary resolves fixture:000005; accumulator reaches 1.0; one tick."
     },
     {
-      "real_delta_s": 1.0,
       "op": "advance",
-      "expect": {
-        "tick_index": 8,
-        "revision": 11,
-        "command_resolved": [],
-        "flushes": [],
-        "resource_amounts": {
-          "alloy": 4,
-          "co2_kg": 0.5,
-          "electronics": 2,
-          "energy_kwh": 18.002250000000004,
-          "food_kcal": 99952.0,
-          "hydrogen_kg": 0.008,
-          "oxygen_kg": 120.01599999999996,
-          "potable_water_kg": 499.9039999999999,
-          "raw_water_kg": 0.0,
-          "wastewater_kg": 1.024
-        }
-      }
-    },
-    {
       "real_delta_s": 1.0,
-      "op": "advance",
-      "expect": {
-        "tick_index": 9,
-        "revision": 12,
-        "command_resolved": [],
-        "flushes": [],
-        "resource_amounts": {
-          "alloy": 4,
-          "co2_kg": 0.5,
-          "electronics": 2,
-          "energy_kwh": 18.002625000000002,
-          "food_kcal": 99946.0,
-          "hydrogen_kg": 0.009000000000000001,
-          "oxygen_kg": 120.01799999999996,
-          "potable_water_kg": 499.88299999999987,
-          "raw_water_kg": 0.0,
-          "wastewater_kg": 1.036
-        }
-      }
-    },
-    {
-      "real_delta_s": 1.0,
-      "op": "advance",
+      "repeat": 3,
       "expect": {
         "tick_index": 10,
         "revision": 13,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -666,15 +631,25 @@
           "potable_water_kg": 499.86199999999985,
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.048
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 4.166666666666666e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
         }
       }
     },
     {
-      "real_delta_s": 1.0,
       "op": "advance",
+      "real_delta_s": 1.0,
       "expect": {
         "tick_index": 11,
         "revision": 14,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [
           {
@@ -686,7 +661,8 @@
                 "type": "building_commissioned",
                 "tick_index": 10,
                 "entity_ids": [
-                  "building_000006"
+                  "building_000006",
+                  "task_000001"
                 ],
                 "data": {
                   "task_id": "task_000001"
@@ -716,16 +692,26 @@
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.06
         },
+        "reference_external_flows": {
+          "external/battery_loss": 4.166666666666666e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
+        },
         "snapshot": "res://tests/simulation/fixtures/snapshots/placement_commissioned_tick11.json"
       },
-      "note": "Interval 10 completes work 10/10; building_000006 commissioned at end of tick."
+      "note": "Work 10/10: commissioned at end of interval 10."
     },
     {
-      "real_delta_s": 1.0,
       "op": "advance",
+      "real_delta_s": 1.0,
       "expect": {
         "tick_index": 12,
         "revision": 15,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -740,14 +726,23 @@
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.072
         },
+        "reference_external_flows": {
+          "external/battery_loss": 1.3888888888888886e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
+        },
         "snapshot": "res://tests/simulation/fixtures/snapshots/placement_after_tick12.json"
       },
-      "note": "Interval 11: crew_000003 released at intent; second electrolyzer produces."
+      "note": "crew_000003 released at intent; second electrolyzer produces."
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000001",
         "type": "place_building",
         "payload": {
@@ -778,7 +773,7 @@
           }
         }
       },
-      "note": "Retry after load: still duplicate with cached result."
+      "note": "Retry after load: cached result."
     }
   ]
 }

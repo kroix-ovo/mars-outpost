@@ -1,14 +1,14 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "stub_world_fixture_flat_16",
-  "owner": "task_02_proposal",
+  "owner": "task_01_test_stub",
   "metadata": {
-    "status": "synthetic_test_fixture"
+    "status": "synthetic_test_fixture",
+    "note": "Stub behavior only; not evidence that Task 02's placement contract is implemented."
   },
-  "algorithm": "Four-neighbor BFS, neighbor order +X,+Z,-X,-Z, 1 m edges; waypoints are every cell center on the path; route_id = 'route_' + first 16 hex of sha256(canonical JSON {blocked_cells(sorted), from_cell, map_id, map_revision, to_cell}).",
   "placement_cases": [
     {
-      "snapshot": "habitat tick 0",
+      "snapshot": "salvage_6crew_tick0",
       "request": {
         "definition_id": "fixture_electrolyzer",
         "cell": [
@@ -36,7 +36,7 @@
       }
     },
     {
-      "snapshot": "habitat tick 0",
+      "snapshot": "salvage_6crew_tick0",
       "request": {
         "definition_id": "fixture_electrolyzer",
         "cell": [
@@ -54,7 +54,7 @@
       }
     },
     {
-      "snapshot": "habitat tick 0",
+      "snapshot": "salvage_6crew_tick0",
       "request": {
         "definition_id": "fixture_electrolyzer",
         "cell": [
@@ -74,7 +74,7 @@
   ],
   "route_cases": [
     {
-      "snapshot": "salvage tick 0",
+      "snapshot": "salvage_6crew_tick0",
       "request": {
         "from_cell": [
           2,
@@ -151,7 +151,7 @@
       }
     },
     {
-      "snapshot": "salvage tick 0",
+      "snapshot": "salvage_6crew_tick0",
       "request": {
         "from_cell": [
           12,
@@ -228,7 +228,7 @@
       }
     },
     {
-      "snapshot": "salvage tick 0",
+      "snapshot": "salvage_6crew_tick0",
       "request": {
         "from_cell": [
           2,
@@ -249,7 +249,7 @@
       }
     },
     {
-      "snapshot": "salvage tick 0",
+      "snapshot": "salvage_6crew_tick0",
       "request": {
         "from_cell": [
           2,

@@ -1,0 +1,154 @@
+{
+  "schema_version": 2,
+  "id": "load_equal_revision_other_campaign",
+  "contract_version": "2.0.0",
+  "description": "Import a different campaign's save whose revision equals the current revision; the snapshot cache must not return the old campaign. Invalid saves leave the current state untouched.",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "depends_on": [
+    "snapshot cache invalidation on import",
+    "import validation"
+  ],
+  "init_config": "res://tests/simulation/fixtures/init/habitat_6crew.json",
+  "world_service": "stub_world_fixture_flat_16",
+  "crew_adapter": "stub_crew_policy_v2",
+  "steps": [
+    {
+      "op": "step",
+      "repeat": 5,
+      "expect": {
+        "tick_index": 5,
+        "revision": 5,
+        "state_changed_emissions": 1,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.5,
+          "electronics": 2,
+          "energy_kwh": 18.001250000000006,
+          "food_kcal": 99970.0,
+          "hydrogen_kg": 0.005,
+          "oxygen_kg": 120.00999999999998,
+          "potable_water_kg": 499.9549999999999,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 1.0
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/habitat_6crew_tick5.json"
+      }
+    },
+    {
+      "op": "get_snapshot",
+      "expect_snapshot": "res://tests/simulation/fixtures/snapshots/habitat_6crew_tick5.json",
+      "note": "Prime any snapshot cache."
+    },
+    {
+      "op": "import_save",
+      "save": "res://tests/simulation/fixtures/saves/invalid/wrong_save_version.json",
+      "expect": {
+        "ok": false,
+        "code": "incompatible_save",
+        "reason": "unsupported save_version or contract_version",
+        "state_changed_emissions": 0,
+        "flushes": []
+      },
+      "expect_snapshot": "res://tests/simulation/fixtures/snapshots/habitat_6crew_tick5.json",
+      "note": "Rejected; nothing changes."
+    },
+    {
+      "op": "import_save",
+      "save": "res://tests/simulation/fixtures/saves/invalid/energy_aggregate_mismatch.json",
+      "expect": {
+        "ok": false,
+        "code": "invalid_save",
+        "reason": "energy_kwh aggregate does not equal per-battery total",
+        "state_changed_emissions": 0,
+        "flushes": []
+      },
+      "expect_snapshot": "res://tests/simulation/fixtures/snapshots/habitat_6crew_tick5.json",
+      "note": "Rejected; nothing changes."
+    },
+    {
+      "op": "import_save",
+      "save": "res://tests/simulation/fixtures/saves/invalid/manifest_mismatch.json",
+      "expect": {
+        "ok": false,
+        "code": "definition_mismatch",
+        "reason": "definition manifest differs from the loaded content",
+        "state_changed_emissions": 0,
+        "flushes": []
+      },
+      "expect_snapshot": "res://tests/simulation/fixtures/snapshots/habitat_6crew_tick5.json",
+      "note": "Rejected; nothing changes."
+    },
+    {
+      "op": "import_save",
+      "save": "res://tests/simulation/fixtures/saves/invalid/crew_tasks_schema_mismatch.json",
+      "expect": {
+        "ok": false,
+        "code": "incompatible_save",
+        "reason": "unsupported crew_tasks schema_version",
+        "state_changed_emissions": 0,
+        "flushes": []
+      },
+      "expect_snapshot": "res://tests/simulation/fixtures/snapshots/habitat_6crew_tick5.json",
+      "note": "Rejected; nothing changes."
+    },
+    {
+      "op": "import_save",
+      "save": "res://tests/simulation/fixtures/saves/alt_campaign_rev5.json",
+      "expect": {
+        "ok": true,
+        "code": "ok",
+        "reason": "",
+        "state_changed_emissions": 1,
+        "flushes": []
+      },
+      "expect_snapshot": "res://tests/simulation/fixtures/snapshots/alt_campaign_rev5.json",
+      "note": "Same revision (5), different campaign: snapshot must be the imported campaign's."
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 5,
+        "revision": 6,
+        "state_changed_emissions": 1,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.5,
+          "electronics": 2,
+          "energy_kwh": 18.00187499999999,
+          "food_kcal": 99970.0,
+          "hydrogen_kg": 0.005,
+          "oxygen_kg": 120.00999999999998,
+          "potable_water_kg": 499.8949999999999,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 1.06
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 4.166666666666666e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/alt_campaign_after_load_tick5.json"
+      },
+      "note": "Continues the imported campaign."
+    }
+  ]
+}

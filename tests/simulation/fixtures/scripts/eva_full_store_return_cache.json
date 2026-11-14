@@ -1,0 +1,218 @@
+{
+  "schema_version": 2,
+  "id": "eva_full_store_return_cache",
+  "contract_version": "2.0.0",
+  "description": "Returned cargo exceeds alloy storage: the excess waits in the return cache and drains when capacity opens.",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "depends_on": [
+    "return cache written only by the ledger",
+    "tick-scoped drain effects are not persisted"
+  ],
+  "init_config": "res://tests/simulation/fixtures/init/salvage_full_store_6crew.json",
+  "world_service": "stub_world_fixture_flat_16",
+  "crew_adapter": "stub_crew_policy_v2",
+  "steps": [
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "2.0.0",
+        "command_id": "fixture:000001",
+        "type": "start_eva",
+        "payload": {
+          "site_id": "site_cargo_a",
+          "crew_ids": [
+            "crew_000001",
+            "crew_000002"
+          ],
+          "work_duration_s": 20,
+          "oxygen_kg_per_crew": 0.12,
+          "battery_kwh_per_crew": 0.006
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000001",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 1,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      }
+    },
+    {
+      "op": "step",
+      "repeat": 40,
+      "expect": {
+        "tick_index": 40,
+        "revision": 41,
+        "state_changed_emissions": 1,
+        "command_resolved": [],
+        "flushes": [
+          {
+            "after": "tick",
+            "tick_index": 40,
+            "events": [
+              {
+                "id": "event_000003",
+                "type": "eva_returned",
+                "tick_index": 39,
+                "entity_ids": [
+                  "crew_000001",
+                  "crew_000002",
+                  "expedition_000001"
+                ],
+                "data": {
+                  "crew_ids": [
+                    "crew_000001",
+                    "crew_000002"
+                  ],
+                  "salvage_collected": true
+                }
+              },
+              {
+                "id": "event_000004",
+                "type": "task_completed",
+                "tick_index": 39,
+                "entity_ids": [
+                  "task_000001"
+                ],
+                "data": {}
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 8.0,
+          "co2_kg": 0.41999999999999993,
+          "electronics": 4,
+          "energy_kwh": 18.002000000000045,
+          "food_kcal": 99840.0,
+          "hydrogen_kg": 0.04000000000000003,
+          "oxygen_kg": 119.99999999999964,
+          "potable_water_kg": 499.8000000000002,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.8399999999999999
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/eva_full_store_tick40.json"
+      },
+      "note": "Home: 2 of 4 alloy fit (cap 8); 2 wait in return_caches."
+    },
+    {
+      "op": "export_save",
+      "expect_save": "res://tests/simulation/fixtures/saves/eva_full_store_cache_tick40.json",
+      "note": "return_caches.expedition_000001.alloy = 2."
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "2.0.0",
+        "command_id": "fixture:000002",
+        "type": "place_building",
+        "payload": {
+          "definition_id": "fixture_electrolyzer",
+          "cell": [
+            7,
+            5
+          ],
+          "rotation_quarters": 0
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000002",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 2,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      },
+      "note": "Spends 2 alloy, opening capacity."
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 41,
+        "revision": 43,
+        "state_changed_emissions": 1,
+        "command_resolved": [
+          [
+            "fixture:000002",
+            true,
+            ""
+          ]
+        ],
+        "flushes": [
+          {
+            "after": "boundary",
+            "tick_index": 40,
+            "events": [
+              {
+                "id": "event_000005",
+                "type": "command_result",
+                "tick_index": 40,
+                "entity_ids": [
+                  "building_000006",
+                  "task_000002"
+                ],
+                "data": {
+                  "success": true,
+                  "code": "ok",
+                  "reason": "",
+                  "resolved_tick": 40,
+                  "data": {
+                    "building_id": "building_000006",
+                    "task_id": "task_000002"
+                  },
+                  "command_id": "fixture:000002"
+                }
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 8.0,
+          "co2_kg": 0.41999999999999993,
+          "electronics": 4,
+          "energy_kwh": 18.002250000000046,
+          "food_kcal": 99834.0,
+          "hydrogen_kg": 0.04100000000000003,
+          "oxygen_kg": 120.00199999999964,
+          "potable_water_kg": 499.79100000000017,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.8399999999999999
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/eva_full_store_tick41.json"
+      },
+      "note": "Phase 8 drains the cache: alloy back to 8; cache removed."
+    },
+    {
+      "op": "export_save",
+      "expect_save": "res://tests/simulation/fixtures/saves/eva_full_store_drained_tick41.json",
+      "note": "Empty return_caches; no persisted drain marker."
+    }
+  ]
+}

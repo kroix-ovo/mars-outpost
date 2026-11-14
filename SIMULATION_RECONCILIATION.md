@@ -2,7 +2,7 @@
 
 Decision date: 2026-11-14. Reviewed input: revision 3 of `SIMULATION_DESIGN_PROPOSAL.md` and the synthetic fixtures under `tests/simulation/fixtures/`.
 
-**Implementation authority: [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md), contract 2.0.0.** The proposal remains design history; the current fixtures remain draft reference outputs until regenerated against 2.0.0. No simulation runtime has been implemented or tested yet.
+**Implementation authority: [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md), contract 2.0.0.** The proposal remains design history. The fixtures have now been regenerated with repository-owned tooling against 2.0.0. No simulation runtime has been implemented or tested yet.
 
 ## Accepted decisions
 
@@ -34,7 +34,7 @@ Decision date: 2026-11-14. Reviewed input: revision 3 of `SIMULATION_DESIGN_PROP
 
 **Nullable capacity:** use `capacity: null` for accumulators and a declared registry policy, rather than a fake numeric capacity. UI must render that as accumulation, not unlimited usable storage.
 
-**Reference generator:** commit it under `tests/simulation/tools/`, including its reference-model source, a documented deterministic invocation, and a `--check` mode that fails on stale generated files. Do not commit only generated expectations while keeping their only regeneration method in an agent scratchpad. Retain independent closed-form checks so a mistaken model cannot define correctness by itself. The generator was not present in the reviewed repository; it still needs to be supplied.
+**Reference generator:** supplied and reviewed under `tests/simulation/tools/`, including reference-model source, deterministic regeneration, a stale-file `--check` mode, and independent closed-form checks. The model intentionally covers a subset of the contract, not all input validation, adapter proposal validation, hazards, or rollback behavior. Runtime assertions must independently cover those boundaries.
 
 ## Version and fixture follow-up
 
@@ -47,9 +47,24 @@ Decision date: 2026-11-14. Reviewed input: revision 3 of `SIMULATION_DESIGN_PROP
 
 ## Independent checks performed during this review
 
+The following first-pass checks preceded generator delivery:
+
 - Parsed all 55 fixture JSON files.
 - Verified all 72 manifest path/hash entries across initialization configs and the save.
 - Compared 5/6/9-crew tick-600 oxygen, food, hydrogen, battery and applicable water/CO2 totals with independent formulas.
 - Compared charged, depleted, and restored battery snapshots against independent expected energy values.
 
 Those artifact checks passed. The Python generator's claimed save/load continuity has not been independently reproduced because its source is absent. No fixture script has run against a Godot simulation runtime. Previously reported Godot parser/hash/RNG checks are useful engine probes, not proof of gameplay correctness.
+
+## Generator delivery review
+
+The generator source is now present. The first-pass source-availability limitation above is resolved. Local checks performed after delivery:
+
+- `python tests/simulation/tools/generate_fixtures.py --check` passed for all 85 generated JSON files; this also executes the reference-model save/load continuity assertion.
+- `python tests/simulation/tools/closed_form_checks.py` passed independently of model imports.
+- Isolated mutation checks proved that changed, extra, and missing JSON each cause `--check` to return a failure, without modifying the working fixtures.
+- A fresh scratch Godot 4.7.2 headless probe parsed all 85 files, checked JSON numeric decoding, reproduced all 144 valid-save/init manifest hashes, and verified seed 42's RNG state `708718527385777908`.
+
+Accepted clarifications: an initial blocked recall transitions to stranded and resolves successfully; a still-blocked stranded retry fails without mutation. Injected blocked cells remain a harness-only failure hook. The shared spec also makes canonical suit/base energy identity, capacity-blocked return-cache destinations, and explicit suit-return loss destinations clear for future ledger validation.
+
+The tooling/reference outputs are ready to commit as a reproducible test baseline. No gameplay simulation has executed these scripts yet. The model does not exercise real `CrewTickProposal` validation merely because the stub policy README describes that field; that remains implementation work.

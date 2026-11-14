@@ -42,6 +42,7 @@
   "alerts": {
     "low_oxygen_forecast_s": 600.0,
     "co2_high_kg": 1.0,
-    "battery_low_fraction": 0.1
+    "battery_low_fraction": 0.1,
+    "expedition_low_margin_s": 10.0
   }
 }

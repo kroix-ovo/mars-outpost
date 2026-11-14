@@ -1,23 +1,23 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "eva_recall",
-  "description": "Launch, recall during work, return without salvage; recall no-op and post-return rejection.",
+  "contract_version": "2.0.0",
+  "description": "Recall during work; no-op recall; recall after completion.",
   "metadata": {
     "status": "synthetic_test_fixture"
   },
-  "depends_on_decisions": [
-    "D1",
-    "D3",
-    "D17"
+  "depends_on": [
+    "recall semantics",
+    "recalled task cancelled without salvage"
   ],
   "init_config": "res://tests/simulation/fixtures/init/salvage_6crew.json",
   "world_service": "stub_world_fixture_flat_16",
-  "crew_adapter": "stub_crew_policy_v1",
+  "crew_adapter": "stub_crew_policy_v2",
   "steps": [
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000001",
         "type": "start_eva",
         "payload": {
@@ -44,9 +44,11 @@
     },
     {
       "op": "step",
+      "repeat": 15,
       "expect": {
         "tick_index": 15,
         "revision": 16,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -60,15 +62,24 @@
           "potable_water_kg": 499.92500000000007,
           "raw_water_kg": 0.0,
           "wastewater_kg": 0.94
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
         }
-      },
-      "repeat_before": 15,
-      "note": "Execute step() 15 times; expectations apply after the last."
+      }
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000002",
         "type": "recall_eva",
         "payload": {
@@ -91,6 +102,7 @@
       "expect": {
         "tick_index": 16,
         "revision": 18,
+        "state_changed_emissions": 1,
         "command_resolved": [
           [
             "fixture:000002",
@@ -128,7 +140,9 @@
                 "entity_ids": [
                   "expedition_000001"
                 ],
-                "data": {}
+                "data": {
+                  "status": "returning"
+                }
               }
             ]
           }
@@ -144,14 +158,25 @@
           "potable_water_kg": 499.9200000000001,
           "raw_water_kg": 0.0,
           "wastewater_kg": 0.9359999999999999
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
         }
       },
-      "note": "Recall resolves at boundary: returning from site, no salvage."
+      "note": "Returning from the site; no salvage."
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000003",
         "type": "recall_eva",
         "payload": {
@@ -168,13 +193,14 @@
         "duplicate": false,
         "result": null
       },
-      "note": "Already returning: success no-op."
+      "note": "Already returning."
     },
     {
       "op": "step",
       "expect": {
         "tick_index": 17,
         "revision": 19,
+        "state_changed_emissions": 1,
         "command_resolved": [
           [
             "fixture:000003",
@@ -219,15 +245,28 @@
           "potable_water_kg": 499.9150000000001,
           "raw_water_kg": 0.0,
           "wastewater_kg": 0.9319999999999999
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
         }
       },
-      "note": "No-op recall does not increase revision beyond the tick."
+      "note": "No-op recall: revision increases only for the tick."
     },
     {
       "op": "step",
+      "repeat": 7,
       "expect": {
         "tick_index": 24,
         "revision": 26,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -241,16 +280,26 @@
           "potable_water_kg": 499.8800000000001,
           "raw_water_kg": 0.0,
           "wastewater_kg": 0.9039999999999999
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
         }
-      },
-      "repeat_before": 7,
-      "note": "Execute step() 7 times; expectations apply after the last."
+      }
     },
     {
       "op": "step",
       "expect": {
         "tick_index": 25,
         "revision": 27,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [
           {
@@ -262,10 +311,16 @@
                 "type": "eva_returned",
                 "tick_index": 24,
                 "entity_ids": [
+                  "crew_000001",
+                  "crew_000002",
                   "expedition_000001"
                 ],
                 "data": {
-                  "salvage_completed": false
+                  "crew_ids": [
+                    "crew_000001",
+                    "crew_000002"
+                  ],
+                  "salvage_collected": false
                 }
               },
               {
@@ -292,14 +347,25 @@
           "raw_water_kg": 0.0,
           "wastewater_kg": 0.8999999999999999
         },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        },
         "snapshot": "res://tests/simulation/fixtures/snapshots/eva_recalled_returned_tick25.json"
       },
-      "note": "Arrive end of interval 24; task cancelled, expedition completed, site released."
+      "note": "Home at end of interval 24; task cancelled."
     },
     {
       "op": "submit",
       "command": {
-        "contract_version": "1.0.0",
+        "contract_version": "2.0.0",
         "command_id": "fixture:000004",
         "type": "recall_eva",
         "payload": {
@@ -322,6 +388,7 @@
       "expect": {
         "tick_index": 26,
         "revision": 28,
+        "state_changed_emissions": 1,
         "command_resolved": [
           [
             "fixture:000004",
@@ -366,9 +433,18 @@
           "potable_water_kg": 499.8660000000001,
           "raw_water_kg": 0.0,
           "wastewater_kg": 0.8999999999999999
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
         }
       },
-      "note": "Recall of completed expedition: invalid_state."
+      "note": "Completed expedition rejects recall: invalid_state."
     }
   ]
 }

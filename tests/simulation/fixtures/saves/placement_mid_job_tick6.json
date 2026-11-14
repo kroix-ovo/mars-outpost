@@ -1,7 +1,7 @@
 {
   "format": "mars-outpost-save",
-  "save_version": 1,
-  "contract_version": "1.0.0",
+  "save_version": 2,
+  "contract_version": "2.0.0",
   "campaign_id": "fixture_habitat_6crew",
   "definition_manifest": {
     "res://tests/simulation/fixtures/definitions/buildings/fixture_battery.json": "6016971a5fecf0290de65a6694408f4c8857064989cb1526a0197d71655ec8d8",
@@ -14,7 +14,7 @@
     "res://tests/simulation/fixtures/definitions/crew/fixture_task_templates.json": "d29e86e749dcbf1d10433f614ed091fab89795f8e0f70cd9e394000802daf3d9",
     "res://tests/simulation/fixtures/definitions/map/fixture_flat_16.json": "41ecd18122dfbba97314665176fe145be996d1628958b32842d4b855836987bf",
     "res://tests/simulation/fixtures/definitions/resources.json": "82605c7376ede629445f5a3b1b8ba1b277ab6eb5f09699e319acda1bae33bda7",
-    "res://tests/simulation/fixtures/definitions/science/fixture_science_synthetic.json": "665bde9cbb0c7a01d818079b0820c3500ceab73ffa92e089a06ddde8804d52c3",
+    "res://tests/simulation/fixtures/definitions/science/fixture_science_synthetic.json": "2244b65dc87fe8a0e5567823d24a62bc319fe1c9f0226123b8b8f22f49c93f6f",
     "res://tests/simulation/fixtures/scenarios/fixture_habitat.json": "3fda82359ddadba31c5efc8bd086861b24460fd475b427211182dde2e0c4c49a"
   },
   "core": {
@@ -44,7 +44,7 @@
     "command_journal": {
       "fixture:000001": {
         "normalized": {
-          "contract_version": "1.0.0",
+          "contract_version": "2.0.0",
           "command_id": "fixture:000001",
           "type": "place_building",
           "payload": {
@@ -71,7 +71,7 @@
       },
       "fixture:000002": {
         "normalized": {
-          "contract_version": "1.0.0",
+          "contract_version": "2.0.0",
           "command_id": "fixture:000002",
           "type": "place_building",
           "payload": {
@@ -101,7 +101,7 @@
       },
       "fixture:000003": {
         "normalized": {
-          "contract_version": "1.0.0",
+          "contract_version": "2.0.0",
           "command_id": "fixture:000003",
           "type": "place_building",
           "payload": {
@@ -128,7 +128,7 @@
       },
       "fixture:000004": {
         "normalized": {
-          "contract_version": "1.0.0",
+          "contract_version": "2.0.0",
           "command_id": "fixture:000004",
           "type": "assign_task",
           "payload": {
@@ -156,7 +156,7 @@
       },
       "fixture:000005": {
         "normalized": {
-          "contract_version": "1.0.0",
+          "contract_version": "2.0.0",
           "command_id": "fixture:000005",
           "type": "set_building_enabled",
           "payload": {
@@ -175,59 +175,110 @@
     "committed_effects": {
       "cmd:fixture:000001:build_cost": {
         "ok": true,
-        "applied_tick": 0
+        "applied_tick": 0,
+        "kind": "build_cost",
+        "debits": {
+          "base/alloy": 2
+        },
+        "credits": {}
       }
     },
+    "power_summary": {
+      "generated_kw": 3.0,
+      "requested_kw": 2.0,
+      "served_kw": 2.0
+    },
+    "alerts": {},
     "resources": {
       "alloy": {
         "id": "alloy",
+        "unit": "count",
         "amount": 4,
-        "net_rate_per_s": 0.0
+        "capacity": 50.0,
+        "reserved": 0,
+        "net_rate_per_s": 0.0,
+        "forecast_empty_s": null
       },
       "co2_kg": {
         "id": "co2_kg",
+        "unit": "kg",
         "amount": 0.5,
-        "net_rate_per_s": 0.0
+        "capacity": null,
+        "reserved": 0.0,
+        "net_rate_per_s": 0.0,
+        "forecast_empty_s": null
       },
       "electronics": {
         "id": "electronics",
+        "unit": "count",
         "amount": 2,
-        "net_rate_per_s": 0.0
+        "capacity": 50.0,
+        "reserved": 0,
+        "net_rate_per_s": 0.0,
+        "forecast_empty_s": null
       },
       "energy_kwh": {
         "id": "energy_kwh",
+        "unit": "kwh",
         "amount": 18.001500000000007,
-        "net_rate_per_s": 0.0002500000000011937
+        "capacity": 40.0,
+        "reserved": 0.0,
+        "net_rate_per_s": 0.0002500000000011937,
+        "forecast_empty_s": null
       },
       "food_kcal": {
         "id": "food_kcal",
+        "unit": "kcal",
         "amount": 99964.0,
-        "net_rate_per_s": -6.0
+        "capacity": 200000.0,
+        "reserved": 0.0,
+        "net_rate_per_s": -6.0,
+        "forecast_empty_s": 16660.666666666668
       },
       "hydrogen_kg": {
         "id": "hydrogen_kg",
+        "unit": "kg",
         "amount": 0.006,
-        "net_rate_per_s": 0.001
+        "capacity": 10.0,
+        "reserved": 0.0,
+        "net_rate_per_s": 0.001,
+        "forecast_empty_s": null
       },
       "oxygen_kg": {
         "id": "oxygen_kg",
+        "unit": "kg",
         "amount": 120.01199999999997,
-        "net_rate_per_s": 0.001999999999995339
+        "capacity": 200.0,
+        "reserved": 0.0,
+        "net_rate_per_s": 0.001999999999995339,
+        "forecast_empty_s": null
       },
       "potable_water_kg": {
         "id": "potable_water_kg",
+        "unit": "kg",
         "amount": 499.9459999999999,
-        "net_rate_per_s": -0.009000000000014552
+        "capacity": 1000.0,
+        "reserved": 0.0,
+        "net_rate_per_s": -0.009000000000014552,
+        "forecast_empty_s": 55549.555555465726
       },
       "raw_water_kg": {
         "id": "raw_water_kg",
+        "unit": "kg",
         "amount": 0.0,
-        "net_rate_per_s": 0.0
+        "capacity": 100.0,
+        "reserved": 0.0,
+        "net_rate_per_s": 0.0,
+        "forecast_empty_s": null
       },
       "wastewater_kg": {
         "id": "wastewater_kg",
+        "unit": "kg",
         "amount": 1.0,
-        "net_rate_per_s": 0.0
+        "capacity": 50.0,
+        "reserved": 0.0,
+        "net_rate_per_s": 0.0,
+        "forecast_empty_s": null
       }
     },
     "buildings": {
@@ -356,13 +407,7 @@
       }
     },
     "crop_cycles": {},
-    "scheduled_events": [],
-    "power_summary": {
-      "generated_kw": 3.0,
-      "requested_kw": 2.0,
-      "served_kw": 2.0
-    },
-    "alerts": {}
+    "scheduled_events": []
   },
   "subsystems": {
     "crew_tasks": {

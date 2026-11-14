@@ -1,29 +1,31 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "habitat_6crew_balance",
-  "description": "Run habitat_6crew for 600 ticks with no commands; compare balances.",
+  "contract_version": "2.0.0",
+  "description": "Run habitat_6crew for 600 ticks with no commands.",
   "metadata": {
     "status": "synthetic_test_fixture"
   },
-  "depends_on_decisions": [
-    "D1",
-    "D8",
-    "D9"
+  "depends_on": [
+    "synthetic metabolism and process rates",
+    "power priority dispatch",
+    "accumulator CO2"
   ],
   "init_config": "res://tests/simulation/fixtures/init/habitat_6crew.json",
   "world_service": "stub_world_fixture_flat_16",
-  "crew_adapter": "stub_crew_policy_v1",
+  "crew_adapter": "stub_crew_policy_v2",
   "steps": [
     {
       "op": "get_snapshot",
       "expect_snapshot": "res://tests/simulation/fixtures/snapshots/habitat_6crew_tick0.json",
-      "note": "Initial snapshot: no tick completed, so rates are 0 and power fields are 0."
+      "note": "Before the first tick: rates, power fields, and alerts are zero/empty."
     },
     {
       "op": "step",
       "expect": {
         "tick_index": 1,
         "revision": 1,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -38,14 +40,25 @@
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.0
         },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
+        },
         "snapshot": "res://tests/simulation/fixtures/snapshots/habitat_6crew_tick1.json"
       }
     },
     {
       "op": "step",
+      "repeat": 9,
       "expect": {
         "tick_index": 10,
         "revision": 10,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -59,16 +72,25 @@
           "potable_water_kg": 499.90999999999985,
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.0
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
         }
-      },
-      "repeat_before": 9,
-      "note": "Execute step() 9 times; expectations apply after the last one. flushes covers only the last call."
+      }
     },
     {
       "op": "step",
+      "repeat": 90,
       "expect": {
         "tick_index": 100,
         "revision": 100,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -83,16 +105,25 @@
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.0
         },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
+        },
         "snapshot": "res://tests/simulation/fixtures/snapshots/habitat_6crew_tick100.json"
-      },
-      "repeat_before": 90,
-      "note": "Execute step() 90 times; expectations apply after the last one. flushes covers only the last call."
+      }
     },
     {
       "op": "step",
+      "repeat": 500,
       "expect": {
         "tick_index": 600,
         "revision": 600,
+        "state_changed_emissions": 1,
         "command_resolved": [],
         "flushes": [],
         "resource_amounts": {
@@ -107,10 +138,17 @@
           "raw_water_kg": 0.0,
           "wastewater_kg": 1.0
         },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 6.0,
+          "external/metabolism_in/oxygen_kg": 0.006,
+          "external/metabolism_in/potable_water_kg": 0.012,
+          "external/metabolism_out/co2_kg": 0.006,
+          "external/metabolism_out/wastewater_kg": 0.012,
+          "external/process_removal/co2_kg": 0.006
+        },
         "snapshot": "res://tests/simulation/fixtures/snapshots/habitat_6crew_tick600.json"
-      },
-      "repeat_before": 500,
-      "note": "Execute step() 500 times; expectations apply after the last one. flushes covers only the last call."
+      }
     }
   ]
 }

@@ -1,0 +1,541 @@
+{
+  "schema_version": 2,
+  "id": "eva_stranded_recall_recovery",
+  "contract_version": "2.0.0",
+  "description": "Stub-world fault injection removes the route home; recall strands the team; a retry while blocked fails; after the route reopens, recall recovers stranded -> returning.",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "depends_on": [
+    "stranded -> returning on valid recall",
+    "expedition_stranded alert",
+    "stub fault injection is harness-only"
+  ],
+  "init_config": "res://tests/simulation/fixtures/init/salvage_6crew.json",
+  "world_service": "stub_world_fixture_flat_16",
+  "crew_adapter": "stub_crew_policy_v2",
+  "steps": [
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "2.0.0",
+        "command_id": "fixture:000001",
+        "type": "start_eva",
+        "payload": {
+          "site_id": "site_cargo_a",
+          "crew_ids": [
+            "crew_000001",
+            "crew_000002"
+          ],
+          "work_duration_s": 20,
+          "oxygen_kg_per_crew": 0.12,
+          "battery_kwh_per_crew": 0.006
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000001",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 1,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      }
+    },
+    {
+      "op": "step",
+      "repeat": 15,
+      "expect": {
+        "tick_index": 15,
+        "revision": 16,
+        "state_changed_emissions": 1,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.47,
+          "electronics": 2,
+          "energy_kwh": 17.991750000000017,
+          "food_kcal": 99940.0,
+          "hydrogen_kg": 0.015000000000000006,
+          "oxygen_kg": 119.81999999999987,
+          "potable_water_kg": 499.92500000000007,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.94
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        }
+      }
+    },
+    {
+      "op": "stub_world_set_injected_blocked_cells",
+      "cells": [
+        [
+          7,
+          0
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          7,
+          9
+        ],
+        [
+          7,
+          10
+        ],
+        [
+          7,
+          11
+        ],
+        [
+          7,
+          12
+        ],
+        [
+          7,
+          13
+        ],
+        [
+          7,
+          14
+        ],
+        [
+          7,
+          15
+        ]
+      ],
+      "note": "Harness-only: the stub world treats column x=7 as blocked."
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "2.0.0",
+        "command_id": "fixture:000002",
+        "type": "recall_eva",
+        "payload": {
+          "expedition_id": "expedition_000001"
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000002",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 2,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      }
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 16,
+        "revision": 18,
+        "state_changed_emissions": 1,
+        "command_resolved": [
+          [
+            "fixture:000002",
+            true,
+            ""
+          ]
+        ],
+        "flushes": [
+          {
+            "after": "boundary",
+            "tick_index": 15,
+            "events": [
+              {
+                "id": "event_000003",
+                "type": "command_result",
+                "tick_index": 15,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {
+                  "success": true,
+                  "code": "ok",
+                  "reason": "",
+                  "resolved_tick": 15,
+                  "data": {
+                    "expedition_id": "expedition_000001"
+                  },
+                  "command_id": "fixture:000002"
+                }
+              },
+              {
+                "id": "event_000004",
+                "type": "eva_recalled",
+                "tick_index": 15,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {
+                  "status": "stranded"
+                }
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.46799999999999997,
+          "electronics": 2,
+          "energy_kwh": 17.99200000000002,
+          "food_kcal": 99936.0,
+          "hydrogen_kg": 0.016000000000000007,
+          "oxygen_kg": 119.82399999999986,
+          "potable_water_kg": 499.9200000000001,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.9359999999999999
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/eva_stranded_tick16.json"
+      },
+      "note": "No route home: stranded, recall_requested, critical alert; no teleport, no refund."
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "2.0.0",
+        "command_id": "fixture:000003",
+        "type": "recall_eva",
+        "payload": {
+          "expedition_id": "expedition_000001"
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000003",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 3,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      }
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 17,
+        "revision": 19,
+        "state_changed_emissions": 1,
+        "command_resolved": [
+          [
+            "fixture:000003",
+            false,
+            "no return route from the current position"
+          ]
+        ],
+        "flushes": [
+          {
+            "after": "boundary",
+            "tick_index": 16,
+            "events": [
+              {
+                "id": "event_000005",
+                "type": "command_result",
+                "tick_index": 16,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {
+                  "success": false,
+                  "code": "route_unreachable",
+                  "reason": "no return route from the current position",
+                  "resolved_tick": 16,
+                  "data": {
+                    "expedition_id": "expedition_000001"
+                  },
+                  "command_id": "fixture:000003"
+                }
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.46599999999999997,
+          "electronics": 2,
+          "energy_kwh": 17.99225000000002,
+          "food_kcal": 99932.0,
+          "hydrogen_kg": 0.017000000000000008,
+          "oxygen_kg": 119.82799999999985,
+          "potable_water_kg": 499.9150000000001,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.9319999999999999
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        }
+      },
+      "note": "Retry while still blocked: route_unreachable; still stranded."
+    },
+    {
+      "op": "step",
+      "repeat": 3,
+      "expect": {
+        "tick_index": 20,
+        "revision": 22,
+        "state_changed_emissions": 1,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.45999999999999996,
+          "electronics": 2,
+          "energy_kwh": 17.993000000000023,
+          "food_kcal": 99920.0,
+          "hydrogen_kg": 0.02000000000000001,
+          "oxygen_kg": 119.83999999999982,
+          "potable_water_kg": 499.9000000000001,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.9199999999999999
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        }
+      }
+    },
+    {
+      "op": "stub_world_set_injected_blocked_cells",
+      "cells": [],
+      "note": "Route reopens."
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "2.0.0",
+        "command_id": "fixture:000004",
+        "type": "recall_eva",
+        "payload": {
+          "expedition_id": "expedition_000001"
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000004",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 4,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      }
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 21,
+        "revision": 24,
+        "state_changed_emissions": 1,
+        "command_resolved": [
+          [
+            "fixture:000004",
+            true,
+            ""
+          ]
+        ],
+        "flushes": [
+          {
+            "after": "boundary",
+            "tick_index": 20,
+            "events": [
+              {
+                "id": "event_000006",
+                "type": "command_result",
+                "tick_index": 20,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {
+                  "success": true,
+                  "code": "ok",
+                  "reason": "",
+                  "resolved_tick": 20,
+                  "data": {
+                    "expedition_id": "expedition_000001"
+                  },
+                  "command_id": "fixture:000004"
+                }
+              },
+              {
+                "id": "event_000007",
+                "type": "eva_recalled",
+                "tick_index": 20,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {
+                  "status": "returning"
+                }
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.45799999999999996,
+          "electronics": 2,
+          "energy_kwh": 17.993250000000025,
+          "food_kcal": 99916.0,
+          "hydrogen_kg": 0.02100000000000001,
+          "oxygen_kg": 119.84399999999981,
+          "potable_water_kg": 499.8950000000001,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.9159999999999999
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/eva_recovering_tick21.json"
+      },
+      "note": "Valid recall: stranded -> returning from the site."
+    },
+    {
+      "op": "step",
+      "repeat": 9,
+      "expect": {
+        "tick_index": 30,
+        "revision": 33,
+        "state_changed_emissions": 1,
+        "command_resolved": [],
+        "flushes": [
+          {
+            "after": "tick",
+            "tick_index": 30,
+            "events": [
+              {
+                "id": "event_000008",
+                "type": "eva_returned",
+                "tick_index": 29,
+                "entity_ids": [
+                  "crew_000001",
+                  "crew_000002",
+                  "expedition_000001"
+                ],
+                "data": {
+                  "crew_ids": [
+                    "crew_000001",
+                    "crew_000002"
+                  ],
+                  "salvage_collected": false
+                }
+              },
+              {
+                "id": "event_000009",
+                "type": "task_cancelled",
+                "tick_index": 29,
+                "entity_ids": [
+                  "task_000001"
+                ],
+                "data": {}
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.43999999999999995,
+          "electronics": 2,
+          "energy_kwh": 18.001500000000036,
+          "food_kcal": 99880.0,
+          "hydrogen_kg": 0.03000000000000002,
+          "oxygen_kg": 119.99999999999973,
+          "potable_water_kg": 499.85000000000014,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.8799999999999999
+        },
+        "reference_external_flows": {
+          "external/battery_loss": 2.7777777777777772e-05,
+          "external/metabolism_in/food_kcal": 4.0,
+          "external/metabolism_in/oxygen_kg": 0.004,
+          "external/metabolism_in/potable_water_kg": 0.008,
+          "external/metabolism_out/co2_kg": 0.004,
+          "external/metabolism_out/wastewater_kg": 0.008,
+          "external/process_removal/co2_kg": 0.006,
+          "external/suit_use/battery_kwh": 0.0002,
+          "external/suit_use/oxygen_kg": 0.004
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/eva_recovered_tick30.json"
+      },
+      "note": "Home at end of interval 29; task cancelled (no salvage)."
+    }
+  ]
+}

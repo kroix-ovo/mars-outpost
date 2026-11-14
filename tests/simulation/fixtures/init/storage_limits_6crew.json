@@ -1,0 +1,30 @@
+{
+  "campaign_id": "fixture_storage_limits_6crew",
+  "seed": "42",
+  "initial_crew_definition_ids": [
+    "fixture_crew_a",
+    "fixture_crew_b",
+    "fixture_crew_c",
+    "fixture_crew_d",
+    "fixture_crew_e",
+    "fixture_crew_f"
+  ],
+  "map_id": "fixture_flat_16",
+  "map_revision": 1,
+  "scenario_path": "res://tests/simulation/fixtures/scenarios/fixture_storage_limits.json",
+  "science_config_path": "res://tests/simulation/fixtures/definitions/science/fixture_science_synthetic.json",
+  "definition_manifest": {
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_battery.json": "6016971a5fecf0290de65a6694408f4c8857064989cb1526a0197d71655ec8d8",
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_co2_scrubber.json": "1109687cff8142e116a99b5f72fb15ebe65095ca505628b9258fc322be6730d2",
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_electrolyzer.json": "ff5017c313c38807d1cecf10051e5d6d92e2016d0adefdc08e0b2545a23a9f5f",
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_generator.json": "d93ffd678ab2e951d7dee19f36e74a23566c3c203fa6e52e4c8c57a980540ee3",
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_storage_module.json": "0b97fba6caa34eaed3d4b7299e02827c6502a77ed6b5ac216ccf4d5f53314aff",
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_water_recycler.json": "13a127071ad39d7a9e253e77b367e108c424d8f3349a30d03d43273854fb5238",
+    "res://tests/simulation/fixtures/definitions/crew/fixture_crew.json": "1921cac470ca349ae09ae0e50f1339dcc16c8a7579bbe4a662b598e3e1184a78",
+    "res://tests/simulation/fixtures/definitions/crew/fixture_task_templates.json": "d29e86e749dcbf1d10433f614ed091fab89795f8e0f70cd9e394000802daf3d9",
+    "res://tests/simulation/fixtures/definitions/map/fixture_flat_16.json": "41ecd18122dfbba97314665176fe145be996d1628958b32842d4b855836987bf",
+    "res://tests/simulation/fixtures/definitions/resources.json": "82605c7376ede629445f5a3b1b8ba1b277ab6eb5f09699e319acda1bae33bda7",
+    "res://tests/simulation/fixtures/definitions/science/fixture_science_synthetic.json": "2244b65dc87fe8a0e5567823d24a62bc319fe1c9f0226123b8b8f22f49c93f6f",
+    "res://tests/simulation/fixtures/scenarios/fixture_storage_limits.json": "b9cc9629ac8e080f9e293567e4288cc416b071711d6521b7ef1657f485dec9ae"
+  }
+}

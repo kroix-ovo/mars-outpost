@@ -1,0 +1,498 @@
+{
+  "contract_version": "2.0.0",
+  "snapshot_version": 2,
+  "campaign_id": "fixture_salvage_6crew",
+  "revision": 18,
+  "clock": {
+    "tick_index": 16,
+    "elapsed_s": 16.0,
+    "time_scale": 1
+  },
+  "rng": {
+    "seed": "42",
+    "state": "708718527385777908"
+  },
+  "map": {
+    "id": "fixture_flat_16",
+    "revision": 1
+  },
+  "resources": {
+    "alloy": {
+      "id": "alloy",
+      "unit": "count",
+      "amount": 6,
+      "capacity": 50.0,
+      "reserved": 0,
+      "net_rate_per_s": 0.0,
+      "forecast_empty_s": null
+    },
+    "co2_kg": {
+      "id": "co2_kg",
+      "unit": "kg",
+      "amount": 0.46799999999999997,
+      "capacity": null,
+      "reserved": 0.0,
+      "net_rate_per_s": -0.0020000000000000018,
+      "forecast_empty_s": 233.99999999999977
+    },
+    "electronics": {
+      "id": "electronics",
+      "unit": "count",
+      "amount": 2,
+      "capacity": 50.0,
+      "reserved": 0,
+      "net_rate_per_s": 0.0,
+      "forecast_empty_s": null
+    },
+    "energy_kwh": {
+      "id": "energy_kwh",
+      "unit": "kwh",
+      "amount": 17.99200000000002,
+      "capacity": 40.0,
+      "reserved": 0.0,
+      "net_rate_per_s": 0.0002500000000011937,
+      "forecast_empty_s": null
+    },
+    "food_kcal": {
+      "id": "food_kcal",
+      "unit": "kcal",
+      "amount": 99936.0,
+      "capacity": 200000.0,
+      "reserved": 0.0,
+      "net_rate_per_s": -4.0,
+      "forecast_empty_s": 24984.0
+    },
+    "hydrogen_kg": {
+      "id": "hydrogen_kg",
+      "unit": "kg",
+      "amount": 0.016000000000000007,
+      "capacity": 10.0,
+      "reserved": 0.0,
+      "net_rate_per_s": 0.0010000000000000009,
+      "forecast_empty_s": null
+    },
+    "oxygen_kg": {
+      "id": "oxygen_kg",
+      "unit": "kg",
+      "amount": 119.82399999999986,
+      "capacity": 200.0,
+      "reserved": 0.0,
+      "net_rate_per_s": 0.003999999999990678,
+      "forecast_empty_s": null
+    },
+    "potable_water_kg": {
+      "id": "potable_water_kg",
+      "unit": "kg",
+      "amount": 499.9200000000001,
+      "capacity": 1000.0,
+      "reserved": 0.0,
+      "net_rate_per_s": -0.0049999999999954525,
+      "forecast_empty_s": 99984.00000009095
+    },
+    "raw_water_kg": {
+      "id": "raw_water_kg",
+      "unit": "kg",
+      "amount": 0.0,
+      "capacity": 100.0,
+      "reserved": 0.0,
+      "net_rate_per_s": 0.0,
+      "forecast_empty_s": null
+    },
+    "wastewater_kg": {
+      "id": "wastewater_kg",
+      "unit": "kg",
+      "amount": 0.9359999999999999,
+      "capacity": 50.0,
+      "reserved": 0.0,
+      "net_rate_per_s": -0.0040000000000000036,
+      "forecast_empty_s": 233.99999999999977
+    }
+  },
+  "power": {
+    "generated_kw": 3.0,
+    "requested_kw": 2.0,
+    "served_kw": 2.0,
+    "battery_stored_kwh": 17.99200000000002,
+    "battery_capacity_kwh": 40.0
+  },
+  "buildings": {
+    "building_000001": {
+      "id": "building_000001",
+      "definition_id": "fixture_generator",
+      "cell": [
+        3,
+        3
+      ],
+      "rotation_quarters": 0,
+      "lifecycle": "commissioned",
+      "enabled": true,
+      "condition": 1.0,
+      "construction_task_id": null,
+      "construction_progress": 1.0,
+      "power_requested_kw": 0.0,
+      "power_served_kw": 0.0,
+      "operating_fraction": 1.0,
+      "blocking_codes": []
+    },
+    "building_000002": {
+      "id": "building_000002",
+      "definition_id": "fixture_battery",
+      "cell": [
+        5,
+        3
+      ],
+      "rotation_quarters": 0,
+      "lifecycle": "commissioned",
+      "enabled": true,
+      "condition": 1.0,
+      "construction_task_id": null,
+      "construction_progress": 1.0,
+      "power_requested_kw": 0.0,
+      "power_served_kw": 0.0,
+      "operating_fraction": 1.0,
+      "blocking_codes": []
+    },
+    "building_000003": {
+      "id": "building_000003",
+      "definition_id": "fixture_electrolyzer",
+      "cell": [
+        7,
+        3
+      ],
+      "rotation_quarters": 0,
+      "lifecycle": "commissioned",
+      "enabled": true,
+      "condition": 1.0,
+      "construction_task_id": null,
+      "construction_progress": 1.0,
+      "power_requested_kw": 1.0,
+      "power_served_kw": 1.0,
+      "operating_fraction": 1.0,
+      "blocking_codes": []
+    },
+    "building_000004": {
+      "id": "building_000004",
+      "definition_id": "fixture_water_recycler",
+      "cell": [
+        9,
+        3
+      ],
+      "rotation_quarters": 0,
+      "lifecycle": "commissioned",
+      "enabled": true,
+      "condition": 1.0,
+      "construction_task_id": null,
+      "construction_progress": 1.0,
+      "power_requested_kw": 0.5,
+      "power_served_kw": 0.5,
+      "operating_fraction": 1.0,
+      "blocking_codes": []
+    },
+    "building_000005": {
+      "id": "building_000005",
+      "definition_id": "fixture_co2_scrubber",
+      "cell": [
+        11,
+        3
+      ],
+      "rotation_quarters": 0,
+      "lifecycle": "commissioned",
+      "enabled": true,
+      "condition": 1.0,
+      "construction_task_id": null,
+      "construction_progress": 1.0,
+      "power_requested_kw": 0.5,
+      "power_served_kw": 0.5,
+      "operating_fraction": 1.0,
+      "blocking_codes": []
+    }
+  },
+  "crew": {
+    "crew_000001": {
+      "id": "crew_000001",
+      "definition_id": "fixture_crew_a",
+      "display_name": "Fixture Crew A",
+      "status": "eva",
+      "location_kind": "eva",
+      "position_m": [
+        12.5,
+        0.0,
+        8.5
+      ],
+      "task_id": "task_000001",
+      "expedition_id": "expedition_000001",
+      "health": 1.0,
+      "fatigue": 0.0,
+      "stress": 0.0,
+      "radiation_dose_msv": 0.0,
+      "skills": {
+        "botany": 0.2,
+        "engineering": 0.8,
+        "geology": 0.5,
+        "medicine": 0.2,
+        "piloting": 0.2
+      }
+    },
+    "crew_000002": {
+      "id": "crew_000002",
+      "definition_id": "fixture_crew_b",
+      "display_name": "Fixture Crew B",
+      "status": "eva",
+      "location_kind": "eva",
+      "position_m": [
+        12.5,
+        0.0,
+        8.5
+      ],
+      "task_id": "task_000001",
+      "expedition_id": "expedition_000001",
+      "health": 1.0,
+      "fatigue": 0.0,
+      "stress": 0.0,
+      "radiation_dose_msv": 0.0,
+      "skills": {
+        "botany": 0.8,
+        "engineering": 0.2,
+        "geology": 0.2,
+        "medicine": 0.5,
+        "piloting": 0.2
+      }
+    },
+    "crew_000003": {
+      "id": "crew_000003",
+      "definition_id": "fixture_crew_c",
+      "display_name": "Fixture Crew C",
+      "status": "idle",
+      "location_kind": "base",
+      "position_m": [
+        2.5,
+        0.0,
+        8.5
+      ],
+      "task_id": null,
+      "expedition_id": null,
+      "health": 1.0,
+      "fatigue": 0.0,
+      "stress": 0.0,
+      "radiation_dose_msv": 0.0,
+      "skills": {
+        "botany": 0.2,
+        "engineering": 0.8,
+        "geology": 0.2,
+        "medicine": 0.2,
+        "piloting": 0.5
+      }
+    },
+    "crew_000004": {
+      "id": "crew_000004",
+      "definition_id": "fixture_crew_d",
+      "display_name": "Fixture Crew D",
+      "status": "idle",
+      "location_kind": "base",
+      "position_m": [
+        2.5,
+        0.0,
+        8.5
+      ],
+      "task_id": null,
+      "expedition_id": null,
+      "health": 1.0,
+      "fatigue": 0.0,
+      "stress": 0.0,
+      "radiation_dose_msv": 0.0,
+      "skills": {
+        "botany": 0.2,
+        "engineering": 0.5,
+        "geology": 0.8,
+        "medicine": 0.2,
+        "piloting": 0.2
+      }
+    },
+    "crew_000005": {
+      "id": "crew_000005",
+      "definition_id": "fixture_crew_e",
+      "display_name": "Fixture Crew E",
+      "status": "idle",
+      "location_kind": "base",
+      "position_m": [
+        2.5,
+        0.0,
+        8.5
+      ],
+      "task_id": null,
+      "expedition_id": null,
+      "health": 1.0,
+      "fatigue": 0.0,
+      "stress": 0.0,
+      "radiation_dose_msv": 0.0,
+      "skills": {
+        "botany": 0.5,
+        "engineering": 0.2,
+        "geology": 0.2,
+        "medicine": 0.8,
+        "piloting": 0.2
+      }
+    },
+    "crew_000006": {
+      "id": "crew_000006",
+      "definition_id": "fixture_crew_f",
+      "display_name": "Fixture Crew F",
+      "status": "idle",
+      "location_kind": "base",
+      "position_m": [
+        2.5,
+        0.0,
+        8.5
+      ],
+      "task_id": null,
+      "expedition_id": null,
+      "health": 1.0,
+      "fatigue": 0.0,
+      "stress": 0.0,
+      "radiation_dose_msv": 0.0,
+      "skills": {
+        "botany": 0.2,
+        "engineering": 0.2,
+        "geology": 0.5,
+        "medicine": 0.2,
+        "piloting": 0.8
+      }
+    }
+  },
+  "tasks": {
+    "task_000001": {
+      "id": "task_000001",
+      "kind": "eva",
+      "target_id": "site_cargo_a",
+      "status": "active",
+      "priority": 50,
+      "crew_required": 2,
+      "assigned_crew_ids": [
+        "crew_000001",
+        "crew_000002"
+      ],
+      "required_work_s": 20.0,
+      "completed_work_s": 5.0,
+      "blocked_code": null,
+      "expedition_id": "expedition_000001"
+    }
+  },
+  "expeditions": {
+    "expedition_000001": {
+      "id": "expedition_000001",
+      "site_id": "site_cargo_a",
+      "task_id": "task_000001",
+      "crew_ids": [
+        "crew_000001",
+        "crew_000002"
+      ],
+      "status": "stranded",
+      "route_id": "route_e37c8a22d1f04be7",
+      "route_waypoints_m": [
+        [
+          2.5,
+          0.0,
+          8.5
+        ],
+        [
+          3.5,
+          0.0,
+          8.5
+        ],
+        [
+          4.5,
+          0.0,
+          8.5
+        ],
+        [
+          5.5,
+          0.0,
+          8.5
+        ],
+        [
+          6.5,
+          0.0,
+          8.5
+        ],
+        [
+          7.5,
+          0.0,
+          8.5
+        ],
+        [
+          8.5,
+          0.0,
+          8.5
+        ],
+        [
+          9.5,
+          0.0,
+          8.5
+        ],
+        [
+          10.5,
+          0.0,
+          8.5
+        ],
+        [
+          11.5,
+          0.0,
+          8.5
+        ],
+        [
+          12.5,
+          0.0,
+          8.5
+        ]
+      ],
+      "route_distance_m": 10.0,
+      "route_progress_m": 10.0,
+      "work_required_s": 20.0,
+      "work_completed_s": 5.0,
+      "suit_stores": {
+        "crew_000001": {
+          "oxygen_kg": 0.08799999999999997,
+          "battery_kwh": 0.004399999999999996
+        },
+        "crew_000002": {
+          "oxygen_kg": 0.08799999999999997,
+          "battery_kwh": 0.004399999999999996
+        }
+      },
+      "cargo": {},
+      "return_margin_s": null,
+      "recall_requested": true
+    }
+  },
+  "sites": {
+    "site_cargo_a": {
+      "id": "site_cargo_a",
+      "definition_id": "fixture_cargo_cache",
+      "cell": [
+        12,
+        8
+      ],
+      "reserved_by_expedition_id": "expedition_000001",
+      "remaining_cargo": {
+        "alloy": 4,
+        "electronics": 3
+      }
+    }
+  },
+  "technology": {
+    "unlocked_ids": []
+  },
+  "active_events": {},
+  "alerts": [
+    {
+      "id": "expedition_stranded:expedition_000001",
+      "code": "expedition_stranded",
+      "message": "EVA team has no route home.",
+      "severity": "critical",
+      "entity_ids": [
+        "expedition_000001"
+      ],
+      "first_tick": 15
+    }
+  ]
+}
