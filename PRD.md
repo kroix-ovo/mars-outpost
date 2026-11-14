@@ -62,7 +62,7 @@ Each owner uses `tests/simulation/`, `tests/world/`, or `tests/crew_ui/` respect
 
 ### Shared interfaces — agree before implementation
 
-Task 01 publishes the state/command definitions; all three owners review them before building dependent systems. These are design contracts, not existing APIs.
+The [shared simulation contract](SHARED_SIMULATION_SPEC.md) now establishes exact v1 interfaces, data records, command payloads, tick ordering, accounting, navigation queries, and save/load rules. All owners implement against that document. The summary below is introductory; the spec governs any interface differences. Runtime implementation is still pending.
 
 ```text
 submit_command(command: Dictionary) -> Dictionary
@@ -72,7 +72,7 @@ submit_command(command: Dictionary) -> Dictionary
 get_snapshot() -> Dictionary
   detached/read-only view for presentation
 
-step(delta_sim_seconds: float) -> void
+step(delta_sim_seconds: float) -> Dictionary
   authoritative updates at a fixed timestep
 
 signals:
@@ -107,7 +107,7 @@ Local single-player operation needs no account or server secrets. Keep secrets o
 
 ## 10. API specification
 
-The internal command/state contracts in section 6 are the API. No HTTP service is required. Browser hosting must serve the actual Godot export correctly; Task 02 validates it on the intended host.
+The exact internal API is defined in [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md); section 6 summarizes it. No HTTP service is required. Browser hosting must serve the actual Godot export correctly; Task 02 validates it on the intended host.
 
 ## 11. Success criteria
 

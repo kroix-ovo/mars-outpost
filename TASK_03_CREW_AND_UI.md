@@ -1,5 +1,7 @@
 # Task 03 — crew management, EVA, and player interface
 
+**Required interface baseline:** [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md). Implement its crew adapter, command payloads, state records, EVA rules, and save adapter. Earlier interface sketches defer to this spec.
+
 ## 1. Executive summary
 
 Make the colony feel inhabited and give players the tools to command it. Build individual astronauts, job assignments, farming/repair/construction work, oxygen-limited salvage expeditions, and the interface that explains their consequences.

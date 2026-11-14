@@ -1,5 +1,7 @@
 # Task 02 — 3D world, construction, and integration
 
+**Required interface baseline:** [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md). Implement its building-definition schema and headless placement/route queries; render its snapshots without changing resource balances. Earlier interface sketches defer to this spec.
+
 ## 1. Executive summary
 
 Build the top-down 3D place where the game happens: Martian terrain, landing assets, expanding modules, utility connections, and visible exploration sites. Make the outpost readable and satisfying to build, using modular, stylized assets.
@@ -59,7 +61,7 @@ Track source/credit/license for every imported asset. Keep generated editor cach
 
 ## 10. Interface
 
-Implement a placement query that returns valid/invalid with a reason and a route query that returns path length, waypoints, and unreachable status. Share exact signatures in the contract pass. Submit `place_building` commands and render pending, construction, active, disabled, and damaged states from snapshots; never deduct materials in a scene script.
+Implement `validate_placement` and `query_route` using the exact request/response schemas in the shared spec. Submit `place_building` commands and render construction/commissioned lifecycle plus enabled, condition, power, and blocking states from snapshots; never deduct materials in a scene script.
 
 ## 11. Acceptance checks
 
