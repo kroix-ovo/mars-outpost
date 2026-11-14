@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "id": "eva_recall",
+  "description": "Launch, recall during work, return without salvage; recall no-op and post-return rejection.",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "depends_on_decisions": [
+    "D1",
+    "D3",
+    "D17"
+  ],
+  "init_config": "res://tests/simulation/fixtures/init/salvage_6crew.json",
+  "world_service": "stub_world_fixture_flat_16",
+  "crew_adapter": "stub_crew_policy_v1",
+  "steps": [
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "1.0.0",
+        "command_id": "fixture:000001",
+        "type": "start_eva",
+        "payload": {
+          "site_id": "site_cargo_a",
+          "crew_ids": [
+            "crew_000001",
+            "crew_000002"
+          ],
+          "work_duration_s": 20,
+          "oxygen_kg_per_crew": 0.12,
+          "battery_kwh_per_crew": 0.006
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000001",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 1,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      }
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 15,
+        "revision": 16,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.47,
+          "electronics": 2,
+          "energy_kwh": 17.991750000000017,
+          "food_kcal": 99940.0,
+          "hydrogen_kg": 0.015000000000000006,
+          "oxygen_kg": 119.81999999999987,
+          "potable_water_kg": 499.92500000000007,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.94
+        }
+      },
+      "repeat_before": 15,
+      "note": "Execute step() 15 times; expectations apply after the last."
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "1.0.0",
+        "command_id": "fixture:000002",
+        "type": "recall_eva",
+        "payload": {
+          "expedition_id": "expedition_000001"
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000002",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 2,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      }
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 16,
+        "revision": 18,
+        "command_resolved": [
+          [
+            "fixture:000002",
+            true,
+            ""
+          ]
+        ],
+        "flushes": [
+          {
+            "after": "boundary",
+            "tick_index": 15,
+            "events": [
+              {
+                "id": "event_000003",
+                "type": "command_result",
+                "tick_index": 15,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {
+                  "success": true,
+                  "code": "ok",
+                  "reason": "",
+                  "resolved_tick": 15,
+                  "data": {
+                    "expedition_id": "expedition_000001"
+                  },
+                  "command_id": "fixture:000002"
+                }
+              },
+              {
+                "id": "event_000004",
+                "type": "eva_recalled",
+                "tick_index": 15,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {}
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.46799999999999997,
+          "electronics": 2,
+          "energy_kwh": 17.99200000000002,
+          "food_kcal": 99936.0,
+          "hydrogen_kg": 0.016000000000000007,
+          "oxygen_kg": 119.82399999999986,
+          "potable_water_kg": 499.9200000000001,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.9359999999999999
+        }
+      },
+      "note": "Recall resolves at boundary: returning from site, no salvage."
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "1.0.0",
+        "command_id": "fixture:000003",
+        "type": "recall_eva",
+        "payload": {
+          "expedition_id": "expedition_000001"
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000003",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 3,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      },
+      "note": "Already returning: success no-op."
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 17,
+        "revision": 19,
+        "command_resolved": [
+          [
+            "fixture:000003",
+            true,
+            ""
+          ]
+        ],
+        "flushes": [
+          {
+            "after": "boundary",
+            "tick_index": 16,
+            "events": [
+              {
+                "id": "event_000005",
+                "type": "command_result",
+                "tick_index": 16,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {
+                  "success": true,
+                  "code": "ok",
+                  "reason": "",
+                  "resolved_tick": 16,
+                  "data": {
+                    "expedition_id": "expedition_000001"
+                  },
+                  "command_id": "fixture:000003"
+                }
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.46599999999999997,
+          "electronics": 2,
+          "energy_kwh": 17.99225000000002,
+          "food_kcal": 99932.0,
+          "hydrogen_kg": 0.017000000000000008,
+          "oxygen_kg": 119.82799999999985,
+          "potable_water_kg": 499.9150000000001,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.9319999999999999
+        }
+      },
+      "note": "No-op recall does not increase revision beyond the tick."
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 24,
+        "revision": 26,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.45199999999999996,
+          "electronics": 2,
+          "energy_kwh": 17.994000000000028,
+          "food_kcal": 99904.0,
+          "hydrogen_kg": 0.024000000000000014,
+          "oxygen_kg": 119.85599999999978,
+          "potable_water_kg": 499.8800000000001,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.9039999999999999
+        }
+      },
+      "repeat_before": 7,
+      "note": "Execute step() 7 times; expectations apply after the last."
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 25,
+        "revision": 27,
+        "command_resolved": [],
+        "flushes": [
+          {
+            "after": "tick",
+            "tick_index": 25,
+            "events": [
+              {
+                "id": "event_000006",
+                "type": "eva_returned",
+                "tick_index": 24,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {
+                  "salvage_completed": false
+                }
+              },
+              {
+                "id": "event_000007",
+                "type": "task_cancelled",
+                "tick_index": 24,
+                "entity_ids": [
+                  "task_000001"
+                ],
+                "data": {}
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.44999999999999996,
+          "electronics": 2,
+          "energy_kwh": 18.001250000000027,
+          "food_kcal": 99900.0,
+          "hydrogen_kg": 0.025000000000000015,
+          "oxygen_kg": 119.99999999999976,
+          "potable_water_kg": 499.8750000000001,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.8999999999999999
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/eva_recalled_returned_tick25.json"
+      },
+      "note": "Arrive end of interval 24; task cancelled, expedition completed, site released."
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "1.0.0",
+        "command_id": "fixture:000004",
+        "type": "recall_eva",
+        "payload": {
+          "expedition_id": "expedition_000001"
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000004",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 4,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      }
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 26,
+        "revision": 28,
+        "command_resolved": [
+          [
+            "fixture:000004",
+            false,
+            "expedition is completed"
+          ]
+        ],
+        "flushes": [
+          {
+            "after": "boundary",
+            "tick_index": 25,
+            "events": [
+              {
+                "id": "event_000008",
+                "type": "command_result",
+                "tick_index": 25,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {
+                  "success": false,
+                  "code": "invalid_state",
+                  "reason": "expedition is completed",
+                  "resolved_tick": 25,
+                  "data": {
+                    "expedition_id": "expedition_000001"
+                  },
+                  "command_id": "fixture:000004"
+                }
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.44999999999999996,
+          "electronics": 2,
+          "energy_kwh": 18.00150000000003,
+          "food_kcal": 99894.0,
+          "hydrogen_kg": 0.026000000000000016,
+          "oxygen_kg": 120.00199999999975,
+          "potable_water_kg": 499.8660000000001,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.8999999999999999
+        }
+      },
+      "note": "Recall of completed expedition: invalid_state."
+    }
+  ]
+}

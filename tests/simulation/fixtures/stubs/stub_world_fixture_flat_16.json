@@ -1,0 +1,279 @@
+{
+  "schema_version": 1,
+  "id": "stub_world_fixture_flat_16",
+  "owner": "task_02_proposal",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "algorithm": "Four-neighbor BFS, neighbor order +X,+Z,-X,-Z, 1 m edges; waypoints are every cell center on the path; route_id = 'route_' + first 16 hex of sha256(canonical JSON {blocked_cells(sorted), from_cell, map_id, map_revision, to_cell}).",
+  "placement_cases": [
+    {
+      "snapshot": "habitat tick 0",
+      "request": {
+        "definition_id": "fixture_electrolyzer",
+        "cell": [
+          7,
+          5
+        ],
+        "rotation_quarters": 0
+      },
+      "response": {
+        "valid": true,
+        "code": "ok",
+        "reason": "",
+        "occupied_cells": [
+          [
+            7,
+            5
+          ]
+        ],
+        "entrance_cells": [
+          [
+            7,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "snapshot": "habitat tick 0",
+      "request": {
+        "definition_id": "fixture_electrolyzer",
+        "cell": [
+          7,
+          3
+        ],
+        "rotation_quarters": 0
+      },
+      "response": {
+        "valid": false,
+        "code": "placement_blocked",
+        "reason": "cell [7, 3] is occupied",
+        "occupied_cells": [],
+        "entrance_cells": []
+      }
+    },
+    {
+      "snapshot": "habitat tick 0",
+      "request": {
+        "definition_id": "fixture_electrolyzer",
+        "cell": [
+          15,
+          15
+        ],
+        "rotation_quarters": 0
+      },
+      "response": {
+        "valid": false,
+        "code": "placement_blocked",
+        "reason": "out of bounds",
+        "occupied_cells": [],
+        "entrance_cells": []
+      }
+    }
+  ],
+  "route_cases": [
+    {
+      "snapshot": "salvage tick 0",
+      "request": {
+        "from_cell": [
+          2,
+          8
+        ],
+        "to_cell": [
+          12,
+          8
+        ]
+      },
+      "response": {
+        "reachable": true,
+        "code": "ok",
+        "reason": "",
+        "route_id": "route_e37c8a22d1f04be7",
+        "waypoints_m": [
+          [
+            2.5,
+            0.0,
+            8.5
+          ],
+          [
+            3.5,
+            0.0,
+            8.5
+          ],
+          [
+            4.5,
+            0.0,
+            8.5
+          ],
+          [
+            5.5,
+            0.0,
+            8.5
+          ],
+          [
+            6.5,
+            0.0,
+            8.5
+          ],
+          [
+            7.5,
+            0.0,
+            8.5
+          ],
+          [
+            8.5,
+            0.0,
+            8.5
+          ],
+          [
+            9.5,
+            0.0,
+            8.5
+          ],
+          [
+            10.5,
+            0.0,
+            8.5
+          ],
+          [
+            11.5,
+            0.0,
+            8.5
+          ],
+          [
+            12.5,
+            0.0,
+            8.5
+          ]
+        ],
+        "distance_m": 10.0
+      }
+    },
+    {
+      "snapshot": "salvage tick 0",
+      "request": {
+        "from_cell": [
+          12,
+          8
+        ],
+        "to_cell": [
+          2,
+          8
+        ]
+      },
+      "response": {
+        "reachable": true,
+        "code": "ok",
+        "reason": "",
+        "route_id": "route_bcb02de84c4d2441",
+        "waypoints_m": [
+          [
+            12.5,
+            0.0,
+            8.5
+          ],
+          [
+            11.5,
+            0.0,
+            8.5
+          ],
+          [
+            10.5,
+            0.0,
+            8.5
+          ],
+          [
+            9.5,
+            0.0,
+            8.5
+          ],
+          [
+            8.5,
+            0.0,
+            8.5
+          ],
+          [
+            7.5,
+            0.0,
+            8.5
+          ],
+          [
+            6.5,
+            0.0,
+            8.5
+          ],
+          [
+            5.5,
+            0.0,
+            8.5
+          ],
+          [
+            4.5,
+            0.0,
+            8.5
+          ],
+          [
+            3.5,
+            0.0,
+            8.5
+          ],
+          [
+            2.5,
+            0.0,
+            8.5
+          ]
+        ],
+        "distance_m": 10.0
+      }
+    },
+    {
+      "snapshot": "salvage tick 0",
+      "request": {
+        "from_cell": [
+          2,
+          8
+        ],
+        "to_cell": [
+          3,
+          3
+        ]
+      },
+      "response": {
+        "reachable": false,
+        "code": "route_unreachable",
+        "reason": "no route",
+        "route_id": null,
+        "waypoints_m": [],
+        "distance_m": 0.0
+      }
+    },
+    {
+      "snapshot": "salvage tick 0",
+      "request": {
+        "from_cell": [
+          2,
+          8
+        ],
+        "to_cell": [
+          2,
+          8
+        ]
+      },
+      "response": {
+        "reachable": true,
+        "code": "ok",
+        "reason": "",
+        "route_id": "route_347fb456008d39aa",
+        "waypoints_m": [
+          [
+            2.5,
+            0.0,
+            8.5
+          ]
+        ],
+        "distance_m": 0.0
+      }
+    }
+  ]
+}

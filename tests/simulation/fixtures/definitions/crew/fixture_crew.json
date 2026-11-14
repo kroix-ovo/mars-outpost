@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "id": "fixture_crew",
+  "owner": "task_03_proposal",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "definitions": [
+    {
+      "id": "fixture_crew_a",
+      "display_name": "Fixture Crew A",
+      "primary_skill": "engineering",
+      "secondary_skill": "geology",
+      "skills": {
+        "botany": 0.2,
+        "engineering": 0.8,
+        "geology": 0.5,
+        "medicine": 0.2,
+        "piloting": 0.2
+      },
+      "movement_speed_m_per_s": 1.0,
+      "suit_capacity": {
+        "oxygen_kg": 0.2,
+        "battery_kwh": 0.01
+      },
+      "carry_capacity_count": 3,
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    },
+    {
+      "id": "fixture_crew_b",
+      "display_name": "Fixture Crew B",
+      "primary_skill": "botany",
+      "secondary_skill": "medicine",
+      "skills": {
+        "botany": 0.8,
+        "engineering": 0.2,
+        "geology": 0.2,
+        "medicine": 0.5,
+        "piloting": 0.2
+      },
+      "movement_speed_m_per_s": 1.0,
+      "suit_capacity": {
+        "oxygen_kg": 0.2,
+        "battery_kwh": 0.01
+      },
+      "carry_capacity_count": 3,
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    },
+    {
+      "id": "fixture_crew_c",
+      "display_name": "Fixture Crew C",
+      "primary_skill": "engineering",
+      "secondary_skill": "piloting",
+      "skills": {
+        "botany": 0.2,
+        "engineering": 0.8,
+        "geology": 0.2,
+        "medicine": 0.2,
+        "piloting": 0.5
+      },
+      "movement_speed_m_per_s": 1.0,
+      "suit_capacity": {
+        "oxygen_kg": 0.2,
+        "battery_kwh": 0.01
+      },
+      "carry_capacity_count": 3,
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    },
+    {
+      "id": "fixture_crew_d",
+      "display_name": "Fixture Crew D",
+      "primary_skill": "geology",
+      "secondary_skill": "engineering",
+      "skills": {
+        "botany": 0.2,
+        "engineering": 0.5,
+        "geology": 0.8,
+        "medicine": 0.2,
+        "piloting": 0.2
+      },
+      "movement_speed_m_per_s": 1.0,
+      "suit_capacity": {
+        "oxygen_kg": 0.2,
+        "battery_kwh": 0.01
+      },
+      "carry_capacity_count": 3,
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    },
+    {
+      "id": "fixture_crew_e",
+      "display_name": "Fixture Crew E",
+      "primary_skill": "medicine",
+      "secondary_skill": "botany",
+      "skills": {
+        "botany": 0.5,
+        "engineering": 0.2,
+        "geology": 0.2,
+        "medicine": 0.8,
+        "piloting": 0.2
+      },
+      "movement_speed_m_per_s": 1.0,
+      "suit_capacity": {
+        "oxygen_kg": 0.2,
+        "battery_kwh": 0.01
+      },
+      "carry_capacity_count": 3,
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    },
+    {
+      "id": "fixture_crew_f",
+      "display_name": "Fixture Crew F",
+      "primary_skill": "piloting",
+      "secondary_skill": "geology",
+      "skills": {
+        "botany": 0.2,
+        "engineering": 0.2,
+        "geology": 0.5,
+        "medicine": 0.2,
+        "piloting": 0.8
+      },
+      "movement_speed_m_per_s": 1.0,
+      "suit_capacity": {
+        "oxygen_kg": 0.2,
+        "battery_kwh": 0.01
+      },
+      "carry_capacity_count": 3,
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    },
+    {
+      "id": "fixture_crew_g",
+      "display_name": "Fixture Crew G",
+      "primary_skill": "botany",
+      "secondary_skill": "engineering",
+      "skills": {
+        "botany": 0.8,
+        "engineering": 0.5,
+        "geology": 0.2,
+        "medicine": 0.2,
+        "piloting": 0.2
+      },
+      "movement_speed_m_per_s": 1.0,
+      "suit_capacity": {
+        "oxygen_kg": 0.2,
+        "battery_kwh": 0.01
+      },
+      "carry_capacity_count": 3,
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    },
+    {
+      "id": "fixture_crew_h",
+      "display_name": "Fixture Crew H",
+      "primary_skill": "geology",
+      "secondary_skill": "medicine",
+      "skills": {
+        "botany": 0.2,
+        "engineering": 0.2,
+        "geology": 0.8,
+        "medicine": 0.5,
+        "piloting": 0.2
+      },
+      "movement_speed_m_per_s": 1.0,
+      "suit_capacity": {
+        "oxygen_kg": 0.2,
+        "battery_kwh": 0.01
+      },
+      "carry_capacity_count": 3,
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    },
+    {
+      "id": "fixture_crew_i",
+      "display_name": "Fixture Crew I",
+      "primary_skill": "engineering",
+      "secondary_skill": "botany",
+      "skills": {
+        "botany": 0.5,
+        "engineering": 0.8,
+        "geology": 0.2,
+        "medicine": 0.2,
+        "piloting": 0.2
+      },
+      "movement_speed_m_per_s": 1.0,
+      "suit_capacity": {
+        "oxygen_kg": 0.2,
+        "battery_kwh": 0.01
+      },
+      "carry_capacity_count": 3,
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    }
+  ]
+}

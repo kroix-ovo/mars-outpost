@@ -1,6 +1,8 @@
 # Mars Outpost — shared simulation contract
 
-**Contract version: 1.0.0. Status: implementation baseline; runtime not yet implemented.**
+**Contract version: 2.0.0. Status: reconciled implementation baseline; runtime not yet implemented.**
+
+Version 2 reconciles revision 3 of `SIMULATION_DESIGN_PROPOSAL.md`. It replaces 1.0.0 because nullable resource capacity, required adapter proposal fields, and save metadata change compatibility. Snapshot schema is 2; save schema is 2; the stored `crew_tasks` record remains schema 1. Existing proposal fixtures still labeled 1.0.0 are not yet v2 conformance fixtures and must be regenerated from a committed generator. See `SIMULATION_RECONCILIATION.md` for decisions and remaining validation work.
 
 All three tasks implement this contract. It makes the design choices left open in `PRD.md` section 6. Where an older planning document differs, this contract governs interfaces and simulation behavior. It does not override the user's product requirements or reinstate the research report's scope limits.
 
@@ -31,7 +33,7 @@ Tasks 02/03 develop against fixture snapshots and stub services until Task 01's 
 - Dictionary iteration order is not simulation order. Sort entity/definition IDs lexicographically wherever the order can affect a result. Sequence counters and tick indices must remain exact integers within JSON's safe integer range; reject overflow.
 - Cross-platform numeric replay compares floats with absolute tolerance `1e-8` plus relative tolerance `1e-9`. IDs/enums/counters must match exactly. Bit-identical floating-point replay across different engine/platform builds is not promised.
 
-Definitions are immutable after campaign initialization. Store a manifest of content hashes for the map, buildings, crew definitions, event/technology definitions, and science configuration. Save loading requires the same manifest in v1; hot-reloading balance values into a running campaign is unsupported.
+Definitions are immutable after campaign initialization. Store a manifest of content hashes for the map, buildings, crew definitions, event/technology definitions, and science configuration. Save loading requires the same manifest in v2; hot-reloading balance values into a running campaign is unsupported.
 
 ## 3. Public simulation facade
 
@@ -81,7 +83,7 @@ The richer `step` result makes invalid timestep calls reportable; callers follow
 
 Commands submitted by callbacks during a boundary/tick wait for the next boundary; never recurse into the dispatcher. `advance` also processes a boundary before each subsequent tick in a batch. Flush committed command results and events after their boundary/tick; emit one final `state_changed` snapshot per public advance/step/control call if state changed.
 
-All seven v1 command types may resolve while paused. Placement can spend materials and create a construction job, and EVA launch can transfer suit reserves, but construction, travel, production, metabolism, and hazards do not advance until time runs. Already accepted commands retain FIFO order when a pause/resume command is encountered.
+All seven v2 command types may resolve while paused. Placement can spend materials and create a construction job, and EVA launch can transfer suit reserves, but construction, travel, production, metabolism, and hazards do not advance until time runs. Already accepted commands retain FIFO order when a pause/resume command is encountered.
 
 ## 5. Commands and responses
 
@@ -89,7 +91,7 @@ All seven v1 command types may resolve while paused. Placement can spend materia
 
 ```json
 {
-  "contract_version": "1.0.0",
+  "contract_version": "2.0.0",
   "command_id": "ui_session_01:000001",
   "type": "set_building_enabled",
   "payload": {"building_id": "building_000001", "enabled": false}
@@ -129,7 +131,7 @@ Resolution emits `command_resolved(id, success, reason)` and a `game_event` with
 
 ### Deduplication
 
-Persist each accepted ID, its normalized envelope, receive sequence, status, and result for the campaign. A retry with the same ID and identical normalized content returns the original entry with `duplicate=true`, never enqueues again, and never re-emits a result. A completed retry includes `status="resolved"` and its cached result. Reusing an accepted ID for different content fails with `command_id_conflict`. Canonical normalization sorts object keys and applies the command schema's numeric types; array order remains meaningful. Keep this journal in v1 rather than evicting entries and accidentally permitting repeated rewards.
+Persist each accepted ID, its normalized envelope, receive sequence, status, and result for the campaign. A retry with the same ID and identical normalized content returns the original entry with `duplicate=true`, never enqueues again, and never re-emits a result. A completed retry includes `status="resolved"` and its cached result. Reusing an accepted ID for different content fails with `command_id_conflict`. Canonical normalization sorts object keys and applies the command schema's numeric types; array order remains meaningful. Keep this journal in v2 rather than evicting entries and accidentally permitting repeated rewards.
 
 ### Exact payloads
 
@@ -145,7 +147,7 @@ All fields below are required. No command accepts caller-supplied resource rewar
 | `recall_eva` | `{expedition_id: String}` | Task 03 changes an outbound/working team to returning using its current position. Already-returning recall is a successful no-op; completed/failed expedition rejects. Result: `{expedition_id}`. |
 | `set_time_scale` | `{time_scale: int}`; 0/1/5/20 | Task 01 changes clock scale. Result: `{time_scale}`. |
 
-Automatic task creation: placement creates construction tasks; operating farm buildings expose farming tasks; damaged repairable buildings expose repair tasks; EVA launch creates an expedition-owned task. Task IDs are persisted; these jobs must not be regenerated each frame. Task 03 defines job templates, and Task 01's lifecycle integration requests them. No separate free-form `create_task` command exists in v1.
+Automatic task creation: placement creates construction tasks; operating farm buildings expose farming tasks; damaged repairable buildings expose repair tasks; EVA launch creates an expedition-owned task. Task IDs are persisted; these jobs must not be regenerated each frame. Task 03 defines job templates, and Task 01's lifecycle integration requests them. No separate free-form `create_task` command exists in v2.
 
 ### Error codes
 
@@ -157,8 +159,8 @@ Snapshots have this exact top-level shape; empty collections remain present:
 
 ```json
 {
-  "contract_version": "1.0.0",
-  "snapshot_version": 1,
+  "contract_version": "2.0.0",
+  "snapshot_version": 2,
   "campaign_id": "campaign_demo_01",
   "revision": 0,
   "clock": {"tick_index": 0, "elapsed_s": 0.0, "time_scale": 1},
@@ -187,7 +189,7 @@ Every map below is keyed by the record's `id`; `id` must agree with its key. Fie
 ```text
 ResourceBalance (resources[resource_id]):
   id: String, unit: "kg" | "kwh" | "kcal" | "count"
-  amount: number, capacity: number, reserved: number
+  amount: number, capacity: number?, reserved: number
   net_rate_per_s: number, forecast_empty_s: number?
 
 Building (buildings[building_id]):
@@ -250,7 +252,9 @@ Capacity-limited construction refunds fail cancellation atomically with `capacit
 
 Task 01's resource registry starts with `oxygen_kg`, `co2_kg`, `raw_water_kg`, `potable_water_kg`, `wastewater_kg`, `hydrogen_kg`, `food_kcal`, `energy_kwh`, `alloy`, and `electronics`. The suffix is descriptive; the registry's declared unit is authoritative. `alloy`/`electronics` are count resources and must remain whole-valued. Adding a resource is additive content only if all transactions and UI already support its declared unit; otherwise revise the contract.
 
-`co2_kg` represents modeled cabin CO2 inventory, not a breathable-gas store. Air hazard evaluation requires configured pressurized volume/atmosphere assumptions in the scenario; a full oxygen tank never overrides CO2 danger. Storage capacity is not a health threshold. `oxygen_kg` is the simplified accessible base oxygen reserve; pressure/air mixing beyond this abstraction is future model work, not implied flight fidelity.
+The resource registry requires `capacity_policy: "storage" | "accumulator"` per resource. Storage has a finite nonnegative capacity; accumulators have snapshot `capacity: null` and are never capped or discarded. `co2_kg` is an accumulator representing modeled cabin CO2 inventory, not a breathable-gas store. Only explicitly modeled removal processes reduce it. Air hazard evaluation requires configured pressurized volume/atmosphere assumptions in the scenario; a full oxygen tank never overrides CO2 danger. Storage capacity is not a health threshold. `oxygen_kg` is the simplified accessible base oxygen reserve; pressure/air mixing beyond this abstraction is future model work, not implied flight fidelity.
+
+`wastewater_kg` remains finite storage. Metabolism must not stop merely because the wastewater tank is full: credit the recoverable portion that fits and record the rest as explicit unrecoverable overflow/spillage loss, with a `storage_full` alert. Never credit that lost water to the recycler. This is a declared game abstraction, not an assumed flight waste-management design. Process outputs other than obligatory metabolic waste remain capacity-limited; a full tank does not permit arbitrary process-output dumping.
 
 ### Building definition (Task 02 authors; Task 01 validates)
 
@@ -285,11 +289,15 @@ Task 01's resource registry starts with `oxygen_kg`, `co2_kg`, `raw_water_kg`, `
 
 This example demonstrates stoichiometric bookkeeping with synthetic throughput/power; it is not equipment performance data. `scene_path` is optional for headless fixture definitions (use `null`); presentation must handle missing assets with placeholders. All other fields above are required. Footprints are unique integer offsets; entrances must be outside the occupied footprint. Rotate offsets with `(x,z) -> (-z,x)` per positive quarter turn.
 
-V1 has one process per building; more complicated equipment uses several definitions/components in a future contract revision. Input/output quantities must be nonnegative. Efficiency values are in `(0,1]`. A v1 battery uses storage `{energy_kwh: capacity}`. Storage is supplied only by commissioned, non-destroyed buildings plus scenario starting storage; destruction removes capacity and records overflow as explicit loss. Disabling a building does not erase its storage.
+V1 has one process per building; more complicated equipment uses several definitions/components in a future contract revision. Input/output quantities must be nonnegative. Efficiency values are in `(0,1]`. A v2 battery uses storage `{energy_kwh: capacity}`. Storage is supplied only by commissioned, non-destroyed buildings plus scenario starting storage; destruction removes capacity and records overflow as explicit loss. Disabling a building does not erase its storage.
 
 ### Accounting and competition
 
 Task 01 alone commits resource transactions. Each transaction has a stable `effect_id`, nonnegative debit/credit maps, and an optional explicit external source/sink classification. A repeated committed effect ID returns its cached result without reapplying. Multi-resource effects are atomic. Debits cannot exceed available stock and credits cannot exceed capacity unless the transaction explicitly names a waste/loss sink; never silently clamp away mass or energy. Transfer debits and credits represent the same quantity, not production.
+
+Capacity checks do not apply to accumulators. Persist markers for irreversible command costs/refunds, commissioning, repair completion, harvest cycles, and EVA load/collection/return outcomes. Continuous power/process/metabolic flows and repeated return-cache drains/overflow use `tick:{n}:<flow>:<owner>` IDs guarded once within that tick only. Discard their guard set at commit/rollback; tick index and atomic tick commit protect replay. Do not retain a marker every simulated second. Reusing a persisted effect ID for different normalized effects is an error, not a successful retry.
+
+Ledger balances have one authoritative location: base resource records, per-battery energy (with a checked aggregate base energy view), expedition `suit_stores`/`cargo`, site cargo, and `return_caches`. Do not introduce a parallel saved `ledger_accounts` dictionary. The ledger exclusively writes these balance fields even when their containing records are in the `crew_tasks` partition.
 
 Continuous processes run in descending `process_priority`, then building ID. Determine a common operating fraction from power, condition, available inputs, and output capacity; apply all scaled inputs/outputs together. Full oxygen storage therefore throttles electrolysis instead of consuming water without useful output. Generated outputs become available to later processes in the same tick. This intentionally ordered approximation must be identical in headless and rendered play.
 
@@ -297,7 +305,7 @@ Power is allocated before process resource limiting. V1 may therefore reserve el
 
 ### Electrical power
 
-At tick start, commissioned/enabled generators supply their rated output adjusted by condition and active environmental modifiers. Sort enabled consumers by descending `power_priority`, then building ID. Serve demand from current generation, then battery discharge, allowing partial power. A process scales linearly with its served fraction in v1; damaged/destroyed/non-commissioned equipment cannot bypass availability checks.
+At tick start, commissioned/enabled generators supply their rated output adjusted by condition and active environmental modifiers. Sort enabled consumers by descending `power_priority`, then building ID. Serve demand from current generation, then battery discharge, allowing partial power. A process scales linearly with its served fraction in v2; damaged/destroyed/non-commissioned equipment cannot bypass availability checks.
 
 For dt seconds, `energy_kwh = power_kw * dt / 3600`. Discharge limits apply to energy delivered to the grid; stored reduction is delivered energy / discharge efficiency. Charge limits apply to grid energy input; stored increase is input energy * charge efficiency. Aggregate battery accounts dispatch individual batteries by stable ID, respecting their capacities/limits/efficiencies; persist per-battery stored energy and expose its sum as the ledger's `energy_kwh` amount. A battery never charges and discharges in the same tick. Excess generation charges batteries, then is explicitly curtailed.
 
@@ -314,12 +322,16 @@ initialize(config, snapshot) -> OperationResult
 plan_tick(snapshot, dt_s, context) -> CrewTickProposal
 evaluate_hazards(snapshot, hazards) -> CrewTickProposal
 apply_command(command, snapshot) -> CommandProposal
-export_state() -> {schema_version: 1, state: Dictionary}
+export_state(crew_tasks_state: Dictionary) -> {schema_version: 1, state: Dictionary}
 validate_state(record, candidate_core_state) -> OperationResult
 restore_state(record) -> void
 ```
 
 `plan_tick`, `evaluate_hazards`, and `apply_command` are pure queries and return detached proposals. They must not mutate the adapter or snapshot. Proposals contain `crew_updates`, `task_updates`, `expedition_updates` (maps of full candidate records), `labor` (array of `{task_id, crew_id, work_s}`), `resource_requests` (array of `{effect_id, kind, debits, credits, owner_id}`), and `events` (array of event drafts). `CommandProposal` also has `{ok, code, reason, result_data}`. State updates and linked resource requests commit together or none; Task 01 validates all referenced IDs, transitions, and resource effects before commit. State retained by the adapter is configuration/derived cache only; any authoritative private extension state must participate in its validated save record.
+
+Every proposal also requires `private_record_replacements: {completion_markers: {}, private_counters: {}}`. Each collection maps record IDs to complete replacements. An explicit `null` deletes a record only if its schema permits deletion. There is no recursive merge. `return_caches` is excluded: only ledger transfers write it. Apply replacements and other proposed effects to a temporary candidate, then call `validate_state` on the full candidate crew record and core state before committing anything. `export_state` serializes the supplied authoritative partition; it must not return a separate stale adapter-owned simulation. `restore_state` rebuilds derived caches only after validation, and rollback must rebuild them from the previous valid partition.
+
+For `place_building`, Task 01 calls `apply_command` for the construction task template. Task 03 proposes `crew_required` and priority; Task 01 validates required work against the building definition and owns footprint reservation, cost, IDs, and commissioning.
 
 `context` is `{phase: "intent" | "progress", tick_index: int, unmet_needs: Dictionary[crew_id, Array[String]]}`. Unmet-need codes are `oxygen`, `water`, `food`, and `suit_energy`; the intent call receives an empty map. Hazard input is an array of `{crew_id, code, dose_msv, exposure_s}` with codes defined by the validated scenario hazard configuration. The hazard proposal may update crew/tasks/expeditions and emit events, but may not request resources or labor.
 
@@ -335,6 +347,8 @@ If a base supply cannot meet aggregate crew demand for a resource, distribute av
 
 Task 03 supplies labor only for crew who are present, available, and assigned to that job during the tick. Sum labor by task ID with deterministic crew ordering. Construction completion commissions a building once at the end of the tick; it first produces power/resources on the next tick. Farming labor contributes to crop work/progress; food yield is committed only by Task 01's crop process. Repair changes equipment condition through Task 01's validated completion effect. No scene, animation, or UI callback grants output.
 
+For construction/repair, Task 01 alone increments `completed_work_s` from accepted labor. Task 03's record updates must repeat its input value. Farming labor from phase 6 is persisted for the next phase-4 crop update; do not retroactively execute phase 4 again. EVA tasks accept no labor entries: Task 03 owns expedition travel/work proposals, while Task 01 mirrors validated `work_completed_s` into the expedition task. Release crew from terminal non-EVA jobs at the next intent phase. Returned EVA crew switch to base immediately when their return transfers commit.
+
 ### Task lifecycle
 
 `queued -> active -> completed` is the normal path; unavailable prerequisites produce `blocked`, which can return to queued/active. Cancellable nonterminal jobs can become `cancelled`; unrecoverable conditions become `failed`. Terminal jobs never become active again. Continuous farming uses persisted work cycles and monotonically increasing cycle IDs in save-only task state; it does not award a new harvest on load or every active tick. Construction work counters are capped at required work; a completion marker/effect ID prevents duplicate commissioning.
@@ -343,11 +357,16 @@ Task 03 supplies labor only for crew who are present, available, and assigned to
 
 - Task 03 computes speed from the minimum capable speed of the expedition crew and configured terrain/activity effects. Crew definitions declare movement speed and suit capacities. Policy parameters declare oxygen/battery workload rates and `reserve_fraction` in `[0,1)`; they are explicit game/science configuration, not hidden constants.
 - Before departure, calculate outbound + requested work + return duration and each crew member's expected consumption. Require projected remaining oxygen and battery at return to be at least `reserve_fraction * loaded_amount` for that resource. Reject missing return routes or insufficient loading. The UI preview uses the same pure estimator as command resolution.
+- After schema validation, launch resolution checks site, crew, routes, reserve policy, suit capacity, then base stock, in that order. The first failed condition supplies the failure code. This ordering is part of the public contract.
 - V1 reserves one site exclusively per expedition. Launch starts at the scenario's base airlock cell; crew must be available at base. Transfer suit stores at launch once. The team follows route progress using authoritative tick time.
 - At most one phase transition occurs at tick end; no leftover subsecond work/travel is granted after a phase completes. All crew oxygen/battery use for that interval reflects its starting phase. This is an explicit one-second discretization.
-- Salvage work reduces site cargo and moves it to expedition cargo once upon work completion, capped by configured expedition carry capacity. Partial work interrupted by recall yields no salvage in v1. Remaining site cargo stays available for a future expedition.
+- Salvage work reduces site cargo and moves it to expedition cargo once upon work completion, capped by configured expedition carry capacity. Partial work interrupted by recall yields no salvage in v2. Remaining site cargo stays available for a future expedition.
 - On base return, cargo and unused suit stores transfer once. If base capacity is full, cargo remains in a persisted expedition return cache and is credited automatically, by expedition/resource ID order, when capacity opens; no silent deletion. Suit excess is the explicitly recorded vent/energy loss described above.
 - Recall switches from current location to a deterministic return route. No route sets `stranded` and a critical alert; it does not teleport the team or refund consumed resources. A later valid route permits a recall retry. Exhaustion/death policy is data-driven; failure retains cargo/stores at the last location rather than crediting base rewards.
+
+Validate EVA proposals against allowed transitions: outbound to working on arrival; working to returning on work completion; outbound/working/stranded to returning on valid recall; returning to completed on base arrival; any nonterminal phase to stranded when its route becomes unavailable or failed under configured exhaustion policy. Terminal expeditions never reactivate. Route progress increases by at most minimum capable crew speed times dt, never beyond its length; changed routes require a validated phase/recall transition and a matching world query, including the backtracking rule. Work increases only from a starting working phase, by at most dt, capped at required duration. Unmet critical needs prohibit work; return travel remains permitted only while the data-driven health/exhaustion policy says the crew can move.
+
+Accept `salvage_collect` only on work-complete working-to-returning transition, and return transfers only on returning-to-completed transition. A recalled team that returns safely has expedition status `completed`; its EVA task is `cancelled` if salvage was not collected, otherwise `completed`. Depleted cargo at a valid site may produce a zero-reward completion; do not infer failure or grant invented cargo.
 
 ## 9. Ordered tick pipeline
 
@@ -383,7 +402,9 @@ V1 logical routing uses four-neighbor grid BFS with neighbor order `+X, +Z, -X, 
 
 ## 11. Events and alerts
 
-Every `game_event` uses `{id, type, tick_index, entity_ids, data}`. IDs use the saved event counter. Canonical types include `command_result`, `building_commissioned`, `task_completed`, `eva_launched`, `eva_recalled`, `eva_returned`, `resource_shortage`, and `hazard_changed`. Emit in phase order, then stable entity/effect ID order. UI/audio consume events; events do not independently apply gameplay effects.
+Every `game_event` uses `{id, type, tick_index, entity_ids, data}`. IDs use the saved event counter and are allocated only after ordering. Canonical types include `command_result`, `building_commissioned`, `task_completed`, `eva_launched`, `eva_recalled`, `eva_returned`, `resource_shortage`, and `hazard_changed`. Within a boundary, emit each command's result then its domain events in receive order. Include all referenced runtime/entity IDs, including elements of `crew_ids`, sorted and unique. Within a tick, preserve phase order first, then lexicographic entity-ID array, event type, and stable originating effect ID. Do not globally sort across phases. UI/audio consume events; events do not independently apply gameplay effects.
+
+Building blocking-code vocabulary: `constructing`, `disabled`, `destroyed`, `damaged`, `no_power`, `partial_power`, `input_limited:<resource_id>`, `output_full:<resource_id>`, and `event_modifier:<event_id>`. Sort each building's codes lexicographically. Alert codes: `power_shortfall`, `battery_low`, `co2_high`, `low_oxygen`, `storage_full`, `expedition_low_margin`, and `expedition_stranded`. Display rates with absolute value below `1e-12` as `0.0` without rounding authoritative balances. `power.requested_kw` and `served_kw` count consumers only, excluding charging. Before the first tick power/rates are zero and alerts are empty; retain last completed tick's diagnostics across save/load rather than fabricating a new tick.
 
 Alerts are persistent conditions in snapshots, keyed by stable condition/entity identity. Repeated low oxygen does not create a new alert each frame. Expiring an alert removes the condition from the snapshot; historical presentation logs are optional and are not replayed as gameplay events after loading.
 
@@ -393,8 +414,8 @@ Alerts are persistent conditions in snapshots, keyed by stable condition/entity 
 
 ```text
 format: "mars-outpost-save"
-save_version: 1
-contract_version: "1.0.0"
+save_version: 2
+contract_version: "2.0.0"
 campaign_id: String
 definition_manifest: Dictionary[String, String]
 core:
@@ -406,6 +427,8 @@ core:
   command_journal: Dictionary[command_id, journal_entry]
   pending_command_ids: Array[String] in receive order
   committed_effects: Dictionary[effect_id, transaction_result]
+  power_summary: Dictionary
+  alerts: Dictionary[alert_id, Alert]
   authoritative_resource/building/event/site/technology state
   per_battery_energy, prepaid_build_costs, crop_cycles, scheduled_events
 subsystems:
@@ -414,15 +437,18 @@ subsystems:
 
 The core fields spelled out above are required. The grouped authoritative state is implemented as explicit `resources`, `buildings`, `active_events`, `sites`, `technology`, `per_battery_energy`, `prepaid_build_costs`, `crop_cycles`, and `scheduled_events` keys; no literal slash-delimited key is used. Core also includes `map: {id, revision}`. `crew_tasks.state` contains `crew`, `tasks`, `expeditions`, `return_caches`, `completion_markers`, and `private_counters`. These are the same authoritative records used to build snapshot collections, not a second independent simulation copy. Use the pinned engine's `RandomNumberGenerator`, with `algorithm_id="godot-rng-4.7.2"`; different engine RNG versions are incompatible unless an explicit migration/replay strategy is added.
 
+`core.resources` preserves full balance records, including last-tick rates/forecasts, and nullable accumulator capacity. Validate units/capacity against definitions and stored quantities; never trust those fields to redefine content. `power_summary` preserves last-tick power diagnostics; `alerts` preserves `first_tick` and active conditions. Validate aggregate `energy_kwh.amount` against per-battery totals. There is no additional `ledger_accounts` key. Command journal entries store normalized envelopes; recompute their canonical comparison form on load. Supported seeds are decimal strings in `[0, 9223372036854775807]`; RNG state is its signed int64 decimal string, restored after setting seed, without any floating-point conversion.
+
 ### Save/load API and registration
 
-- Task 01 registers the required adapter under the fixed key `crew_tasks` during initialization. Adapter methods are specified in section 8. Core owns building/resource/event/site persistence; Task 02 restores visuals from snapshots and needs no gameplay save adapter in v1.
+- Task 01 registers the required adapter under the fixed key `crew_tasks` during initialization. Adapter methods are specified in section 8. Core owns building/resource/event/site persistence; Task 02 restores visuals from snapshots and needs no gameplay save adapter in v2.
 - `export_save` returns a detached complete envelope at a boundary, including pending accepted commands and fractional accumulator. Calling during a tick returns an operation error record `{ok:false, code:"invalid_state", reason:...}` instead of a partial save. UI invokes it outside update callbacks; filesystem writing belongs to the integration wrapper.
 - `import_save` validates envelope, supported versions, definition manifest, numbers, counters, uniqueness, entity references, command/effect journals, and adapter state into a temporary candidate. Do not replace the current campaign until every validation succeeds. A failed load changes nothing, including current command queue and RNG.
 - Successful load replaces state/queue/RNG together, restores the crew adapter, emits one `state_changed`, and does not re-emit historical command results, events, or rewards. Pending commands resolve at the next boundary. Adapter restoration must be non-failing after validation; unexpected failure restores the old core and adapter state.
+- Invalidate snapshot caches on initialization/import independently of revision number: two different campaigns/checkpoints can have the same revision. A failed load retains the old valid cache/state.
 - Write save files atomically through a temporary file then replacement using the target platform's supported storage API; retain the previous valid save on write failure. Browser persistence requires Task 02 to verify the actual host/storage behavior. No server-side persistence is assumed.
 - Contract follows semantic versions. A new required field, changed unit, altered ordering/accounting rule, or incompatible command shape is a breaking major change. Optional backward-compatible fields/new capabilities use a minor revision; clarifications without behavioral change use patch. V1 clients reject unsupported major/minor versions; an explicit compatibility table may permit earlier minor versions later.
-- `snapshot_version`, `save_version`, and adapter `schema_version` are separate integer schemas. No automatic migration is assumed in v1. Reject newer/older unsupported save schemas with `incompatible_save`; never reset missing fields silently. Author migrations and fixtures before supporting a new save schema.
+- `snapshot_version`, `save_version`, and adapter `schema_version` are separate integer schemas. No automatic migration is assumed in v2. Reject newer/older unsupported save schemas with `incompatible_save`; never reset missing fields silently. Author migrations and fixtures before supporting a new save schema.
 
 ## 13. Worked integration sequences
 

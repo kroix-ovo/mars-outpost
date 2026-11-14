@@ -1,0 +1,285 @@
+{
+  "schema_version": 1,
+  "id": "power_loss_and_restore",
+  "description": "Charge a nearly empty battery from surplus generation, disable the generator, drain the stored energy in power-priority order, then re-enable and recover.",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "depends_on_decisions": [
+    "D8",
+    "D9",
+    "D13"
+  ],
+  "init_config": "res://tests/simulation/fixtures/init/power_shortage_6crew.json",
+  "world_service": "stub_world_fixture_flat_16",
+  "crew_adapter": "stub_crew_policy_v1",
+  "steps": [
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 4,
+        "revision": 4,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.5,
+          "electronics": 2,
+          "energy_kwh": 0.003000000000000001,
+          "food_kcal": 99976.0,
+          "hydrogen_kg": 0.004,
+          "oxygen_kg": 120.00799999999998,
+          "potable_water_kg": 499.96399999999994,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 1.0
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/power_charged_tick4.json"
+      },
+      "note": "Generator on: 1.0 kW surplus charges +0.00025 kWh per tick; battery 0.002 -> 0.003 kWh. [Execute step() 4 times; expectations apply after the last.]",
+      "repeat_before": 4
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "1.0.0",
+        "command_id": "fixture:000001",
+        "type": "set_building_enabled",
+        "payload": {
+          "building_id": "building_000001",
+          "enabled": false
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000001",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 1,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      }
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 5,
+        "revision": 6,
+        "command_resolved": [
+          [
+            "fixture:000001",
+            true,
+            ""
+          ]
+        ],
+        "flushes": [
+          {
+            "after": "boundary",
+            "tick_index": 4,
+            "events": [
+              {
+                "id": "event_000001",
+                "type": "command_result",
+                "tick_index": 4,
+                "entity_ids": [
+                  "building_000001"
+                ],
+                "data": {
+                  "success": true,
+                  "code": "ok",
+                  "reason": "",
+                  "resolved_tick": 4,
+                  "data": {
+                    "building_id": "building_000001"
+                  },
+                  "command_id": "fixture:000001"
+                }
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.5,
+          "electronics": 2,
+          "energy_kwh": 0.002382716049382717,
+          "food_kcal": 99970.0,
+          "hydrogen_kg": 0.005,
+          "oxygen_kg": 120.00999999999998,
+          "potable_water_kg": 499.9549999999999,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 1.0
+        }
+      },
+      "note": "Generator off at the boundary; the battery serves all 2.0 kW from its stored energy."
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 8,
+        "revision": 9,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.5,
+          "electronics": 2,
+          "energy_kwh": 0.0005308641975308655,
+          "food_kcal": 99952.0,
+          "hydrogen_kg": 0.008,
+          "oxygen_kg": 120.01599999999996,
+          "potable_water_kg": 499.9279999999999,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 1.0
+        }
+      },
+      "note": "Three more full ticks; each removes (2.0 kW / 3600) / 0.9 kWh. [Execute step() 3 times; expectations apply after the last.]",
+      "repeat_before": 3
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 9,
+        "revision": 10,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.5,
+          "electronics": 2,
+          "energy_kwh": 0.0,
+          "food_kcal": 99946.0,
+          "hydrogen_kg": 0.009000000000000001,
+          "oxygen_kg": 120.01799999999996,
+          "potable_water_kg": 499.9122799999999,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 1.0067199999999998
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/power_partial_tick9.json"
+      },
+      "note": "Remaining energy covers only part of the load: scrubber and electrolyzer full, recycler partial."
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 10,
+        "revision": 11,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.506,
+          "electronics": 2,
+          "energy_kwh": 0.0,
+          "food_kcal": 99940.0,
+          "hydrogen_kg": 0.009000000000000001,
+          "oxygen_kg": 120.01199999999996,
+          "potable_water_kg": 499.9002799999999,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 1.0187199999999998
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/power_none_tick10.json"
+      },
+      "note": "Battery empty: all processes stopped; metabolism continues; CO2 accumulates."
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 20,
+        "revision": 21,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.5660000000000001,
+          "electronics": 2,
+          "energy_kwh": 0.0,
+          "food_kcal": 99880.0,
+          "hydrogen_kg": 0.009000000000000001,
+          "oxygen_kg": 119.95199999999996,
+          "potable_water_kg": 499.7802799999999,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 1.13872
+        }
+      },
+      "repeat_before": 10,
+      "note": " [Execute step() 10 times; expectations apply after the last.]"
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "1.0.0",
+        "command_id": "fixture:000002",
+        "type": "set_building_enabled",
+        "payload": {
+          "building_id": "building_000001",
+          "enabled": true
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000002",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 2,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      }
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 21,
+        "revision": 23,
+        "command_resolved": [
+          [
+            "fixture:000002",
+            true,
+            ""
+          ]
+        ],
+        "flushes": [
+          {
+            "after": "boundary",
+            "tick_index": 20,
+            "events": [
+              {
+                "id": "event_000002",
+                "type": "command_result",
+                "tick_index": 20,
+                "entity_ids": [
+                  "building_000001"
+                ],
+                "data": {
+                  "success": true,
+                  "code": "ok",
+                  "reason": "",
+                  "resolved_tick": 20,
+                  "data": {
+                    "building_id": "building_000001"
+                  },
+                  "command_id": "fixture:000002"
+                }
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.5660000000000001,
+          "electronics": 2,
+          "energy_kwh": 0.00025,
+          "food_kcal": 99874.0,
+          "hydrogen_kg": 0.010000000000000002,
+          "oxygen_kg": 119.95399999999995,
+          "potable_water_kg": 499.7712799999999,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 1.13872
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/power_restored_tick21.json"
+      },
+      "note": "Generator back: all loads served, surplus charges battery."
+    }
+  ]
+}

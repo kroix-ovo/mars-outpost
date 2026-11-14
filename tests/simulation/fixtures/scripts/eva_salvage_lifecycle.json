@@ -1,0 +1,383 @@
+{
+  "schema_version": 1,
+  "id": "eva_salvage_lifecycle",
+  "description": "Reject two unsafe launches, launch a valid EVA, salvage, return.",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "depends_on_decisions": [
+    "D1",
+    "D2",
+    "D3",
+    "D17"
+  ],
+  "init_config": "res://tests/simulation/fixtures/init/salvage_6crew.json",
+  "world_service": "stub_world_fixture_flat_16",
+  "crew_adapter": "stub_crew_policy_v1",
+  "steps": [
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "1.0.0",
+        "command_id": "fixture:000001",
+        "type": "start_eva",
+        "payload": {
+          "site_id": "site_cargo_a",
+          "crew_ids": [
+            "crew_000001",
+            "crew_000002"
+          ],
+          "work_duration_s": 20,
+          "oxygen_kg_per_crew": 0.25,
+          "battery_kwh_per_crew": 0.006
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000001",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 1,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      },
+      "note": "Passes reserve policy but exceeds 0.2 kg suit capacity: capacity_exceeded."
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "1.0.0",
+        "command_id": "fixture:000002",
+        "type": "start_eva",
+        "payload": {
+          "site_id": "site_cargo_a",
+          "crew_ids": [
+            "crew_000001",
+            "crew_000002"
+          ],
+          "work_duration_s": 20,
+          "oxygen_kg_per_crew": 0.1,
+          "battery_kwh_per_crew": 0.006
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000002",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 2,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      },
+      "note": "0.10 - 40 s * 0.002 = 0.02 < 0.25 * 0.10: reserve_insufficient."
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "1.0.0",
+        "command_id": "fixture:000003",
+        "type": "start_eva",
+        "payload": {
+          "site_id": "site_cargo_a",
+          "crew_ids": [
+            "crew_000001",
+            "crew_000002"
+          ],
+          "work_duration_s": 20,
+          "oxygen_kg_per_crew": 0.12,
+          "battery_kwh_per_crew": 0.006
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000003",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 3,
+        "status": "queued",
+        "duplicate": false,
+        "result": null
+      }
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 1,
+        "revision": 2,
+        "command_resolved": [
+          [
+            "fixture:000001",
+            false,
+            "suit capacity exceeded for crew_000001"
+          ],
+          [
+            "fixture:000002",
+            false,
+            "projected return reserve below policy"
+          ],
+          [
+            "fixture:000003",
+            true,
+            ""
+          ]
+        ],
+        "flushes": [
+          {
+            "after": "boundary",
+            "tick_index": 0,
+            "events": [
+              {
+                "id": "event_000001",
+                "type": "command_result",
+                "tick_index": 0,
+                "entity_ids": [
+                  "crew_000001"
+                ],
+                "data": {
+                  "success": false,
+                  "code": "capacity_exceeded",
+                  "reason": "suit capacity exceeded for crew_000001",
+                  "resolved_tick": 0,
+                  "data": {
+                    "crew_id": "crew_000001"
+                  },
+                  "command_id": "fixture:000001"
+                }
+              },
+              {
+                "id": "event_000002",
+                "type": "command_result",
+                "tick_index": 0,
+                "entity_ids": [
+                  "site_cargo_a"
+                ],
+                "data": {
+                  "success": false,
+                  "code": "reserve_insufficient",
+                  "reason": "projected return reserve below policy",
+                  "resolved_tick": 0,
+                  "data": {
+                    "site_id": "site_cargo_a"
+                  },
+                  "command_id": "fixture:000002"
+                }
+              },
+              {
+                "id": "event_000003",
+                "type": "command_result",
+                "tick_index": 0,
+                "entity_ids": [
+                  "expedition_000001",
+                  "task_000001"
+                ],
+                "data": {
+                  "success": true,
+                  "code": "ok",
+                  "reason": "",
+                  "resolved_tick": 0,
+                  "data": {
+                    "expedition_id": "expedition_000001",
+                    "task_id": "task_000001"
+                  },
+                  "command_id": "fixture:000003"
+                }
+              },
+              {
+                "id": "event_000004",
+                "type": "eva_launched",
+                "tick_index": 0,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {
+                  "site_id": "site_cargo_a",
+                  "crew_ids": [
+                    "crew_000001",
+                    "crew_000002"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.498,
+          "electronics": 2,
+          "energy_kwh": 17.98825,
+          "food_kcal": 99996.0,
+          "hydrogen_kg": 0.001,
+          "oxygen_kg": 119.764,
+          "potable_water_kg": 499.995,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.996
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/eva_outbound_tick1.json"
+      },
+      "note": "Launch at boundary (0.24 kg O2 and 0.012 kWh leave base once); interval 0 outbound 1 m."
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 10,
+        "revision": 11,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.48,
+          "electronics": 2,
+          "energy_kwh": 17.99050000000001,
+          "food_kcal": 99960.0,
+          "hydrogen_kg": 0.010000000000000002,
+          "oxygen_kg": 119.79999999999991,
+          "potable_water_kg": 499.95000000000005,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.96
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/eva_working_tick10.json"
+      },
+      "note": "Arrive at site end of interval 9. [Execute step() 9 times; expectations apply after the last.]",
+      "repeat_before": 9
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 15,
+        "revision": 16,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.47,
+          "electronics": 2,
+          "energy_kwh": 17.991750000000017,
+          "food_kcal": 99940.0,
+          "hydrogen_kg": 0.015000000000000006,
+          "oxygen_kg": 119.81999999999987,
+          "potable_water_kg": 499.92500000000007,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.94
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/eva_working_tick15.json"
+      },
+      "repeat_before": 5,
+      "note": " [Execute step() 5 times; expectations apply after the last.]"
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 30,
+        "revision": 31,
+        "command_resolved": [],
+        "flushes": [],
+        "resource_amounts": {
+          "alloy": 6,
+          "co2_kg": 0.43999999999999995,
+          "electronics": 2,
+          "energy_kwh": 17.995500000000035,
+          "food_kcal": 99880.0,
+          "hydrogen_kg": 0.03000000000000002,
+          "oxygen_kg": 119.87999999999973,
+          "potable_water_kg": 499.85000000000014,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.8799999999999999
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/eva_returning_tick30.json"
+      },
+      "note": "Work 20/20 end of interval 29: salvage alloy 4, electronics 2 (carry cap 6); returning. [Execute step() 15 times; expectations apply after the last.]",
+      "repeat_before": 15
+    },
+    {
+      "op": "step",
+      "expect": {
+        "tick_index": 40,
+        "revision": 41,
+        "command_resolved": [],
+        "flushes": [
+          {
+            "after": "tick",
+            "tick_index": 40,
+            "events": [
+              {
+                "id": "event_000005",
+                "type": "eva_returned",
+                "tick_index": 39,
+                "entity_ids": [
+                  "expedition_000001"
+                ],
+                "data": {
+                  "salvage_completed": true
+                }
+              },
+              {
+                "id": "event_000006",
+                "type": "task_completed",
+                "tick_index": 39,
+                "entity_ids": [
+                  "task_000001"
+                ],
+                "data": {}
+              }
+            ]
+          }
+        ],
+        "resource_amounts": {
+          "alloy": 10,
+          "co2_kg": 0.41999999999999993,
+          "electronics": 4,
+          "energy_kwh": 18.002000000000045,
+          "food_kcal": 99840.0,
+          "hydrogen_kg": 0.04000000000000003,
+          "oxygen_kg": 119.99999999999964,
+          "potable_water_kg": 499.8000000000002,
+          "raw_water_kg": 0.0,
+          "wastewater_kg": 0.8399999999999999
+        },
+        "snapshot": "res://tests/simulation/fixtures/snapshots/eva_returned_tick40.json"
+      },
+      "note": "Arrive end of interval 39: cargo and unused suit stores return once. [Execute step() 10 times; expectations apply after the last.]",
+      "repeat_before": 10
+    },
+    {
+      "op": "submit",
+      "command": {
+        "contract_version": "1.0.0",
+        "command_id": "fixture:000003",
+        "type": "start_eva",
+        "payload": {
+          "site_id": "site_cargo_a",
+          "crew_ids": [
+            "crew_000001",
+            "crew_000002"
+          ],
+          "work_duration_s": 20,
+          "oxygen_kg_per_crew": 0.12,
+          "battery_kwh_per_crew": 0.006
+        }
+      },
+      "expect_response": {
+        "accepted": true,
+        "command_id": "fixture:000003",
+        "reason": "",
+        "code": "ok",
+        "receive_sequence": 3,
+        "status": "resolved",
+        "duplicate": true,
+        "result": {
+          "success": true,
+          "code": "ok",
+          "reason": "",
+          "resolved_tick": 0,
+          "data": {
+            "expedition_id": "expedition_000001",
+            "task_id": "task_000001"
+          }
+        }
+      },
+      "note": "Retry after completion: duplicate, cached result, no second load."
+    }
+  ]
+}

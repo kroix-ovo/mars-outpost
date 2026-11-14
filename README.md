@@ -75,7 +75,9 @@ Read `GAME_DESIGN.md` for the design direction, `SCIENCE.md` before adding simul
 
 Start with the [shared product requirements](PRD.md), which define the interfaces, integration milestones, and acceptance criteria for all three contributors.
 
-Before implementing shared boundaries, read [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md): the established v1 command payloads, snapshot schemas, fixed-step/pause rules, resource accounting, world queries, crew adapter, and save/load contract. This is the implementation baseline for all three tasks; runtime code is still to be built.
+Before implementing shared boundaries, read [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md): the established v2 command payloads, snapshot schemas, fixed-step/pause rules, resource accounting, world queries, crew adapter, and save/load contract. This is the implementation baseline for all three tasks; runtime code is still to be built.
+
+The [simulation reconciliation](SIMULATION_RECONCILIATION.md) records the review decisions behind contract 2.0.0 and identifies draft fixtures that still need regeneration before they can serve as conformance expectations.
 
 1. [Simulation and colony systems](TASK_01_SIMULATION.md): resources, life support, power, hazards, progression, and persistence.
 2. [3D world, construction, and integration](TASK_02_WORLD.md): terrain, camera, buildings, navigation services, assets, and delivery.

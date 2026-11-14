@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "id": "fixture_task_templates",
+  "owner": "task_03_proposal",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "templates": {
+    "construct": {
+      "crew_required": 1,
+      "default_priority": 50,
+      "labor_rate_work_s_per_crew_s": 1.0
+    },
+    "eva": {
+      "crew_required": "from_command",
+      "default_priority": 50
+    }
+  }
+}

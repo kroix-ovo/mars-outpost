@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "id": "fixture_resource_registry",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "resources": [
+    {
+      "id": "alloy",
+      "unit": "count",
+      "whole_valued": true,
+      "capacity_policy": "storage"
+    },
+    {
+      "id": "co2_kg",
+      "unit": "kg",
+      "whole_valued": false,
+      "capacity_policy": "accumulator"
+    },
+    {
+      "id": "electronics",
+      "unit": "count",
+      "whole_valued": true,
+      "capacity_policy": "storage"
+    },
+    {
+      "id": "energy_kwh",
+      "unit": "kwh",
+      "whole_valued": false,
+      "capacity_policy": "storage"
+    },
+    {
+      "id": "food_kcal",
+      "unit": "kcal",
+      "whole_valued": false,
+      "capacity_policy": "storage"
+    },
+    {
+      "id": "hydrogen_kg",
+      "unit": "kg",
+      "whole_valued": false,
+      "capacity_policy": "storage"
+    },
+    {
+      "id": "oxygen_kg",
+      "unit": "kg",
+      "whole_valued": false,
+      "capacity_policy": "storage"
+    },
+    {
+      "id": "potable_water_kg",
+      "unit": "kg",
+      "whole_valued": false,
+      "capacity_policy": "storage"
+    },
+    {
+      "id": "raw_water_kg",
+      "unit": "kg",
+      "whole_valued": false,
+      "capacity_policy": "storage"
+    },
+    {
+      "id": "wastewater_kg",
+      "unit": "kg",
+      "whole_valued": false,
+      "capacity_policy": "storage"
+    }
+  ]
+}

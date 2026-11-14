@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "fixture_flat_16",
+  "revision": 1,
+  "owner": "task_02_proposal",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "size_cells": [
+    16,
+    16
+  ],
+  "default_cell": {
+    "passable": true,
+    "buildable": true,
+    "height_m": 0.0
+  },
+  "cell_overrides": [],
+  "base_airlock_cell": [
+    2,
+    8
+  ]
+}

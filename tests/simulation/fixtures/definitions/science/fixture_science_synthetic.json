@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "id": "fixture_science_synthetic",
+  "metadata": {
+    "status": "synthetic_test_fixture",
+    "warning": "Every value in this file is synthetic and chosen for easy arithmetic. None is a physiological, equipment, or planetary value. Do not copy into data/ or SCIENCE.md."
+  },
+  "time": {
+    "tick_s": 1.0,
+    "sol_s": 1000.0
+  },
+  "crew_metabolism": {
+    "time_basis": "per_simulated_second",
+    "base_activity_rates_per_s": {
+      "idle": {
+        "oxygen_kg": 0.001,
+        "potable_water_kg": 0.002,
+        "food_kcal": 1.0
+      },
+      "working": {
+        "oxygen_kg": 0.001,
+        "potable_water_kg": 0.002,
+        "food_kcal": 1.0
+      }
+    },
+    "base_outputs_per_s": {
+      "co2_kg": 0.001,
+      "wastewater_kg": 0.002
+    },
+    "eva_suit_rates_per_s": {
+      "oxygen_kg": 0.002,
+      "battery_kwh": 0.0001
+    },
+    "eva_draws_base_water_and_food": false
+  },
+  "eva_policy": {
+    "reserve_fraction": 0.25
+  },
+  "losses": {
+    "oxygen_leak_kg_per_s": 0.0
+  },
+  "alerts": {
+    "low_oxygen_forecast_s": 600.0,
+    "co2_high_kg": 1.0,
+    "battery_low_fraction": 0.1
+  }
+}
