@@ -1,0 +1,73 @@
+CHECK tests/world/run_world.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+WORLD_PASS checks=679
+CHECK tests/simulation/run_a1.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+A1_BENCH commands=0 tick_ms=1.4652 resolve_ms=0.006 submit_ms=0.004
+A1_BENCH commands=250 tick_ms=1.4238 resolve_ms=21.393 submit_ms=3.996
+A1_BENCH commands=2000 tick_ms=1.4614 resolve_ms=176.821 submit_ms=34.269
+A1_PASS checks=14298
+CHECK tests/simulation/run_a2.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+A2_BENCH retained_commands=0 retained_effects=0 tick_ms=0.5513 command_ms=0.103824
+A2_BENCH retained_commands=20000 retained_effects=20000 tick_ms=0.54383333333333 command_ms=0.12984
+A2_PASS checks=41144
+CHECK tests/simulation/run_a3.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+A3_PASS checks=6718
+CHECK tests/world/run_integration.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+INTEGRATION_PASS checks=54
+CHECK tests/world/run_bridge_regressions.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+BRIDGE_PASS checks=17
+CHECK tests/crew_ui/run_crew_ui.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Task 03: 85/85 checks passed.
+CHECK tests/crew_ui/run_a3_compatibility.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+BLOCKED_ROUTE_REPRO placement_valid=true proposed_position=[5.5, 0.0, 8.5] cell=[5, 8]
+WORKLOAD_RATE_REPRO forecast_per_s=0.001 actual_A3_per_s=0.001
+A3_CREW_RESULT checks=80 failures=0
+A3_CREW_PASS
+CHECK tests/crew_ui/run_tutorial_mission.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+TUTORIAL_RESULT checks=92 failures=0
+TUTORIAL_PASS
+CHECK tests/frontend/run_frontend.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+FRONTEND_PASS checks=229
+CHECK tests/world/run_camera_controls.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+CAMERA_CONTROLS_RESULT checks=12 failures=0
+CAMERA_CONTROLS_PASS
+CHECK main scene (title)
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+CHECK colony scene
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+HEADLESS_PASS
+rendered-720.log
+FRONTEND_LAYOUT_RESULT checks=178 failures=0
+FRONTEND_LAYOUT_PASS
+rendered-900.log
+FRONTEND_LAYOUT_RESULT checks=178 failures=0
+FRONTEND_LAYOUT_PASS
+tutorial-720.log
+TUTORIAL_LAYOUT_RESULT checks=115 failures=0
+TUTORIAL_LAYOUT_PASS
+tutorial-900.log
+TUTORIAL_LAYOUT_RESULT checks=115 failures=0
+TUTORIAL_LAYOUT_PASS

@@ -65,6 +65,7 @@ const GLASSES := [
 	{"id": "none", "label": "None"},
 	{"id": "round", "label": "Round"},
 	{"id": "square", "label": "Square"},
+	{"id": "sunglasses", "label": "Sunglasses"},
 ]
 
 const BUILDS := [

@@ -12,7 +12,7 @@ const UI := preload("res://scripts/frontend/frontend_theme.gd")
 const ROWS := [
 	{"group": "skin", "title": "Skin tone", "kind": "swatch"},
 	{"group": "hair_style", "title": "Hair", "kind": "step"},
-	{"group": "hair_color", "title": "Hair or scarf colour", "kind": "swatch"},
+	{"group": "hair_color", "title": "Eyebrows and facial hair colour", "kind": "swatch"},
 	{"group": "eye_color", "title": "Eyes", "kind": "swatch"},
 	{"group": "facial_hair", "title": "Facial hair", "kind": "step"},
 	{"group": "glasses", "title": "Glasses", "kind": "step"},
@@ -276,7 +276,9 @@ func _option_row(row: Dictionary) -> Control:
 	var top := HBoxContainer.new()
 	block.add_child(top)
 	var title := UI.label(row.title, 17, UI.DIM)
+	title.name = str(row.group) + "Title"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	top.add_child(title)
 	var value := UI.label("", 17, Color.WHITE)
 	_value_labels[group] = value

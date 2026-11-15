@@ -80,6 +80,8 @@ func _run() -> void:
 	var title2: Label = front.title_page.find_child("TitleLine2", true, false)
 	var subtitle: Label = front.title_page.find_child("Subtitle", true, false)
 	check(title1.text == "MARS OUTPOST" and title2.text == "SURVIVAL", "title reads Mars Outpost Survival")
+	check(title1.get_theme_font("font").resource_path.ends_with("RussoOne-Regular.ttf"), "title uses the bundled game display font")
+	check(title1.get_theme_font("font").get_string_size(title1.text, HORIZONTAL_ALIGNMENT_LEFT, -1, title1.get_theme_font_size("font_size")).x <= title1.size.x, "title lettering fits its column")
 	check(subtitle.text == "A Junior Astronaut Mission Trainer", "subtitle")
 	for node in [title1, title2, subtitle, front.new_game_button, front.load_button, front.settings_button, front.logo]:
 		on_screen(node, "title: " + str(node.name))
@@ -131,18 +133,23 @@ func _run() -> void:
 	await capture("04_customizer_default")
 	custom.name_edit.text = NAME
 	custom.name_edit.text_changed.emit(NAME)
-	for pick in [["skin", "umber"], ["hair_style", "braids"], ["hair_color", "blue"], ["glasses", "round"],
+	for pick in [["skin", "umber"], ["hair_style", "braids"], ["hair_color", "blue"], ["glasses", "sunglasses"],
 			["suit", "orange"], ["accent", "violet"], ["build", "broad"], ["height", "tall"]]:
 		custom.choose(pick[0], pick[1])
 	await frames()
 	check(custom.figure.look.hair_style == "braids" and custom.figure.look.skin == "umber", "preview follows choices")
+	var colour_title: Label = custom.find_child("hair_colorTitle", true, false)
+	check(colour_title.text == "Eyebrows and facial hair colour", "colour control describes eyebrows and facial hair")
+	on_screen(colour_title, "eyebrow colour label")
+	no_overlap(colour_title, custom._value_labels.hair_color, "colour label and choice")
+	check(custom.figure.has_node("Rig/Head/SunglassesLeft") and custom._value_labels.glasses.text == "Sunglasses", "sunglasses choice updates label and preview")
 	await capture("05_customizer_custom")
 	custom.randomize_look()
 	await frames()
 	check(custom.look.name == NAME, "Surprise me keeps the name")
 	await capture("06_customizer_random")
 	custom.set_look(custom.look.merged({"skin": "umber", "hair_style": "braids", "hair_color": "blue",
-		"glasses": "round", "suit": "orange", "accent": "violet", "build": "broad", "height": "tall",
+		"glasses": "sunglasses", "suit": "orange", "accent": "violet", "build": "broad", "height": "tall",
 		"facial_hair": "none", "eye_color": "dark"}, true))
 	custom.continue_button.pressed.emit()
 	await frames(6)
@@ -200,6 +207,7 @@ func _run() -> void:
 	check(str(hud._tour_step.get("id", "")) == "welcome", "tutorial welcome is waiting")
 	check(str(hud._tour_step.get("title", "")) == "Welcome, Commander " + NAME, "tutorial greets the commander by name")
 	check(main.lander.get_node_or_null("Commander") != null, "commander stands by the habitat")
+	check("Inez Solis" in hud._crew.get_item_text(0) and "Amara Okafor" in hud._crew.get_item_text(1), "colony roster keeps the landing crew names")
 	on_screen(hud._tour_primary, "colony: Start tutorial")
 	await capture("15_colony_welcome")
 	# The title music outlives the front end while it fades; stop it before quitting.

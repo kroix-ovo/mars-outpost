@@ -39,7 +39,7 @@ func apply_record(record: Dictionary, snap: bool = false) -> void:
 	if snap or not _initialized:
 		position = _target
 	_initialized = true
-	$Nameplate.text = "%s · %s" % [record.display_name, record.status.capitalize()]
+	$Nameplate.text = "%s · %s" % [CrewLooks.display_name(record.display_name), record.status.capitalize()]
 	var key := "%s|%s" % [record.get("definition_id", ""), record.display_name]
 	if _figure != null and key != _look_key:
 		_look_key = key
