@@ -1,0 +1,116 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/main_world.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/world/sim_bridge.gd" id="2_bridge"]
+[ext_resource type="Script" path="res://scripts/world/terrain_view.gd" id="3_terrain"]
+[ext_resource type="Script" path="res://scripts/world/building_view.gd" id="4_buildings"]
+[ext_resource type="Script" path="res://scripts/world/site_view.gd" id="5_sites"]
+[ext_resource type="Script" path="res://scripts/world/utility_view.gd" id="10_utilities"]
+[ext_resource type="Script" path="res://scripts/world/route_view.gd" id="6_routes"]
+[ext_resource type="Script" path="res://scripts/world/placement_controller.gd" id="7_placement"]
+[ext_resource type="Script" path="res://scripts/world/camera_rig.gd" id="8_camera"]
+[ext_resource type="PackedScene" path="res://scenes/world/landing_ship.tscn" id="9_lander"]
+
+[sub_resource type="ProceduralSkyMaterial" id="sky_material"]
+sky_top_color = Color(0.77, 0.55, 0.38, 1)
+sky_horizon_color = Color(0.93, 0.74, 0.55, 1)
+sky_curve = 0.2
+ground_bottom_color = Color(0.35, 0.2, 0.14, 1)
+ground_horizon_color = Color(0.82, 0.58, 0.4, 1)
+sun_angle_max = 20.0
+sun_curve = 0.3
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_material")
+
+[sub_resource type="Environment" id="environment"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 3
+ambient_light_color = Color(0.9, 0.72, 0.58, 1)
+ambient_light_sky_contribution = 0.6
+ambient_light_energy = 0.9
+tonemap_mode = 2
+tonemap_exposure = 1.05
+fog_enabled = true
+fog_light_color = Color(0.85, 0.62, 0.45, 1)
+fog_density = 0.004
+fog_sky_affect = 0.2
+
+[sub_resource type="StyleBoxFlat" id="overlay_style"]
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+bg_color = Color(0.05, 0.04, 0.05, 0.72)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="Integration" type="Node" parent="."]
+script = ExtResource("2_bridge")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("environment")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.819152, -0.4131759, 0.397703, 0, 0.6934, 0.720545, -0.5735764, -0.590235, 0.568003, 0, 20, 0)
+light_color = Color(1, 0.92, 0.82, 1)
+light_energy = 1.4
+shadow_enabled = true
+directional_shadow_max_distance = 120.0
+
+[node name="Terrain" type="Node3D" parent="."]
+script = ExtResource("3_terrain")
+
+[node name="LandingShip" parent="." instance=ExtResource("9_lander")]
+
+[node name="Buildings" type="Node3D" parent="."]
+script = ExtResource("4_buildings")
+
+[node name="Utilities" type="Node3D" parent="."]
+script = ExtResource("10_utilities")
+
+[node name="Sites" type="Node3D" parent="."]
+script = ExtResource("5_sites")
+
+[node name="Routes" type="Node3D" parent="."]
+script = ExtResource("6_routes")
+
+[node name="Placement" type="Node3D" parent="."]
+script = ExtResource("7_placement")
+
+[node name="CameraRig" type="Node3D" parent="."]
+script = ExtResource("8_camera")
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig"]
+transform = Transform3D(1, 0, 0, 0, 0.573576, 0.819152, 0, -0.819152, 0.573576, 0, 22.9363, 16.0606)
+fov = 50.0
+near = 0.1
+far = 400.0
+
+[node name="CrewRoot" type="Node3D" parent="."]
+
+[node name="UIRoot" type="CanvasLayer" parent="."]
+layer = 5
+
+[node name="DevOverlay" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="Panel" type="PanelContainer" parent="DevOverlay"]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 720.0
+offset_bottom = 60.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("overlay_style")
+
+[node name="Label" type="Label" parent="DevOverlay/Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 14
+text = "Booting world..."
