@@ -76,6 +76,7 @@ jobs:
           python3 tests/simulation/tools/generate_fixtures.py --check
           python3 tests/simulation/tools/closed_form_checks.py
           python3 tests/world/tools/generate_integration_scenario.py --check
+          python3 tests/simulation/tools/generate_a3_profile.py --check
 
       - name: Export Web
         run: |

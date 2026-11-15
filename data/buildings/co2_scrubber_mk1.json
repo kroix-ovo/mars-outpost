@@ -3,16 +3,31 @@
   "id": "co2_scrubber_mk1",
   "display_name": "CO2 Scrubber",
   "scene_path": "res://scenes/buildings/co2_scrubber_mk1.tscn",
-  "footprint_cells": [[0, 0]],
-  "entrance_cells": [[1, 0]],
-  "build_cost": {"alloy": 2, "electronics": 2},
+  "footprint_cells": [
+    [
+      0,
+      0
+    ]
+  ],
+  "entrance_cells": [
+    [
+      1,
+      0
+    ]
+  ],
+  "build_cost": {
+    "alloy": 2,
+    "electronics": 2
+  },
   "construction_work_s": 30.0,
   "power_generation_kw": 0.0,
   "power_demand_kw": 0.6,
   "power_priority": 95,
   "process_priority": 95,
   "process": {
-    "inputs_per_s": {"co2_kg": 0.002},
+    "inputs_per_s": {
+      "co2_kg": 9.041666666666666e-05
+    },
     "outputs_per_s": {}
   },
   "storage_capacity": {},
@@ -24,10 +39,14 @@
   "unlocks_required": [],
   "metadata": {
     "status": "authored_blockout",
-    "balance_status": "placeholder_pending_science_md",
-    "balance_note": "Removal rate and power are placeholders pending SCIENCE.md (NASA OCHMO CO2 figures). Footprint and entrance geometry are authoritative.",
+    "balance_status": "documented_game_abstraction",
+    "balance_note": "A3 six-reference-crew throughput sizing with 20% margin; power/cost/storage remain game abstractions. See SCIENCE.md A3-DESIGN-MARGIN, A3-ELECTROLYSIS and A3-RECOVERY.",
     "category": "life_support",
     "description": "Pulls carbon dioxide out of the cabin air. A full oxygen tank does not make high CO2 safe.",
-    "visual": {"shape": "box", "color": "#9aa5b1", "height_m": 1.8}
+    "visual": {
+      "shape": "box",
+      "color": "#9aa5b1",
+      "height_m": 1.8
+    }
   }
 }

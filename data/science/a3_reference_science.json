@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "id": "a3_reference_science",
+  "metadata": {
+    "status": "source_backed_reference_model",
+    "science_record_ids": [
+      "A3-CREW-O2",
+      "A3-CREW-CO2",
+      "A3-CREW-WATER",
+      "A3-WASTE-COLLECTION",
+      "A3-FOOD",
+      "A3-SOL",
+      "A3-ELECTROLYSIS",
+      "A3-RECOVERY",
+      "A3-CO2-ALERT",
+      "A3-ATMOSPHERE",
+      "A3-DESIGN-MARGIN",
+      "A3-OFF-NOMINAL"
+    ],
+    "warning": "NASA reference crew; documented game equipment/atmosphere assumptions. Instantaneous CO2 alert, not one-hour compliance. No reference EVA model."
+  },
+  "time": {
+    "tick_s": 1.0,
+    "sol_s": 88775.244
+  },
+  "crew_metabolism": {
+    "time_basis": "per_simulated_second",
+    "base_activity_rates_per_s": {
+      "idle": {
+        "oxygen_kg": 1.0358796296296296e-05,
+        "potable_water_kg": 3.72337962962963e-05,
+        "food_kcal": 0.034722222222222224
+      },
+      "working": {
+        "oxygen_kg": 1.0358796296296296e-05,
+        "potable_water_kg": 3.72337962962963e-05,
+        "food_kcal": 0.034722222222222224
+      }
+    },
+    "base_outputs_per_s": {
+      "co2_kg": 1.255787037037037e-05,
+      "wastewater_kg": 5.05324074074074e-05
+    },
+    "eva_suit_rates_per_s": {
+      "oxygen_kg": 0.0,
+      "battery_kwh": 0.0
+    },
+    "eva_draws_base_water_and_food": false,
+    "eva_supported": false
+  },
+  "eva_policy": {
+    "reserve_fraction": 0.25
+  },
+  "losses": {
+    "oxygen_leak_kg_per_s": 0.0
+  },
+  "alerts": {
+    "low_oxygen_forecast_s": 3600.0,
+    "co2_high_kg": 0.7173472755345293,
+    "battery_low_fraction": 0.1,
+    "expedition_low_margin_s": 10.0
+  },
+  "atmosphere": {
+    "volume_m3": 100.0,
+    "temperature_k": 295.15,
+    "molar_gas_constant_j_mol_k": 8.314462618,
+    "co2_molar_mass_kg_mol": 0.0440095,
+    "instantaneous_warning_pa": 400.0
+  }
+}

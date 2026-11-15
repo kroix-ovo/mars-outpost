@@ -58,11 +58,16 @@ func _process(_delta: float) -> bool:
         _check(absf(authored.power.served_kw - 2.9) < 1e-9, "authored loads served by A2")
         _check(absf(authored.resources.energy_kwh.amount - (14.0 + (5.46 - 2.9) / 3600 * 0.95)) < 1e-9, "authored battery charges through ledger")
         for id in ["building_000001", "building_000002"]:
-            bridge.submit_command("set_building_enabled", {"building_id": id, "enabled": false})
+            _main._select_at(authored.buildings[id].cell)
+            var toggle = InputEventKey.new()
+            toggle.pressed = true
+            toggle.keycode = KEY_T
+            _main._unhandled_input(toggle)
+            _check(not bridge.get_snapshot().buildings[id].enabled, "selected module toggles through real command boundary")
         bridge._backend.step(1.0)
         _check(bridge.get_snapshot().power.generated_kw == 0 and absf(bridge.get_snapshot().power.served_kw - 2.9) < 1e-9, "authored batteries cover solar shutdown")
         _check(absf(bridge.get_snapshot().resources.energy_kwh.amount - (authored.resources.energy_kwh.amount - 2.9 / 3600 / 0.95)) < 1e-9, "authored battery discharge efficiency")
-        _check(bridge.get_snapshot().resources.oxygen_kg.amount == 140, "authored power does not fabricate life support")
+        _check(absf(bridge.get_snapshot().resources.oxygen_kg.amount - (140.0 + 2.0 * (6.444 - 6.0 * 0.895) / 86400.0)) < 1e-8, "authored life support and crew demand commit once per interval")
         for i in 3:
             _main.load_world(0)
             _main.load_world(1)

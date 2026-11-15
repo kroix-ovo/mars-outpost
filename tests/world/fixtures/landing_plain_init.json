@@ -1,5 +1,5 @@
 {
-  "campaign_id": "synthetic_landing_plain_power",
+  "campaign_id": "reference_landing_plain_life_support",
   "seed": "42",
   "initial_crew_definition_ids": [
     "fixture_crew_a",
@@ -12,20 +12,21 @@
   "map_id": "landing_plain",
   "map_revision": 1,
   "scenario_path": "res://tests/world/fixtures/landing_plain_scenario.json",
-  "science_config_path": "res://tests/simulation/fixtures/definitions/science/fixture_science_synthetic.json",
+  "science_config_path": "res://data/science/a3_reference_science.json",
   "definition_manifest": {
     "res://data/buildings/battery_bank_mk1.json": "f6b51a3423d716538ed958df8adc7717a4e045c50f36283e5b8d00a839569b2d",
-    "res://data/buildings/co2_scrubber_mk1.json": "011da400ecf6bc07ddee4f48bb0b1c5a7fa5356ceda64421e107327b4de9f833",
+    "res://data/buildings/co2_scrubber_mk1.json": "7c4b3b0802c1ed079b377e9a350ab894e467febe3913bfce120128e58f25a0cf",
     "res://data/buildings/greenhouse_mk1.json": "fd16c037d3d7e8dc141197cfd4e3e6bfb4323daaefc9d51ef9a2ca3181b8b1ee",
     "res://data/buildings/solar_array_mk1.json": "c2292ee240e9358e9a17d66c3d573c55fe3fd2fa9583253c8bedca1eb35d69d6",
     "res://data/buildings/storage_module_mk1.json": "81a35ab912609aadb98f0ca0ccb9ff8011b4ff3d1f28f85f198164f57f2553e8",
-    "res://data/buildings/water_electrolyzer_mk1.json": "62629e2f94bb6ea1381ad7389fee9690c0d72da0e9f19de2dbfda877f5573981",
-    "res://data/buildings/water_recycler_mk1.json": "86f29c3934e0a74d3bf12e42d8bfe09bc9acd6eeef089f03b26ac23f0e51e73f",
+    "res://data/buildings/water_electrolyzer_mk1.json": "0ca56be3b0798af20b4064acfcae90fddd1d1ada565a6a37cea17247845a9a5d",
+    "res://data/buildings/water_recycler_mk1.json": "a979e8d93fa13e5eb61651209d41b36cbc1e3c72d8594816e5ac1ad2786d799e",
     "res://data/maps/landing_plain.json": "2aca81ca9f20c7990b37f12e8107aaf9ff89a642c7e903be10d303c2eb6ac006",
+    "res://data/science/a3_reference_inputs.json": "f46b761a3ab33586f547604cb5a065669edfd7f495a213770ac7dd78707c1e71",
+    "res://data/science/a3_reference_science.json": "6a483983f1399dd5ac52d0b174138de2f0ee852b7a71ccc13c5995ea7641c0b1",
     "res://tests/simulation/fixtures/definitions/crew/fixture_crew.json": "1921cac470ca349ae09ae0e50f1339dcc16c8a7579bbe4a662b598e3e1184a78",
     "res://tests/simulation/fixtures/definitions/crew/fixture_task_templates.json": "d29e86e749dcbf1d10433f614ed091fab89795f8e0f70cd9e394000802daf3d9",
     "res://tests/simulation/fixtures/definitions/resources.json": "82605c7376ede629445f5a3b1b8ba1b277ab6eb5f09699e319acda1bae33bda7",
-    "res://tests/simulation/fixtures/definitions/science/fixture_science_synthetic.json": "2244b65dc87fe8a0e5567823d24a62bc319fe1c9f0226123b8b8f22f49c93f6f",
-    "res://tests/world/fixtures/landing_plain_scenario.json": "b60b25c131977692db3361187096308052248af0b7b34d28160bb2b26c22ff6b"
+    "res://tests/world/fixtures/landing_plain_scenario.json": "3356bcac5bb28b593c0dc3c8e9a66a704dbbc5b9a38f39ea13d43e76cd3fa8d4"
   }
 }

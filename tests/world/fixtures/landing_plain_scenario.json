@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "id": "synthetic_landing_plain_integration",
-  "description": "Task 02 authored blockout + real A2 power; all balance/science values are synthetic placeholders.",
+  "description": "Authored integration prototype with A3 reference crew demand and documented game equipment sizing.",
   "metadata": {
     "status": "synthetic_test_fixture",
-    "warning": "No adopted science. Seven commissioned modules only; construction and crew behavior remain unavailable."
+    "warning": "Reference physiology plus game assumptions, not a flight-certified habitat. Construction and crew/EVA lifecycle remain unavailable."
   },
   "resource_registry_path": "res://tests/simulation/fixtures/definitions/resources.json",
   "building_definition_paths": [

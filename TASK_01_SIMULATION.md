@@ -4,7 +4,9 @@
 
 **A1 implementation:** shared state initialization, clock, normalized command queue, core controls, and detached snapshots are implemented under `scripts/simulation/`. See [headless verification and remaining boundaries](tests/simulation/README.md). Full gameplay command handlers depend on later work packages and peer services.
 
-**A2 implementation:** atomic ledger transactions, unit/count/storage validation, staged effect receipts, deterministic generation/load/battery dispatch, explicit electrical losses/curtailment, power alerts, and committed energy rates/depletion forecasts are implemented. Headless A2 checks cover the reference power sequence, synthetic remote-account transfers, rollback and combined command/effect history scaling. Life support, metabolism, actual EVA behavior, jobs/production, broader forecasting, hazards and persistence remain A3–A5; their commands remain explicitly unavailable. Public schemas and `project.godot` are unchanged.
+**A2 implementation:** atomic ledger transactions, unit/count/storage validation, staged effect receipts, deterministic generation/load/battery dispatch, explicit electrical losses/curtailment, power alerts, and committed energy rates/depletion forecasts are implemented. Headless A2 checks cover the reference power sequence, synthetic remote-account transfers, rollback and combined command/effect history scaling.
+
+**A3 implementation:** resource-limited electrolysis, wastewater recycling, CO2 removal, sole-writer crew demand, proportional shortage allocation, individual synthetic suit draw, explicit overflow/idle losses, resource forecasts and alerts now run atomically. Research, reference-parameter entries and equipment/game assumptions are documented in [SCIENCE.md](SCIENCE.md) and [A3 solution](docs/A3_RESEARCH_AND_SOLUTION.md). Nominal 5/6/9-crew 600-tick, storage and shutdown chemistry checks pass against unchanged reference expectations. Crew jobs/EVA lifecycle, agriculture, health/hazards, broader production and persistence remain pending. Public schemas and `project.godot` are unchanged by A3.
 
 ## 1. Executive summary
 
@@ -54,7 +56,7 @@ Follow `PRD.md` section 6. Coordinate tick order with Task 03, whose crew/task/E
 | A5 | Wear, dust/radiation/event effects, emergency state, authoritative save/load | 4 |
 | A6 | Headless invariants, deterministic replay, save continuity, integration debugging | 4 |
 
-A1 and A2 are implemented with local headless verification. This does not mark the combined product acceptance criteria below complete; A3–A6 and Tasks 02/03 integration remain pending.
+A1–A3 are implemented with local headless verification. This does not mark the combined product acceptance criteria below complete; A4–A6 and remaining Tasks 02/03 integration are pending.
 
 Points indicate relative planning effort. Rebalance with the team after A1/B1/C1 and the first integrated loop.
 

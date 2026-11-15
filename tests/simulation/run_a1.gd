@@ -233,7 +233,7 @@ func _clock() -> void:
     for delta in [-1.0, INF, NAN]:
         _check(simulation.advance(delta).code == "invalid_value", "Invalid wall delta: " + str(delta))
     var baseline = simulation.get_snapshot()
-    _check(baseline.resources.oxygen_kg.amount == 120, "A1 clock does not pretend to implement metabolism")
+    _check(absf(baseline.resources.oxygen_kg.amount - 120.002) < 1e-8, "One committed A3 interval follows the clock")
     var backlog = _new()
     _scale(backlog, "fast", 20)
     backlog.advance(20.0)

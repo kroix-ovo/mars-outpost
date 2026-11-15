@@ -1,5 +1,7 @@
 # World / simulation integration findings
 
+Historical A2 integration report. A3 now implements life-support/crew-demand accounting and reference-parameter adoption; see [A3 research and solution](A3_RESEARCH_AND_SOLUTION.md) for current behavior. The findings and limitations below describe the reviewed A2 commit, not current A3 status.
+
 Reviewed on 2026-11-15: collaborator PR #3 (`feat/world-construction`, `e44be98`) combined with A1/A2 (`00e3f00`). The integration branch preserves contributor commits and leaves the original PRs open for review. No shared contract or science values were changed.
 
 The original combined baseline passed WORLD 679, INTEGRATION 44, A1 14289 and A2 41144 checks and headless scene boot. PR #3's own GitHub tests/exports also passed. Those successes did not establish a complete game: the authored map explicitly selected a visual stub and several bridge failure paths were untested.

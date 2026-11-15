@@ -6,7 +6,15 @@ const FIX = "res://tests/simulation/fixtures/"
 var checks = 0
 var failures: Array[String] = []
 
-class FailingSimulation extends Simulation:
+# Isolate A2's electrical/ledger regressions while the full facade now runs A3.
+# run_a3.gd tests the combined phases and chemistry independently.
+class PowerOnlySimulation extends Simulation:
+    func _run_life_support(_candidate: RefCounted, _ledger: RefCounted) -> Dictionary:
+        return {"ok": true, "code": "ok", "reason": ""}
+    func _run_crew_demand(_candidate: RefCounted, _ledger: RefCounted) -> Dictionary:
+        return {"ok": true, "code": "ok", "reason": ""}
+
+class FailingSimulation extends PowerOnlySimulation:
     var fail_tick = true
     var captured_ledger: RefCounted
     var queue_during_dispatch = true
@@ -53,7 +61,7 @@ func _read(path: String) -> Dictionary:
     return JSON.parse_string(FileAccess.get_file_as_string(path))
 
 func _new(name: String = "power_shortage_6crew") -> RefCounted:
-    var sim = Simulation.new()
+    var sim = PowerOnlySimulation.new()
     _check(sim.initialize(_read(FIX + "init/" + name + ".json"), null, null).ok, "initialize " + name)
     return sim
 

@@ -15,6 +15,7 @@ def main():
     jobs = [("tests/world/run_world.gd", "WORLD_PASS", []),
             ("tests/simulation/run_a1.gd", "A1_PASS", []),
             ("tests/simulation/run_a2.gd", "A2_PASS", []),
+            ("tests/simulation/run_a3.gd", "A3_PASS", []),
             ("tests/world/run_integration.gd", "INTEGRATION_PASS" if simulation else "INTEGRATION_SKIP", [])]
     if simulation:
         jobs.append(("tests/world/run_bridge_regressions.gd", "BRIDGE_PASS", []))

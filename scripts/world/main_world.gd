@@ -217,6 +217,10 @@ func _unhandled_input(event: InputEvent) -> void:
         bridge.set_time_scale(_next_scale(1))
     elif key.keycode == KEY_MINUS or key.keycode == KEY_KP_SUBTRACT:
         bridge.set_time_scale(_next_scale(-1))
+    elif key.keycode == KEY_T and selected_building != "":
+        var selected: Dictionary = bridge.get_snapshot().buildings.get(selected_building, {})
+        if not selected.is_empty():
+            bridge.submit_command("set_building_enabled", {"building_id": selected_building, "enabled": not selected.enabled})
     elif key.keycode == KEY_K or key.keycode == KEY_L:
         var building_id: String = buildings.building_at_cell(_hover_cell) if not _hover_cell.is_empty() else ""
         if building_id != "":
@@ -275,9 +279,17 @@ func _refresh_overlay() -> void:
     var power: Dictionary = snapshot.get("power", {})
     lines.append("POWER generated %.2f kW  load %.2f/%.2f kW  battery %.4f/%.2f kWh" % [power.get("generated_kw", 0.0), power.get("served_kw", 0.0), power.get("requested_kw", 0.0), power.get("battery_stored_kwh", 0.0), power.get("battery_capacity_kwh", 0.0)])
     if bridge.backend_kind == "simulation":
-        lines.append("Synthetic power prototype. Construction, life support, crew/EVA and saves are pending.")
+        lines.append("Life support + crew demand. Construction, crew jobs/EVA, health outcomes and saves are pending.")
+        lines.append("Reference crew + game equipment assumptions." if world_index == 1 else "Synthetic fixture rates (not physiological values).")
     else:
         lines.append("VISUAL STUB: placement/construction are demonstrations; resources do not change.")
+    var resources: Dictionary = snapshot.get("resources", {})
+    for rid in ["oxygen_kg", "potable_water_kg", "co2_kg", "food_kcal"]:
+        if not resources.has(rid): continue
+        var r: Dictionary = resources[rid]
+        var forecast = "  empty ~%.0f s at last rate" % r.forecast_empty_s if r.forecast_empty_s != null else ""
+        lines.append("%s  %.4f  rate %+.6f/s%s" % [rid, r.amount, r.net_rate_per_s, forecast])
+    for alert in snapshot.get("alerts", []): lines.append("WARNING %s: %s" % [alert.code, alert.message])
     var cut_off: Array = utilities.unreachable_buildings()
     if not cut_off.is_empty():
         lines.append("WARNING no reachable entrance: " + ", ".join(cut_off))
@@ -308,7 +320,7 @@ func _refresh_overlay() -> void:
         lines.append("place: " + "   ".join(options))
     lines.append("")
     lines.append("WASD/arrows or middle-drag pan  right-drag or Q/E orbit  wheel zoom  Home reset  click site/module to select")
-    lines.append("R rotate  Esc cancel  G grid  Space pause  +/- speed  F1 hide  F2/F3 world  K/L dev no_power on/off")
+    lines.append("R rotate  Esc cancel  G grid  Space pause  +/- speed  select module + T toggle  F1 hide  F2/F3 restart")
     if _last_message != "":
         lines.append("")
         lines.append(_last_message)
