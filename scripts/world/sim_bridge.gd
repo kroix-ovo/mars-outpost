@@ -12,6 +12,7 @@ signal snapshot_changed(snapshot: Dictionary)
 signal command_resolved(command_id: String, success: bool, reason: String)
 signal game_event(event: Dictionary)
 signal backend_changed(kind: String, detail: String)
+signal simulation_failed(result: Dictionary)
 
 enum Backend { AUTO, STUB, SIMULATION }
 
@@ -35,6 +36,7 @@ var definitions: RefCounted
 var snapshot: Dictionary = {}
 var backend_kind: String = "none"
 var backend_detail: String = ""
+var last_error: Dictionary = {}
 var crew_adapter: RefCounted = null  # Task 03 supplies this through attach_crew_adapter()
 
 var _backend: RefCounted
@@ -70,35 +72,49 @@ func is_ready() -> bool:
     return _ready_ok
 
 
-func load_world(new_map_path: String, new_definition_dir: String, new_snapshot_path: String, new_backend: int = Backend.AUTO) -> Dictionary:
+func load_world(new_map_path: String, new_definition_dir: String, new_snapshot_path: String, new_backend: int = Backend.AUTO, new_config_path: String = "") -> Dictionary:
     ## Rebuilds map, definitions, service and backend for another world. On failure the previous
     ## world stays active.
-    var previous := {"map": map_path, "defs": building_definition_dir, "snap": fixture_snapshot_path, "backend": backend}
-    map_path = new_map_path
-    building_definition_dir = new_definition_dir
-    fixture_snapshot_path = new_snapshot_path
-    backend = new_backend as Backend
-    var previous_backend := _backend
-    var previous_state := [world_service, map_data, definitions, snapshot, backend_kind, backend_detail]
-    _backend = null
-    var result := boot()
+    if new_backend not in [Backend.AUTO, Backend.STUB, Backend.SIMULATION]:
+        return {"ok": false, "code": "invalid_value", "reason": "Unknown backend selection."}
+    # Prepare off to the side: failed loads publish no intermediate snapshot and
+    # leave the previous world, signal connections and error state intact.
+    var candidate = get_script().new()
+    candidate.map_path = new_map_path
+    candidate.building_definition_dir = new_definition_dir
+    candidate.fixture_snapshot_path = new_snapshot_path
+    candidate.simulation_config_path = new_config_path if not new_config_path.is_empty() else simulation_config_path
+    candidate.backend = new_backend
+    candidate.crew_adapter = crew_adapter
+    var result: Dictionary = candidate.boot()
     if not result.ok:
-        map_path = previous.map
-        building_definition_dir = previous.defs
-        fixture_snapshot_path = previous.snap
-        backend = previous.backend
-        _backend = previous_backend
-        world_service = previous_state[0]
-        map_data = previous_state[1]
-        definitions = previous_state[2]
-        snapshot = previous_state[3]
-        backend_kind = previous_state[4]
-        backend_detail = previous_state[5]
+        candidate.free()
+        return result
+    var next_backend: RefCounted = candidate._backend
+    candidate._disconnect_backend()
+    _disconnect_backend()
+    map_path = candidate.map_path
+    building_definition_dir = candidate.building_definition_dir
+    fixture_snapshot_path = candidate.fixture_snapshot_path
+    simulation_config_path = candidate.simulation_config_path
+    backend = new_backend as Backend
+    world_service = candidate.world_service
+    map_data = candidate.map_data
+    definitions = candidate.definitions
+    backend_kind = candidate.backend_kind
+    backend_detail = candidate.backend_detail
+    _backend = next_backend
+    _connect_backend()
+    _ready_ok = true
+    last_error = {}
+    _publish(_backend.get_snapshot())
+    backend_changed.emit(backend_kind, backend_detail)
+    candidate.free()
     return result
 
 
 func get_snapshot() -> Dictionary:
-    return snapshot
+    return snapshot.duplicate(true)
 
 
 func attach_crew_adapter(adapter: RefCounted) -> void:
@@ -108,8 +124,13 @@ func attach_crew_adapter(adapter: RefCounted) -> void:
 
 func attach_simulation(simulation: RefCounted, detail: String = "external") -> Dictionary:
     ## Lets an outer scene (or Task 01's harness) supply an already initialized facade.
-    if simulation == null or not simulation.has_method("get_snapshot"):
+    if simulation == null:
         return {"ok": false, "code": "invalid_value", "reason": "Not a simulation facade."}
+    for method in ["get_snapshot", "submit_command", "process_pending_commands", "advance"]:
+        if not simulation.has_method(method):
+            return {"ok": false, "code": "invalid_value", "reason": "Simulation is missing " + method}
+    var checked = _validate_snapshot(simulation.get_snapshot())
+    if not checked.ok: return checked
     _disconnect_backend()
     _backend = simulation
     _connect_backend()
@@ -163,7 +184,11 @@ func dev_patch_building(building_id: String, patch: Dictionary) -> Dictionary:
 
 func _process(delta: float) -> void:
     if auto_advance and _backend != null and _backend.has_method("advance"):
-        _backend.advance(delta)
+        var result: Dictionary = _backend.advance(delta)
+        if not result.get("ok", false):
+            last_error = result.duplicate(true)
+            auto_advance = false # Preserve failed-tick backlog; avoid retrying every frame.
+            simulation_failed.emit(last_error.duplicate(true))
 
 
 # ---------------------------------------------------------------- backend selection
@@ -173,9 +198,7 @@ func _attach_backend() -> Dictionary:
         var attempt := _try_simulation()
         if attempt.ok:
             return attempt
-        if backend == Backend.SIMULATION:
-            return attempt
-        push_warning("OutpostSimulation unavailable (%s); falling back to fixture stub." % attempt.reason)
+        return attempt # A present but broken simulation must not become a successful stub.
     elif backend == Backend.SIMULATION:
         return {"ok": false, "code": "module_unavailable", "reason": "scripts/simulation/simulation.gd is not present."}
     return _try_stub()
@@ -191,9 +214,19 @@ func _try_simulation() -> Dictionary:
     var config: Variant = JSON.parse_string(FileAccess.get_file_as_string(simulation_config_path))
     if not config is Dictionary:
         return {"ok": false, "code": "invalid_schema", "reason": "Simulation config is not an object."}
+    if not config.get("definition_manifest") is Dictionary:
+        return {"ok": false, "code": "invalid_schema", "reason": "Simulation manifest is missing."}
+    var world_files: Array = [map_path]
+    for filename in DirAccess.get_files_at(building_definition_dir):
+        if filename.ends_with(".json"): world_files.append(building_definition_dir.path_join(filename))
+    for path in world_files:
+        if config.definition_manifest.get(path) != FileAccess.get_sha256(path):
+            return {"ok": false, "code": "definition_mismatch", "reason": "World content is absent from simulation manifest: " + path}
     var result: Dictionary = simulation.initialize(config, world_service, crew_adapter)
     if not result.get("ok", false):
         return {"ok": false, "code": str(result.get("code", "internal_error")), "reason": str(result.get("reason", "initialize failed"))}
+    var checked = _validate_snapshot(simulation.get_snapshot())
+    if not checked.ok: return checked
     _disconnect_backend()
     _backend = simulation
     _connect_backend()
@@ -209,6 +242,8 @@ func _try_stub() -> Dictionary:
     var loaded: Dictionary = stub.load_fixture(fixture_snapshot_path, world_service)
     if not loaded.ok:
         return loaded
+    var checked = _validate_snapshot(stub.get_snapshot())
+    if not checked.ok: return checked
     _disconnect_backend()
     _backend = stub
     _connect_backend()
@@ -223,21 +258,43 @@ func _connect_backend() -> void:
     if _backend.has_signal("state_changed"):
         _backend.state_changed.connect(_publish)
     if _backend.has_signal("command_resolved"):
-        _backend.command_resolved.connect(func(id: String, ok: bool, reason: String) -> void: command_resolved.emit(id, ok, reason))
+        _backend.command_resolved.connect(_forward_command_resolved)
     if _backend.has_signal("game_event"):
-        _backend.game_event.connect(func(event: Dictionary) -> void: game_event.emit(event))
+        _backend.game_event.connect(_forward_game_event)
 
 
 func _disconnect_backend() -> void:
     if _backend == null:
         return
-    if _backend.has_signal("state_changed") and _backend.state_changed.is_connected(_publish):
-        _backend.state_changed.disconnect(_publish)
+    for connection in [["state_changed", _publish], ["command_resolved", _forward_command_resolved], ["game_event", _forward_game_event]]:
+        if _backend.has_signal(connection[0]) and _backend.is_connected(connection[0], connection[1]):
+            _backend.disconnect(connection[0], connection[1])
     _backend = null
 
 
 func _publish(new_snapshot: Dictionary) -> void:
     if not new_snapshot.has("buildings"):
         return
-    snapshot = new_snapshot
-    snapshot_changed.emit(snapshot)
+    snapshot = new_snapshot.duplicate(true)
+    snapshot_changed.emit(snapshot.duplicate(true))
+
+
+func _forward_command_resolved(id: String, ok: bool, reason: String) -> void:
+    command_resolved.emit(id, ok, reason)
+
+
+func _forward_game_event(event: Dictionary) -> void:
+    game_event.emit(event.duplicate(true))
+
+
+func _validate_snapshot(value: Dictionary) -> Dictionary:
+    if map_data == null or definitions == null:
+        return {"ok": false, "code": "not_initialized", "reason": "Load world content before attaching a simulation."}
+    if not value.get("map") is Dictionary or not value.get("buildings") is Dictionary:
+        return {"ok": false, "code": "invalid_schema", "reason": "Backend has no initialized world snapshot."}
+    if value.map.get("id") != map_data.id or value.map.get("revision") != map_data.revision:
+        return {"ok": false, "code": "definition_mismatch", "reason": "Backend snapshot and rendered map differ."}
+    for b in value.buildings.values():
+        if not b is Dictionary or not definitions.has(b.get("definition_id", "")):
+            return {"ok": false, "code": "unknown_definition", "reason": "Backend building has no matching world definition."}
+    return {"ok": true, "code": "ok", "reason": ""}

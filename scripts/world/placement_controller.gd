@@ -38,6 +38,13 @@ func setup(service: RefCounted, rig: Node3D, terrain_view: Node3D, provider: Cal
     camera_rig = rig
     terrain = terrain_view
     snapshot_provider = provider
+    # setup is called again on each world switch; reuse the two visual roots.
+    if _cursor != null:
+        _cursor.visible = false
+        _clear_ghost()
+        hover_cell = []
+        _last_signature = ""
+        return
     _cursor = MeshInstance3D.new()
     _cursor.name = "Cursor"
     var plate := BoxMesh.new()

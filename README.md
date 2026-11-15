@@ -18,7 +18,7 @@ The aim is to advance the game as far as possible. The initial research report's
 
 ## Current status
 
-Godot project scaffold initialized using the research report's repository structure. Task 1's A1 foundation now runs headlessly: validated synthetic initialization, shared snapshots, control commands, and the simulation clock. There is no playable build yet; resource/power/life-support systems remain to be implemented. See [simulation verification](tests/simulation/README.md) for the test command and exact implementation boundary.
+The integrated Godot 4.7.2 prototype combines Task 02's 3D world, building scenes, camera and route/placement previews with Task 01's A1/A2 authoritative clock, control commands, atomic ledger and electrical dispatch. Both the fixture map and authored `landing_plain` map run real generation/load/battery math. Values are synthetic placeholders, and this is not a complete playable colony: construction, life support, crew/EVA and save/load remain pending. See the [integration findings](docs/WORLD_SIMULATION_INTEGRATION.md), [world verification](tests/world/README.md) and [simulation verification](tests/simulation/README.md).
 
 ## Stack
 
@@ -67,7 +67,13 @@ Empty directories contain `.gitkeep` files so Git preserves the scaffold. Reposi
 
 ## Getting started
 
-Clone `https://github.com/kroix-ovo/mars-outpost.git`, then import `project.godot` in Godot 4. A main scene has not been created yet.
+Clone `https://github.com/kroix-ovo/mars-outpost.git`, then import `project.godot` in Godot 4.7.2 and press Play. The main scene is `scenes/world/main.tscn`. `F2` restarts the fixture colony; `F3` restarts the authored Mars colony. `Space` pauses, `+`/`-` change speed, WASD pans and the wheel zooms. The overlay reports live power and battery energy and labels unimplemented features. A valid placement preview currently leads to an explicit `module_unavailable` rejection on the real backend.
+
+Run all headless checks with Python 3 and the installed console executable:
+
+```powershell
+python tests/run_headless_checks.py --godot '<godot-console>' --benchmark
+```
 
 Read `GAME_DESIGN.md` for the design direction, `SCIENCE.md` before adding simulation quantities, and `ATTRIBUTION.md` when importing external assets.
 
@@ -77,7 +83,7 @@ Start with the [shared product requirements](PRD.md), which define the interface
 
 Before implementing shared boundaries, read [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md): the established v2 command payloads, snapshot schemas, fixed-step/pause rules, resource accounting, world queries, crew adapter, and save/load contract. This is the implementation baseline for all three tasks; the A1 foundation implements part of it, with later systems still to be built.
 
-The [simulation reconciliation](SIMULATION_RECONCILIATION.md) records the review decisions behind contract 2.0.0. [Fixture tooling](tests/simulation/tools/README.md) regenerates and checks the synthetic reference outputs; Godot runtime conformance remains to be implemented and tested.
+The [simulation reconciliation](SIMULATION_RECONCILIATION.md) records the review decisions behind contract 2.0.0. [Fixture tooling](tests/simulation/tools/README.md) regenerates and checks the synthetic reference outputs; A1/A2 runtime conformance is tested, with remaining gameplay scenarios awaiting later packages.
 
 1. [Simulation and colony systems](TASK_01_SIMULATION.md): resources, life support, power, hazards, progression, and persistence.
 2. [3D world, construction, and integration](TASK_02_WORLD.md): terrain, camera, buildings, navigation services, assets, and delivery.

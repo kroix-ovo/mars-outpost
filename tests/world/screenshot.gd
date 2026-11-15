@@ -15,6 +15,9 @@ func _initialize() -> void:
     DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
     root.size = Vector2i(1600, 900)
     _main = load("res://scenes/world/main.tscn").instantiate()
+    # The first five captures deliberately demonstrate visual construction, not
+    # runtime construction (which remains unavailable). Never depend on AUTO.
+    _main.get_node("Integration").backend = 1
     root.add_child(_main)
 
 

@@ -20,13 +20,15 @@ const WORLDS := [
         "definitions": "res://tests/simulation/fixtures/definitions/buildings",
         "snapshot": "res://tests/simulation/fixtures/snapshots/salvage_6crew_tick0.json",
         "backend": 0,  # AUTO: Task 01's facade when present, else the fixture stub
+        "config": "res://tests/simulation/fixtures/init/salvage_6crew.json",
     },
     {
         "name": "landing_plain",
         "map": "res://data/maps/landing_plain.json",
         "definitions": "res://data/buildings",
         "snapshot": "res://tests/world/fixtures/landing_plain_demo_snapshot.json",
-        "backend": 1,  # STUB: authored content has no Task 01 scenario yet
+        "backend": 0,
+        "config": "res://tests/world/fixtures/landing_plain_init.json",
     },
 ]
 
@@ -52,6 +54,7 @@ var _hover_route: Dictionary = {}
 var _preview: Dictionary = {}
 var _last_message: String = ""
 var _events: Array = []
+var _switching_world: bool = false
 
 
 func _ready() -> void:
@@ -61,6 +64,7 @@ func _ready() -> void:
     bridge.snapshot_changed.connect(_on_snapshot)
     bridge.command_resolved.connect(_on_command_resolved)
     bridge.game_event.connect(_on_game_event)
+    bridge.simulation_failed.connect(_on_simulation_failed)
     placement.setup(bridge.world_service, camera_rig, terrain, Callable(bridge, "get_snapshot"))
     placement.placement_submitted.connect(_on_placement_submitted)
     placement.preview_changed.connect(_on_preview)
@@ -75,12 +79,16 @@ func load_world(index: int) -> Dictionary:
     if index < 0 or index >= WORLDS.size():
         return {"ok": false, "code": "invalid_value", "reason": "No such world preset."}
     var preset: Dictionary = WORLDS[index]
-    var result: Dictionary = bridge.load_world(preset.map, preset.definitions, preset.snapshot, int(preset.backend))
+    _switching_world = true
+    var result: Dictionary = bridge.load_world(preset.map, preset.definitions, preset.snapshot, int(preset.backend), preset.config)
+    _switching_world = false
     if not result.ok:
         _last_message = "World load failed: %s (%s)" % [result.reason, result.code]
         _refresh_overlay()
         return result
     world_index = index
+    bridge.auto_advance = true
+    _last_message = "Loaded %s; colony restarted." % preset.name
     placement.cancel_placement()
     placement.setup(bridge.world_service, camera_rig, terrain, Callable(bridge, "get_snapshot"))
     _bind_world()
@@ -113,6 +121,7 @@ func _bind_world() -> void:
 
 
 func _on_snapshot(snapshot: Dictionary) -> void:
+    if _switching_world: return # Rebind all views before consuming the new world's records.
     buildings.apply_snapshot(snapshot)
     utilities.apply_snapshot(snapshot)
     sites.apply_snapshot(snapshot)
@@ -152,11 +161,14 @@ func _on_preview(result: Dictionary, _request: Dictionary) -> void:
 
 
 func _on_placement_submitted(payload: Dictionary) -> void:
+    _last_message = "Submitting placement..."
     var response: Dictionary = bridge.submit_place_building(payload)
     if not response.accepted:
         _last_message = "Rejected: %s (%s)" % [response.reason, response.code]
     else:
-        _last_message = "Submitted %s" % response.command_id
+        # submit_command resolves synchronously. Keep the emitted success/failure
+        # message instead of overwriting it with an obsolete queued status.
+        if _last_message == "Submitting placement...": _last_message = "Submitted %s" % response.command_id
     _refresh_overlay()
 
 
@@ -169,6 +181,11 @@ func _on_game_event(event: Dictionary) -> void:
     _events.append("%s %s %s" % [str(event.get("id", "")), str(event.get("type", "")), ", ".join(event.get("entity_ids", []))])
     if _events.size() > 5:
         _events.pop_front()
+    _refresh_overlay()
+
+
+func _on_simulation_failed(result: Dictionary) -> void:
+    _last_message = "Simulation stopped: %s (%s). F2/F3 restarts the colony." % [result.reason, result.code]
     _refresh_overlay()
 
 
@@ -255,6 +272,12 @@ func _refresh_overlay() -> void:
     lines.append("MARS OUTPOST  world harness   world: %s   backend: %s (%s)" % [WORLDS[world_index].name, bridge.backend_kind, bridge.backend_detail])
     lines.append("tick %d  elapsed %.0fs  x%d  revision %d  map %s" % [int(clock.get("tick_index", 0)), float(clock.get("elapsed_s", 0.0)), int(clock.get("time_scale", 1)), int(snapshot.get("revision", 0)), str(snapshot.get("map", {}).get("id", "?"))])
     lines.append("buildings %d  sites %d  expeditions %d  crew %d" % [snapshot.get("buildings", {}).size(), snapshot.get("sites", {}).size(), snapshot.get("expeditions", {}).size(), snapshot.get("crew", {}).size()])
+    var power: Dictionary = snapshot.get("power", {})
+    lines.append("POWER generated %.2f kW  load %.2f/%.2f kW  battery %.4f/%.2f kWh" % [power.get("generated_kw", 0.0), power.get("served_kw", 0.0), power.get("requested_kw", 0.0), power.get("battery_stored_kwh", 0.0), power.get("battery_capacity_kwh", 0.0)])
+    if bridge.backend_kind == "simulation":
+        lines.append("Synthetic power prototype. Construction, life support, crew/EVA and saves are pending.")
+    else:
+        lines.append("VISUAL STUB: placement/construction are demonstrations; resources do not change.")
     var cut_off: Array = utilities.unreachable_buildings()
     if not cut_off.is_empty():
         lines.append("WARNING no reachable entrance: " + ", ".join(cut_off))

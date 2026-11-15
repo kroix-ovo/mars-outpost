@@ -29,9 +29,18 @@ What `run_world.gd` covers:
 & 'C:\Users\Pierre\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/world/run_integration.gd
 ```
 
-Prints `INTEGRATION_SKIP` (exit 0) while `scripts/simulation/simulation.gd` is absent from the branch, so CI runs it unconditionally. With Task 01's `OutpostSimulation` present it must print `INTEGRATION_PASS checks=N`. It checks that the bridge boots on the simulation with matching map identity, that every starting building entrance and site is reachable, that previews change nothing, that `place_building` returns the contract envelope and (while Task 01 still answers `module_unavailable`) leaves balances and buildings untouched, that `set_time_scale` and `set_building_enabled` resolve into the snapshot, that real time ticks the clock and republishes snapshots, that dev patches are refused, that pause stops the clock, and that the main scene selects the simulation automatically, draws one node per building, switches to the stub for the authored world and back.
+Prints `INTEGRATION_SKIP` (exit 0) while `scripts/simulation/simulation.gd` is absent from the branch. With Task 01's `OutpostSimulation` present it must print `INTEGRATION_PASS checks=N`. It checks matching map identity, reachable entrances/sites, advisory previews, explicit unavailable construction, resolved controls, clock/snapshot updates, refusal of dev patches, pause and scene switching. Both world presets now use the real backend. Authored-map checks independently verify 5.46 kW condition-adjusted generation, 2.9 kW consumer load, 0.95 charge/discharge efficiency, battery coverage after solar shutdown and unchanged oxygen. Repeated switching checks preview-node retention.
 
-Last verified on 2026-11-15 against `origin/feat/simulation-a2` (A1 14,289 checks, A2 41,144 checks and the world suite all pass side by side; integration 44 checks). Once Task 01 implements `place_building`, the accepted branch of the probe applies: exactly one constructing building appears and the footprint becomes occupied.
+Integrated verification on 2026-11-15: world 679 checks, integration 52, bridge regressions 17, A1 14,289, A2 41,144 and A1 full benchmark 36,555, all with explicit success markers and exit 0. The combined runner also rejects Godot compiler/runtime errors even if a success marker appears. Once Task 01 implements `place_building`, the accepted branch of the probe applies: exactly one constructing building appears and the footprint becomes occupied.
+
+```powershell
+python tests/run_headless_checks.py --godot '<godot-console>' --benchmark
+python tests/world/tools/generate_integration_scenario.py --check
+```
+
+`tests/world/run_bridge_regressions.gd` reproduces and prevents mutable cached views, signal payload aliases, retired-backend publications, mismatched world/config attachment, AUTO fallback masking broken runtime initialization, and cursor/ghost roots leaking on reload. It also forces a tick failure and verifies one error notification, stopped automatic retries, unchanged committed view, failed-load isolation and recovery by replacing the world.
+
+The authored runtime scenario/config are generated separately under `tests/world/fixtures/`; regenerate with `python tests/world/tools/generate_integration_scenario.py`. They use seven commissioned modules from the visual demo, fixture crew/science, full resource records and manifest hashes. The demo's unfinished greenhouse/task are intentionally excluded because the runtime has no construction lifecycle. No generated reference fixture under `tests/simulation/fixtures/` is changed.
 
 ## Booting the world scene headless
 
@@ -47,16 +56,17 @@ Catches script errors in the scene graph without a window:
 & 'C:\Users\Pierre\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe' --path . --script tests/world/screenshot.gd
 ```
 
-Opens a window briefly and writes eight captures to `docs/screenshots/` (fixture world: overview, valid and blocked previews, construction and status states, commissioned modules with a site route preview; authored world: overview, modules with the ice-site route, rotated greenhouse preview).
+Opens a window briefly and writes eight captures to `docs/screenshots/`. The first five explicitly select the visual stub to demonstrate construction/status shapes; they are not evidence of runtime construction. The last three use the authored preset (real A2 when present): overview, ice-site route, rotated greenhouse preview. Previously committed images remain historical Task 02 captures.
 
 ## Running the world harness
 
 Open the project in Godot 4.7.2 and press Play, or run the console executable with `--path .` and no other arguments. The main scene boots `scenes/world/main.tscn`:
 
-- `Integration` (`SimulationBridge`) loads the map and building definitions, builds the headless `WorldService`, and attaches a backend. When `scripts/simulation/simulation.gd` exists and initializes, it uses Task 01's `OutpostSimulation`; otherwise it uses the development `FixtureSimulationStub`, which handles only `place_building`, `set_building_enabled` and `set_time_scale` and never changes resource balances.
-- Two world presets: `F2` the Task 01 fixture world (`fixture_flat_16`, `salvage_6crew_tick0`), `F3` the authored `landing_plain` world with the seven `data/buildings/` modules and three site kinds (cargo, survey, ice) from `tests/world/fixtures/landing_plain_demo_snapshot.json`.
+- `Integration` (`SimulationBridge`) validates that the rendered map/definitions match the simulation manifest and initialized snapshot. AUTO uses Task 01's facade when present; a broken present facade fails visibly instead of becoming a successful stub. If the script is absent, AUTO can use the development `FixtureSimulationStub`. Explicit STUB mode remains available to visual harnesses only.
+- Two world presets: `F2` restarts the Task 01 fixture colony; `F3` restarts the authored `landing_plain` colony with seven commissioned modules, three site kinds and real A2 power. These switches create new colonies, not save/load or travel between persistent maps.
 - Keys: `1`–`9` pick a building, `R`/`Shift+R` rotate, left click place, `Esc` cancel, `G` grid, `Space` pause, `+`/`-` time scale, `F1` hide overlay, `K`/`L` force `no_power` on/off for the hovered building (stub only). Click a site to pin its route preview (distance and route id, or the unreachable reason); click a module to select it. Camera: WASD/arrows or middle-drag pan, right-drag or Q/E orbit, wheel zoom, Home reset.
 - Signals for Task 03: `site_selected(site_id, route)`, `building_selected(building_id)`, `world_loaded(preset_name)`; call `begin_placement(definition_id)` from the HUD instead of the number keys.
+- Tick errors stop automatic advancement, preserve the last committed view/backlog, and emit `simulation_failed(result)` from the bridge. The overlay explains the failure; `F2`/`F3` starts a fresh colony. Consumers of bridge snapshots/signals receive detached views.
 
 ## Status language
 

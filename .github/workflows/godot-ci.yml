@@ -2,7 +2,7 @@ name: Godot CI
 
 on:
   push:
-    branches: [main, "feat/**"]
+    branches: [main, "feat/**", "codex/**"]
   pull_request:
   workflow_dispatch:
 
@@ -63,20 +63,19 @@ jobs:
           test -f "$dir/linux_release.x86_64"
 
       - name: Import project
-        run: ~/godot/godot --headless --path . --import || true
+        run: |
+          set -euo pipefail
+          ~/godot/godot --headless --path . --import 2>&1 | tee import.log
+          ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' import.log
 
-      - name: World service tests
-        run: ~/godot/godot --headless --path . --script tests/world/run_world.gd 2>&1 | tee world_test.log; grep -q "WORLD_PASS" world_test.log
+      - name: World, simulation, bridge regressions, benchmarks and boot
+        run: python3 tests/run_headless_checks.py --godot ~/godot/godot --benchmark
 
-      - name: Simulation tests (when present)
-        if: hashFiles('tests/simulation/run_a1.gd') != ''
-        run: ~/godot/godot --headless --path . --script tests/simulation/run_a1.gd 2>&1 | tee sim_test.log; grep -q "A1_PASS" sim_test.log
-
-      - name: World-simulation integration (skips until Task 01 lands)
-        run: ~/godot/godot --headless --path . --script tests/world/run_integration.gd 2>&1 | tee integration.log; grep -Eq "INTEGRATION_PASS|INTEGRATION_SKIP" integration.log
-
-      - name: Boot main scene headless
-        run: ~/godot/godot --headless --path . --quit-after 30 2>&1 | tee boot.log; ! grep -E "SCRIPT ERROR|Parse Error" boot.log
+      - name: Check synthetic scenario freshness and independent arithmetic
+        run: |
+          python3 tests/simulation/tools/generate_fixtures.py --check
+          python3 tests/simulation/tools/closed_form_checks.py
+          python3 tests/world/tools/generate_integration_scenario.py --check
 
       - name: Export Web
         run: |
