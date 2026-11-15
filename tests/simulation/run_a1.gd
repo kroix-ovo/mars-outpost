@@ -14,6 +14,7 @@ func _initialize() -> void:
     _commands()
     _clock()
     _callbacks()
+    _journal_scaling()
     for path in temporary_paths: DirAccess.remove_absolute(path)
     if failures.is_empty():
         print("A1_PASS checks=", checks)
@@ -310,3 +311,53 @@ func _callbacks() -> void:
     _check(order == [["off", true], ["on", true], ["unknown", false]], "FIFO resolution includes failures")
     _check(fifo.get_snapshot().buildings.building_000001.enabled, "Last FIFO setting wins")
     _check(fifo.get_snapshot().revision == 2, "Only successful mutations revise colony")
+
+func _measure_ticks(simulation: RefCounted) -> float:
+    # Median amortizes timer granularity and avoids a single scheduling outlier.
+    var samples: Array[float] = []
+    for batch in 3:
+        var started = Time.get_ticks_usec()
+        for tick in 32:
+            if not simulation.step(1.0).ok: return INF
+        samples.append(float(Time.get_ticks_usec() - started) / 32000.0)
+    samples.sort()
+    return samples[1]
+
+func _journal_scaling() -> void:
+    var sizes = [0, 250, 2000]
+    if "--benchmark" in OS.get_cmdline_user_args(): sizes = [0, 250, 1000, 2000, 20000]
+    var baseline_ms = 0.0
+    var baseline_resolve_per_command_ms = 0.0
+    for count in sizes:
+        var simulation = _new()
+        # White-box structural guard: transactional candidates must not carry
+        # facade journal/queue metadata, even if timing happens to hide a copy.
+        var candidate = simulation._state.clone()
+        for property in candidate.get_property_list():
+            _check(property.name not in ["journal", "pending", "next_receive_sequence"], "Gameplay clone excludes command history")
+        var submit_started = Time.get_ticks_usec()
+        for index in count:
+            var accepted = _scale(simulation, "benchmark:%d" % index, 1)
+            _check(accepted.accepted and accepted.receive_sequence == index + 1, "Large journal submission sequence")
+        var submit_ms = float(Time.get_ticks_usec() - submit_started) / 1000.0
+        var resolve_started = Time.get_ticks_usec()
+        simulation.process_pending_commands()
+        var resolve_ms = float(Time.get_ticks_usec() - resolve_started) / 1000.0
+        if count == 250: baseline_resolve_per_command_ms = resolve_ms / count
+        elif count > 250:
+            _check(resolve_ms / count <= maxf(2.0, baseline_resolve_per_command_ms * 4.0), "Batch resolution stays linear in command count at %d commands" % count)
+        # One no-op control warms up the tick path without growing the journal.
+        simulation.step(1.0)
+        var per_tick_ms = _measure_ticks(simulation)
+        if count == 0: baseline_ms = per_tick_ms
+        else:
+            _check(per_tick_ms <= maxf(2.0, baseline_ms * 8.0), "Tick cost independent of retained journal at %d commands" % count)
+            for index in [0, count - 1]:
+                var cached = _scale(simulation, "benchmark:%d" % index, 1.0)
+                _check(cached.duplicate and cached.status == "resolved" and cached.result.success, "Old cached result survives transactions")
+            var before = simulation.get_snapshot()
+            simulation.submit_command(_command("benchmark:failed", "set_building_enabled", {"building_id": "missing", "enabled": false}))
+            simulation.process_pending_commands()
+            _equal(simulation.get_snapshot(), before, "Failed large-history candidate rolls back gameplay")
+            _check(_scale(simulation, "benchmark:0", 1).result.success, "Failure preserves unrelated journal entries")
+        print("A1_BENCH commands=%d tick_ms=%.4f resolve_ms=%.3f submit_ms=%.3f" % [count, per_tick_ms, resolve_ms, submit_ms])

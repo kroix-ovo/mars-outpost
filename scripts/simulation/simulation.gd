@@ -19,6 +19,12 @@ var _config: Dictionary = {}
 var _world_service: RefCounted
 var _crew_adapter: RefCounted
 var _busy: bool = false
+# Queue/journal metadata is outside gameplay transactions. Handlers cannot mutate
+# it through a candidate state; resolve only the current entry after commit/failure.
+# Keep every entry for campaign deduplication without copying history per tick.
+var _journal: Dictionary = {}
+var _pending: Array[String] = []
+var _next_receive_sequence: int = 1
 
 func initialize(config: Dictionary, world_service: RefCounted, crew_adapter: RefCounted) -> Dictionary:
     if _busy or _state != null:
@@ -49,20 +55,20 @@ func submit_command(command: Dictionary) -> Dictionary:
     if not checked.ok:
         return _rejected(id, checked.code, checked.reason)
     var normalized: Dictionary = checked.command
-    if _state.journal.has(id):
-        var prior: Dictionary = _state.journal[id]
+    if _journal.has(id):
+        var prior: Dictionary = _journal[id]
         if Schema.canonical(prior.normalized) != Schema.canonical(normalized):
             return _rejected(id, "command_id_conflict", "command_id reused with different content")
         return _accepted(id, prior, true)
     if normalized.type not in CONTROLS:
         return _rejected(id, "module_unavailable", "This gameplay handler is not implemented in A1: " + normalized.type)
-    if _state.next_receive_sequence >= Schema.MAX_EXACT_INTEGER or _state.counters.event + _state.pending.size() >= Schema.MAX_EXACT_INTEGER:
+    if _next_receive_sequence >= Schema.MAX_EXACT_INTEGER or _state.counters.event + _pending.size() >= Schema.MAX_EXACT_INTEGER:
         return _rejected(id, "invalid_state", "Command sequence or event counter exhausted.")
-    var entry = {"normalized": normalized.duplicate(true), "receive_sequence": _state.next_receive_sequence,
+    var entry = {"normalized": normalized.duplicate(true), "receive_sequence": _next_receive_sequence,
         "status": "queued", "result": null}
-    _state.next_receive_sequence += 1
-    _state.journal[id] = entry
-    _state.pending.append(id)
+    _next_receive_sequence += 1
+    _journal[id] = entry
+    _pending.append(id)
     return _accepted(id, entry, false)
 
 func process_pending_commands() -> void:
@@ -129,12 +135,12 @@ func import_save(_save_record: Dictionary) -> Dictionary:
     return _fail("module_unavailable", "Persistence is implemented in A5.")
 
 func _boundary() -> bool:
-    var captured: Array = _state.pending.duplicate()
-    _state.pending.clear()
+    var captured: Array = _pending.duplicate()
+    _pending.clear()
     var outbox: Array = []
     var changed = false
     for id in captured:
-        var entry: Dictionary = _state.journal[id]
+        var entry: Dictionary = _journal[id]
         var command: Dictionary = entry.normalized
         var candidate = _state.clone()
         var data: Dictionary = {}
@@ -166,8 +172,10 @@ func _boundary() -> bool:
             changed = changed or mutates
         var result = {"success": success, "code": code, "reason": reason,
             "resolved_tick": _state.records.clock.tick_index, "data": data}
-        _state.journal[id].status = "resolved"
-        _state.journal[id].result = result
+        # This single-entry metadata update happens only after the gameplay
+        # candidate was committed or discarded. No journal rollback/copy needed.
+        entry.status = "resolved"
+        entry.result = result
         var entities: Array = [data.building_id] if data.has("building_id") else []
         outbox.append({"id": _state.allocate("event"), "type": "command_result",
             "tick_index": _state.records.clock.tick_index, "entity_ids": entities,

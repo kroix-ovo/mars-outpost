@@ -5,10 +5,10 @@
 Run from the repository root using the team's Godot 4.7.2 standard console executable:
 
 ```powershell
-& 'C:\Users\Symok\Downloads\Godot\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/simulation/run_a1.gd
+& '<godot-console>' --headless --path . --script tests/simulation/run_a1.gd
 ```
 
-On another machine, substitute its Godot executable path. The runner returns exit code 0 with `A1_PASS checks=...` on success and exit code 1 for failed assertions. Compiler/runtime errors must also be treated as failures; require the explicit success marker. No editor, main scene, third-party test library, or rendered world is needed. Temporary malformed-content fixtures are written under ignored `.godot/` with process-specific names and removed after the run.
+Replace `<godot-console>` with the Godot 4.7.2 console executable on your machine. The runner returns exit code 0 with `A1_PASS checks=...` on success and exit code 1 for failed assertions. Compiler/runtime errors must also be treated as failures; require the explicit success marker. No editor, main scene, third-party test library, or rendered world is needed. Temporary malformed-content fixtures are written under ignored `.godot/` with process-specific names and removed after the run.
 
 The A1 runtime under `scripts/simulation/` provides:
 
@@ -18,6 +18,17 @@ The A1 runtime under `scripts/simulation/` provides:
 - A one-second fixed-step clock, 0/1/5/20 time scales, fractional accumulation, pause/resume, and retained backlog with a 120-tick call budget.
 - Stable initial entity IDs, the seeded Godot RNG, command-result events, one final state notification per changing update call, and guards against callback-driven recursive updates.
 - Validation of malformed initial content, invalid commands/deltas, failed resolutions, snapshot mutation, callback submission, and equivalent clock outcomes across frame schedules.
+- A retained-journal regression check with 2,000 commands, including old result retries, failed-candidate isolation, a structural check that gameplay clones exclude journal metadata, and a deliberately loose timing guard against journal-sized tick copying.
+
+To print a fuller journal-scaling benchmark (0, 250, 1,000, 2,000, and 20,000 retained commands), run:
+
+```powershell
+& '<godot-console>' --headless --path . --script tests/simulation/run_a1.gd -- --benchmark
+```
+
+`A1_BENCH` reports median milliseconds per A1 clock tick and total submission/resolution time for each batch. Timings depend on the machine and cover the foundation only, not future resource systems. The default runner checks 0/250/2,000 retained commands and rejects a tick median above the larger of 2 ms or eight times its empty-journal baseline. It also rejects resolution cost per command above the larger of 2 ms or four times the 250-command baseline. These deliberately loose guards catch large scaling regressions; the structural and semantic checks remain necessary even when timing passes.
+
+The facade retains command history/queue metadata separately from transactional gameplay state. Ticks never copy or change that history. Command resolution clones gameplay only, then updates the one journal entry after committing or discarding the candidate. Consequently rollback never needs to copy or undo the whole journal. Future persistence must serialize the facade metadata alongside gameplay; the save envelope remains unchanged.
 
 **A1 ticks advance the structural clock only.** Resource production/consumption, power dispatch, crew work, hazards and persistence have not been integrated. Running a 600-tick reference scenario against A1 will therefore not produce its expected gameplay balances. The runtime is a partial implementation of contract 2.0.0, not a playable outpost or complete conformance implementation.
 

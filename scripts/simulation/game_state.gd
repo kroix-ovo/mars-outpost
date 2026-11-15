@@ -1,12 +1,9 @@
 class_name OutpostGameState
 extends RefCounted
-## Single authoritative record tree plus private command/clock metadata.
+## Transactional gameplay state. The facade owns the retained command journal.
 
 var records: Dictionary = {}
 var accumulator_s: float = 0.0
-var next_receive_sequence: int = 1
-var journal: Dictionary = {}
-var pending: Array[String] = []
 var counters: Dictionary = {"building": 0, "crew": 0, "task": 0, "expedition": 0, "event": 0}
 var rng = RandomNumberGenerator.new()
 var per_battery_energy: Dictionary = {}
@@ -19,9 +16,6 @@ func clone() -> OutpostGameState:
     var copy = get_script().new()
     copy.records = records.duplicate(true)
     copy.accumulator_s = accumulator_s
-    copy.next_receive_sequence = next_receive_sequence
-    copy.journal = journal.duplicate(true)
-    copy.pending.assign(pending)
     copy.counters = counters.duplicate(true)
     copy.per_battery_energy = per_battery_energy.duplicate(true)
     copy.rng.seed = rng.seed
