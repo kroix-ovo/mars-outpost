@@ -2,6 +2,8 @@
 
 **Required interface baseline:** [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md). Implement its building-definition schema and headless placement/route queries; render its snapshots without changing resource balances. Earlier interface sketches defer to this spec.
 
+**B1–B2 implementation:** the headless `WorldService` (`scripts/world/`), map/definition loaders, the world harness scene (`scenes/world/main.tscn`) with camera, terrain blockout, placement preview, lifecycle/status visuals, sites and routes, authored definitions under `data/buildings/`, export presets and CI are in place. See [world verification](tests/world/README.md) for the test command, controls and the exact boundary of what is implemented.
+
 ## 1. Executive summary
 
 Build the top-down 3D place where the game happens: Martian terrain, landing assets, expanding modules, utility connections, and visible exploration sites. Make the outpost readable and satisfying to build, using modular, stylized assets.
