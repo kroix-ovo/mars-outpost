@@ -10,10 +10,10 @@ config_version=5
 
 [application]
 
-config/name="Mars Outpost"
+config/name="Mars Outpost Survival"
 config/description="Junior astronaut mission trainer: run a Martian outpost and balance power, water, oxygen, food and crew time."
 config/version="0.1.0"
-run/main_scene="res://scenes/world/main.tscn"
+run/main_scene="res://scenes/frontend/front_end.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]

@@ -129,6 +129,7 @@ var _eva_forecast_reason := ""
 var _alert_list: Label
 var _crew_hint: Label
 var _drawer_open := true
+var _commander_name := ""
 
 func _refresh_capabilities() -> void:
 	var persistence := true
@@ -897,6 +898,10 @@ func _on_event(event: Dictionary) -> void:
 		_status.text = _explain(event.type)
 		_play("confirm")
 
+func load_saved_game() -> void:
+	## Title screen "Load Game": restore the quick save through the same path as the Load button.
+	_save_load(true)
+
 func _save_load(load_game: bool) -> void:
 	if _simulation == null:
 		return
@@ -943,6 +948,11 @@ func enable_tutorial(enabled: bool = true) -> void:
 	_tour.restart()
 	_tour.active = enabled
 	_tour_reset = true
+	_tour_refresh()
+
+func set_commander(display_name: String) -> void:
+	## The player's astronaut name from the front end; the tutorial greets them by it.
+	_commander_name = display_name
 	_tour_refresh()
 
 func on_simulation_failed(result: Dictionary) -> void:
@@ -1029,7 +1039,7 @@ func _tour_ctx() -> Dictionary:
 		"storage_effect": _storage_effect(storage_id),
 		"placement": _world_placement, "forecast_ok": _eva_forecast_ok,
 		"forecast_reason": _eva_forecast_reason, "sim_failed": _sim_failed,
-		"names": names, "catalog_names": catalog_names}
+		"names": names, "catalog_names": catalog_names, "commander": _commander_name}
 
 func _storage_effect(definition_id: String) -> String:
 	## Describe what the storage module adds, read from its definition (never assumed).

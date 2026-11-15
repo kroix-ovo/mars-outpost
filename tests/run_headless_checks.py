@@ -22,10 +22,13 @@ def main():
         jobs.append(("tests/crew_ui/run_crew_ui.gd", "85/85 checks passed", []))
         jobs.append(("tests/crew_ui/run_a3_compatibility.gd", "A3_CREW_PASS", []))
         jobs.append(("tests/crew_ui/run_tutorial_mission.gd", "TUTORIAL_PASS", []))
+        jobs.append(("tests/frontend/run_frontend.gd", "FRONTEND_PASS", []))
     if args.benchmark:
         jobs.append(("tests/simulation/run_a1.gd", "A1_PASS", ["--", "--benchmark"]))
     commands = [(name, marker, ["--script", name] + extra) for name, marker, extra in jobs if (project / name).exists()]
-    commands.append(("main scene", None, ["--quit-after", "30"]))
+    # The main scene is the title screen; the colony scene also boots on its own.
+    commands.append(("main scene (title)", None, ["--quit-after", "30"]))
+    commands.append(("colony scene", None, ["res://scenes/world/main.tscn", "--quit-after", "30"]))
     for name, marker, extra in commands:
         print("CHECK " + name, flush=True)
         result = subprocess.run([args.godot, "--headless", "--path", str(project)] + extra,

@@ -42,3 +42,13 @@ Success marker: `TUTORIAL_LAYOUT_PASS`. The input probe and the visual-polish ca
 - the reference restart, systems, a cancelled starting repair with restart recovery, every repair, the debrief and finish.
 
 These are scripted checks; they do not certify audio or human usability.
+
+The title screen, astronaut designer, crew lineup and landing intro have their own rendered walkthrough:
+
+```powershell
+& '<godot-console>' --path . --resolution 1280x720 --audio-driver Dummy --script tests/visual/run_frontend_layout.gd
+& '<godot-console>' --path . --resolution 1600x900 --audio-driver Dummy --script tests/visual/run_frontend_layout.gd
+& '<godot-console>' --path . --resolution 1600x900 --audio-driver Dummy --script tests/visual/run_crew_lineup.gd
+```
+
+`run_frontend_layout.gd` walks title → settings → load game → designer → crew → intro (seven moments) → colony, asserts on-screen, readable (16 physical px) and non-overlapping controls, the corner logo, the looping music, saved settings and profile, the commander's name in the intro and the tutorial greeting, and writes `docs/evidence/frontend/<window size>/`. Marker: `FRONTEND_LAYOUT_PASS`. It uses test-only `user://test_frontend_*` files and deletes them. `run_crew_lineup.gd` renders the nine designed crew (`crew_lineup.png`) and every hair style across the skin-tone range (`customization_range.png`); marker `CREW_LINEUP_PASS`. The headless counterpart is `tests/frontend/run_frontend.gd` (marker `FRONTEND_PASS`).

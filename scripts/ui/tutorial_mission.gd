@@ -117,7 +117,8 @@ func _training_steps(ctx: Dictionary) -> Array:
 	var w := _training_facts(ctx)
 	var steps: Array = []
 	var ack := func(id: String) -> bool: return acks.has(id)
-	steps.append(_step("welcome", "Welcome, commander",
+	var commander := str(ctx.get("commander", ""))
+	steps.append(_step("welcome", "Welcome, Commander %s" % commander if not commander.is_empty() else "Welcome, commander",
 		"You command six astronauts at a small outpost on Mars. In this training shift you will send two of them on a spacewalk to recover supplies, use those supplies to build a storage module, and then learn repairs in a second colony.",
 		"Press Start tutorial when you are ready. The clock stays paused until you start it.",
 		"This training colony uses simple practice numbers, not real mission data.",

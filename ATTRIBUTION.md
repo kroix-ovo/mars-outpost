@@ -4,11 +4,39 @@ Record each asset's provenance before adding it to the repository. Scientific pa
 
 ## Current state
 
-- **No external assets have been imported yet.** Every mesh, material and colour in the world scene is generated procedurally by scripts under `scripts/world/` or hand-authored as Godot primitives in `scenes/world/landing_ship.tscn`.
+- **Two external files are imported, both for the title screen** (records below): the title music and the NASA Space Apps Challenge logo. Every mesh, material and colour in the game, including the astronauts, Mars globe, transit ship and intro terrain, is generated procedurally by scripts under `scripts/world/`, `scripts/crew/` and `scripts/frontend/` or hand-authored as Godot primitives in `scenes/world/landing_ship.tscn`.
 - `data/maps/landing_plain.json` is a **procedural blockout terrain** authored for this project. Its heights, ridge and crater are game abstractions. It is **not** derived from NASA Mars Trek, MOLA or any other NASA dataset, and no such derivation may be claimed until an entry below records it.
-- No NASA logos, flags, mission identifiers or insignia are used anywhere in the project.
+- The only NASA-related mark is the NASA Space Apps Challenge logo in the title screen's corner, which identifies this as a Space Apps Challenge project. No NASA agency insignia, flags or mission identifiers are used, and the logo does not imply NASA endorsement.
 
 - Authored module scenes under `scenes/buildings/` and the markers in `scripts/world/site_view.gd` are built from Godot primitive meshes only.
+
+## Imported assets
+
+```text
+Asset name: "Space" (music track, Pixabay audio file ID 589110)
+Repository path: assets/audio/music/mondamusic-space-589110.mp3
+Creator / mission / organization: mondamusic (https://pixabay.com/users/mondamusic-54713575/)
+Source URL: https://pixabay.com/music/ambient-space-589110/
+License / usage terms: Pixabay Content License (https://pixabay.com/service/terms/). Download
+  certificate kept beside the file: assets/audio/music/ambient-space-589110-license.txt
+Required credit line: None required; credited on the title screen as
+  "Music: "Space" by mondamusic (Pixabay)".
+Modifications: None. Looped in code (AudioStreamMP3.loop) on the title screen.
+Date accessed: 2026-11-15
+```
+
+```text
+Asset name: NASA Space Apps Challenge logo
+Repository path: assets/branding/space_apps_challenge.png
+Creator / mission / organization: NASA Space Apps Challenge
+Source URL: Supplied by the project team (430x226 PNG, white logo on blue)
+License / usage terms: Used only to identify the project as a NASA Space Apps Challenge entry,
+  per the challenge's brand use for participants. Confirm current Space Apps brand guidance
+  before any public release outside the challenge.
+Required credit line: None; shown unmodified in the title screen's top-right corner.
+Modifications: None.
+Date accessed: 2026-11-15
+```
 
 ## Planned NASA-derived references (not yet imported)
 

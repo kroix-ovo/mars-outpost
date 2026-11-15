@@ -57,6 +57,10 @@ var _events: Array = []
 var _switching_world: bool = false
 var _hud: Control
 var _crew_view: Node3D
+var _commander: Node3D
+
+const Session := preload("res://scripts/frontend/game_session.gd")
+const Figure := preload("res://scripts/crew/astronaut_figure.gd")
 
 
 func _ready() -> void:
@@ -102,6 +106,47 @@ func _ready() -> void:
     get_viewport().physics_object_picking = true
     overlay_layer.visible = false
     _bind_world()
+    _apply_front_end_session()
+
+
+func _apply_front_end_session() -> void:
+    ## Arriving from the title screen: greet the player's commander, stand their astronaut by
+    ## the habitat, and open the colony they chose. Opened directly (tests), nothing changes.
+    if not Session.active:
+        return
+    _hud.set_commander(str(Session.commander.get("name", "")))
+    _place_commander()
+    if not Session.tutorial:
+        _hud.enable_tutorial(false)
+    if Session.world_index != world_index:
+        load_world(Session.world_index)
+    if Session.load_save_on_start:
+        Session.load_save_on_start = false
+        _hud.load_saved_game()
+
+
+func _place_commander() -> void:
+    ## Presentation only: the commander is not a simulated crew member and cannot be selected.
+    if _commander != null:
+        _commander.queue_free()
+    _commander = Figure.new()
+    _commander.name = "Commander"
+    lander.add_child(_commander)
+    _commander.apply_look(Session.commander)
+    _commander.position = Vector3(-0.35, 0.0, 2.05)
+    _commander.rotation.y = 0.5
+    var tag := Label3D.new()
+    tag.text = "%s · Commander (you)" % Session.commander.get("name", "")
+    tag.position = Vector3(0, _commander.figure_height() + 0.35, 0)
+    tag.pixel_size = 0.001
+    tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    tag.no_depth_test = true
+    tag.fixed_size = true
+    tag.font_size = 17
+    tag.outline_size = 8
+    tag.modulate = Color(1.0, 0.86, 0.6)
+    tag.outline_modulate = Color(0.06, 0.06, 0.07, 0.9)
+    _commander.add_child(tag)
 
 
 func load_world(index: int) -> Dictionary:
