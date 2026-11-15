@@ -4,7 +4,7 @@
   "description": "Authored integration prototype with A3 reference crew demand and documented game equipment sizing.",
   "metadata": {
     "status": "synthetic_test_fixture",
-    "warning": "Reference physiology plus game assumptions, not a flight-certified habitat. Construction and crew/EVA lifecycle remain unavailable."
+    "warning": "Reference physiology plus game equipment and labor assumptions, not a flight-certified habitat. Construction and repairs are playable; EVA is disabled until suit science is configured. Agriculture and campaign saves are pending."
   },
   "resource_registry_path": "res://tests/simulation/fixtures/definitions/resources.json",
   "building_definition_paths": [
@@ -16,8 +16,8 @@
     "res://data/buildings/water_electrolyzer_mk1.json",
     "res://data/buildings/water_recycler_mk1.json"
   ],
-  "crew_definition_path": "res://tests/simulation/fixtures/definitions/crew/fixture_crew.json",
-  "task_template_path": "res://tests/simulation/fixtures/definitions/crew/fixture_task_templates.json",
+  "crew_definition_path": "res://data/crew/outpost_roster.json",
+  "task_template_path": "res://data/crew/task_templates.json",
   "map_path": "res://data/maps/landing_plain.json",
   "starting_storage_capacity": {
     "alloy": 50,

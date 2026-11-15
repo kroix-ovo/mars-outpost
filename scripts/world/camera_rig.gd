@@ -34,6 +34,7 @@ var _target_distance: float = 28.0
 var _home_focus: Vector3 = Vector3.ZERO
 var _orbiting: bool = false
 var _panning: bool = false
+var hud_width: float = 0.0
 
 @onready var camera: Camera3D = $Camera3D
 
@@ -102,7 +103,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
-    if input_enabled:
+    if input_enabled and not get_viewport().gui_get_focus_owner() is LineEdit:
         var move := Vector2.ZERO
         if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
             move.y -= 1.0
@@ -139,6 +140,10 @@ func _pan(screen_move: Vector2) -> void:
 
 
 func _apply_camera() -> void:
+    # Keep the focus in the exposed world area beside mission control. This
+    # camera-local offset also preserves the existing picking projection.
+    var height := get_viewport().get_visible_rect().size.y
+    camera.h_offset = distance_m * tan(deg_to_rad(camera.fov * 0.5)) * hud_width / maxf(1.0, height)
     var yaw := deg_to_rad(yaw_deg)
     var pitch := deg_to_rad(pitch_deg)
     var offset := Vector3(

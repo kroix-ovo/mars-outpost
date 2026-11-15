@@ -27,3 +27,15 @@ func apply_snapshot(snapshot: Dictionary, force_snap: bool = false) -> void:
 			avatar.selected.connect(func(crew_id: String): crew_selected.emit(crew_id))
 			_avatars[id] = avatar
 		_avatars[id].apply_record(snapshot.crew[id], snap)
+	# Spawned crew share the airlock coordinate. Show one group label instead
+	# of painting six names over one another; the roster still selects each one.
+	var groups := {}
+	for id in ids:
+		var key: String = str(snapshot.crew[id].position_m)
+		if not groups.has(key): groups[key] = []
+		groups[key].append(id)
+	for group in groups.values():
+		for i in range(group.size()):
+			var label: Label3D = _avatars[group[i]].get_node("Nameplate")
+			label.visible = i == 0
+			if group.size() > 1 and i == 0: label.text = "%d crew · %s" % [group.size(), snapshot.crew[group[i]].location_kind.capitalize()]

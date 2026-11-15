@@ -2,12 +2,12 @@
   "campaign_id": "reference_landing_plain_life_support",
   "seed": "42",
   "initial_crew_definition_ids": [
-    "fixture_crew_a",
-    "fixture_crew_b",
-    "fixture_crew_c",
-    "fixture_crew_d",
-    "fixture_crew_e",
-    "fixture_crew_f"
+    "outpost_crew_01",
+    "outpost_crew_02",
+    "outpost_crew_03",
+    "outpost_crew_04",
+    "outpost_crew_05",
+    "outpost_crew_06"
   ],
   "map_id": "landing_plain",
   "map_revision": 1,
@@ -21,12 +21,12 @@
     "res://data/buildings/storage_module_mk1.json": "81a35ab912609aadb98f0ca0ccb9ff8011b4ff3d1f28f85f198164f57f2553e8",
     "res://data/buildings/water_electrolyzer_mk1.json": "0ca56be3b0798af20b4064acfcae90fddd1d1ada565a6a37cea17247845a9a5d",
     "res://data/buildings/water_recycler_mk1.json": "a979e8d93fa13e5eb61651209d41b36cbc1e3c72d8594816e5ac1ad2786d799e",
+    "res://data/crew/outpost_roster.json": "5866e1319a1dab9e7750dd182e6f133563dbc8a5ee152da1903e4329994c80cb",
+    "res://data/crew/task_templates.json": "c5aa26d4add26ea9a3544dabc0e5a58eac7c8f49219ef995ba3fe6c2f6257614",
     "res://data/maps/landing_plain.json": "2aca81ca9f20c7990b37f12e8107aaf9ff89a642c7e903be10d303c2eb6ac006",
     "res://data/science/a3_reference_inputs.json": "f46b761a3ab33586f547604cb5a065669edfd7f495a213770ac7dd78707c1e71",
     "res://data/science/a3_reference_science.json": "6a483983f1399dd5ac52d0b174138de2f0ee852b7a71ccc13c5995ea7641c0b1",
-    "res://tests/simulation/fixtures/definitions/crew/fixture_crew.json": "1921cac470ca349ae09ae0e50f1339dcc16c8a7579bbe4a662b598e3e1184a78",
-    "res://tests/simulation/fixtures/definitions/crew/fixture_task_templates.json": "d29e86e749dcbf1d10433f614ed091fab89795f8e0f70cd9e394000802daf3d9",
     "res://tests/simulation/fixtures/definitions/resources.json": "82605c7376ede629445f5a3b1b8ba1b277ab6eb5f09699e319acda1bae33bda7",
-    "res://tests/world/fixtures/landing_plain_scenario.json": "3356bcac5bb28b593c0dc3c8e9a66a704dbbc5b9a38f39ea13d43e76cd3fa8d4"
+    "res://tests/world/fixtures/landing_plain_scenario.json": "466dfd87fd97318b1d9b18917899d6f7f4489b0361ecae4a069b8a349418e60c"
   }
 }

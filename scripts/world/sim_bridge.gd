@@ -85,7 +85,6 @@ func load_world(new_map_path: String, new_definition_dir: String, new_snapshot_p
     candidate.fixture_snapshot_path = new_snapshot_path
     candidate.simulation_config_path = new_config_path if not new_config_path.is_empty() else simulation_config_path
     candidate.backend = new_backend
-    candidate.crew_adapter = crew_adapter
     var result: Dictionary = candidate.boot()
     if not result.ok:
         candidate.free()
@@ -104,6 +103,7 @@ func load_world(new_map_path: String, new_definition_dir: String, new_snapshot_p
     backend_kind = candidate.backend_kind
     backend_detail = candidate.backend_detail
     _backend = next_backend
+    crew_adapter = candidate.crew_adapter
     _connect_backend()
     _ready_ok = true
     last_error = {}
@@ -222,6 +222,7 @@ func _try_simulation() -> Dictionary:
     for path in world_files:
         if config.definition_manifest.get(path) != FileAccess.get_sha256(path):
             return {"ok": false, "code": "definition_mismatch", "reason": "World content is absent from simulation manifest: " + path}
+    if crew_adapter == null: crew_adapter = preload("res://scripts/crew/crew_adapter.gd").new(world_service)
     var result: Dictionary = simulation.initialize(config, world_service, crew_adapter)
     if not result.get("ok", false):
         return {"ok": false, "code": str(result.get("code", "internal_error")), "reason": str(result.get("reason", "initialize failed"))}

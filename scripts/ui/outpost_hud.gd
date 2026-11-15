@@ -51,6 +51,17 @@ var _recall: Button
 var _audio: AudioStreamPlayer
 var _mute: CheckButton
 var _tabs: TabContainer
+var _save_button: Button
+var _load_button: Button
+
+func _refresh_capabilities() -> void:
+	var persistence := true
+	if _simulation != null and _simulation.has_method("get_capabilities"):
+		persistence = _simulation.get_capabilities().get("persistence", false)
+	for button in [_save_button, _load_button]:
+		if button != null:
+			button.disabled = not persistence
+			button.tooltip_text = "" if persistence else "Campaign saves will be available in the persistence phase."
 
 func bind(simulation: RefCounted, crew_adapter: RefCounted, world_service: RefCounted,
 		building_catalog: Dictionary = {}, save_path: String = "user://outpost_quick_save.json") -> void:
@@ -73,6 +84,7 @@ func bind(simulation: RefCounted, crew_adapter: RefCounted, world_service: RefCo
 	_simulation.connect("game_event", _on_event)
 	if is_node_ready():
 		_on_snapshot(_simulation.get_snapshot())
+		_refresh_capabilities()
 
 func _ready() -> void:
 	var skin := StyleBoxFlat.new()
@@ -87,8 +99,8 @@ func _ready() -> void:
 	_button(top, "1×", func(): _time(1))
 	_button(top, "5×", func(): _time(5))
 	_button(top, "20×", func(): _time(20))
-	_button(top, "Quick save", func(): _save_load.call_deferred(false))
-	_button(top, "Load save", func(): _save_load.call_deferred(true))
+	_save_button = _button(top, "Quick save", func(): _save_load.call_deferred(false))
+	_load_button = _button(top, "Load save", func(): _save_load.call_deferred(true))
 	_mute = CheckButton.new()
 	_mute.text = "Mute"
 	top.add_child(_mute)
@@ -165,7 +177,7 @@ func _ready() -> void:
 		_send("recall_eva", {"expedition_id": _selected(_trips)}))
 	var onboarding := _page("Field guide")
 	_tutorial_text = _label(onboarding)
-	_label(onboarding, "Use Pause to plan. Commands resolve while paused; movement and work resume at 1×, 5× or 20×. Quick save keeps one local slot.")
+	_label(onboarding, "Pause to plan; commands also resolve while paused. Resume at 1×, 5× or 20×. F2 starts training with synthetic values; F3 starts the reference life-support scenario. F1 shows diagnostics. Campaign saves and agriculture are pending.")
 	_status = _label(body, "Ready")
 	_status.modulate = Color.html("#abd5fa")
 	_audio = AudioStreamPlayer.new()
@@ -174,6 +186,7 @@ func _ready() -> void:
 		_on_snapshot(_simulation.get_snapshot())
 	else:
 		_refresh_guide()
+	_refresh_capabilities()
 
 func select_crew(id: String) -> void:
 	if _crew == null:
@@ -206,6 +219,8 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 			or snapshot.tasks != _state.tasks:
 		_stale = true
 	_state = snapshot
+	if _simulation != null and _simulation.has_method("get_capabilities"):
+		_hud_title.text = "MARS OUTPOST  /  " + ("TRAINING · SYNTHETIC VALUES" if snapshot.campaign_id.begins_with("fixture_") else "REFERENCE LIFE SUPPORT")
 	_vitals.text = "SOL CLOCK   %ds   ·   %s     |     %s     |     %s" % [tick,
 		"Paused" if snapshot.clock.time_scale == 0 else "%d×" % snapshot.clock.time_scale,
 		_quick_resource("oxygen_kg", "O₂"), _quick_resource("food_kcal", "Food")]
@@ -360,6 +375,8 @@ func _preview_build() -> void:
 	if _world != null and _world.has_method("validate_placement") and not definition.is_empty() and not _state.is_empty():
 		result = _world.validate_placement(request, _state)
 	if result.valid:
+		if _simulation != null and _simulation.has_method("supports_building") and not _simulation.supports_building(request.definition_id):
+			result = {"valid": false, "reason": "This module's production rules are not available yet."}
 		for id in _keys(definition.get("build_cost", {})):
 			var account: Dictionary = _state.resources.get(id, {})
 			if account.is_empty() or float(account.amount) - float(account.reserved) < float(definition.build_cost[id]):
@@ -476,9 +493,9 @@ func _reset_session() -> void:
 
 func _refresh_guide() -> void:
 	_tutorial_text.text = "FIRST SHIFT\n\n%s\n\n%s\n\n%s\n\n%s" % [
-		_guide("assign_task", "Crew & jobs: select an astronaut, choose a farm or repair job, and assign them."),
+		_guide("start_eva", "Training: select two idle astronauts in Crew & jobs, open EVA, check supplies and launch. Salvage brings the materials needed to build."),
 		_guide("place_building", "Build: pick a module and open cell. Place it, then assign crew to the construction job."),
-		_guide("start_eva", "EVA: select idle crew and a site. Check the reserve forecast and launch."),
+		_guide("assign_task", "Crew & jobs: choose the construction job, suggest available crew, then assign. Watch work finish and the module come online."),
 		_guide("recall_eva", "EVA: pick the active expedition and recall it. Watch for return route warnings.")]
 
 func _guide(key: String, detail: String) -> String:

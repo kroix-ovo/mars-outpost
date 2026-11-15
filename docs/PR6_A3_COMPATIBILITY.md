@@ -1,5 +1,7 @@
 # PR #6 against A3 — compatibility test
 
+**Historical baseline:** the failures below describe the initial review candidate. They are fixed in the local `codex/cohesive-game` integration. See [current integration and verification](COHESIVE_GAME_INTEGRATION.md); the compatibility probe now exercises real gameplay and must pass.
+
 Tested 2026-11-15 using Godot 4.7.2 standard. A3 base: `152546f5ec73601c8858a1bed6c30c585af359a2`; PR #6: `f00efcf861dad70990022ed3afca35debc690d2b`. Combined in the isolated `codex/test-crew-against-a3` worktree. The merge has no conflicts. The normal A3 checkout, the collaborator's branch and main were not changed or pushed.
 
 ## Result

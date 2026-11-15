@@ -106,7 +106,8 @@ func run(state: RefCounted, content: Dictionary, ledger: RefCounted) -> Dictiona
             return Schema.failure("invalid_state", "Incomplete suit stores.")
         for key in ["oxygen_kg", "battery_kwh"]:
             var rid = "energy_kwh" if key == "battery_kwh" else key
-            var q: float = m.eva_suit_rates_per_s[key]
+            var q: float = preload("res://scripts/crew/eva_rates.gd").rate(state.records, e.get("status", "outbound"), key, m.eva_suit_rates_per_s, content.science.get("eva_policy", {}))
+            if not Schema.number(q) or q < 0: return Schema.failure("invalid_state", "Invalid EVA workload rate.")
             var path = "suit/%s/%s/%s" % [c.expedition_id, id, key]
             var got = minf(q, e.suit_stores[id][key])
             requested[id][rid] = q

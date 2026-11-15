@@ -55,6 +55,8 @@ var _preview: Dictionary = {}
 var _last_message: String = ""
 var _events: Array = []
 var _switching_world: bool = false
+var _hud: Control
+var _crew_view: Node3D
 
 
 func _ready() -> void:
@@ -70,6 +72,19 @@ func _ready() -> void:
     placement.preview_changed.connect(_on_preview)
     placement.hover_cell_changed.connect(_on_hover_cell)
     placement.mode_changed.connect(func(_active: bool, _id: String) -> void: _refresh_overlay())
+    _crew_view = preload("res://scripts/crew/crew_view.gd").new()
+    $CrewRoot.add_child(_crew_view)
+    _hud = preload("res://scenes/ui/outpost_hud.tscn").instantiate()
+    $UIRoot.add_child(_hud)
+    _hud.anchor_left = 1.0
+    _hud.offset_left = -710.0
+    _hud.offset_top = 8.0
+    _hud.offset_right = -8.0
+    _hud.offset_bottom = -8.0
+    camera_rig.hud_width = 710.0
+    _crew_view.crew_selected.connect(_hud.select_crew)
+    get_viewport().physics_object_picking = true
+    overlay_layer.visible = false
     _bind_world()
 
 
@@ -117,6 +132,11 @@ func _bind_world() -> void:
     _hover_route = {}
     _events.clear()
     _place_lander(map_data)
+    if _hud != null:
+        var catalog := {}
+        for id in bridge.definitions.ids(): catalog[id] = bridge.definitions.get_definition(id)
+        _hud.bind(bridge._backend, bridge.crew_adapter, bridge.world_service, catalog)
+        _crew_view.apply_snapshot(bridge.get_snapshot(), true)
     _on_snapshot(bridge.get_snapshot())
 
 
@@ -126,6 +146,7 @@ func _on_snapshot(snapshot: Dictionary) -> void:
     utilities.apply_snapshot(snapshot)
     sites.apply_snapshot(snapshot)
     routes.apply_snapshot(snapshot)
+    if _crew_view != null: _crew_view.apply_snapshot(snapshot)
     placement.refresh_from_snapshot()
     if selected_site != "":
         _preview_site_route(selected_site)
@@ -134,6 +155,7 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 
 func _on_hover_cell(cell: Array) -> void:
     _hover_cell = cell
+    if _hud != null and cell.size() == 2: _hud.set_placement_cell(Vector2i(cell[0], cell[1]))
     var site_id: String = sites.site_at_cell(cell) if not placement.active else ""
     if site_id != _hover_site:
         _hover_site = site_id

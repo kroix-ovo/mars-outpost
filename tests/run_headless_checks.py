@@ -19,6 +19,8 @@ def main():
             ("tests/world/run_integration.gd", "INTEGRATION_PASS" if simulation else "INTEGRATION_SKIP", [])]
     if simulation:
         jobs.append(("tests/world/run_bridge_regressions.gd", "BRIDGE_PASS", []))
+        jobs.append(("tests/crew_ui/run_crew_ui.gd", "85/85 checks passed", []))
+        jobs.append(("tests/crew_ui/run_a3_compatibility.gd", "A3_CREW_PASS", []))
     if args.benchmark:
         jobs.append(("tests/simulation/run_a1.gd", "A1_PASS", ["--", "--benchmark"]))
     commands = [(name, marker, ["--script", name] + extra) for name, marker, extra in jobs if (project / name).exists()]

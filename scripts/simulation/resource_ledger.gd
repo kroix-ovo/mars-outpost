@@ -155,6 +155,26 @@ func _sync_energy() -> void:
     state.records.power.battery_stored_kwh = amount
     state.records.power.battery_capacity_kwh = capacity
 
+func refresh_storage_capacity() -> void:
+    for rid in state.records.resources:
+        if rid == "energy_kwh": continue
+        var resource: Dictionary = state.records.resources[rid]
+        if resource.capacity == null: continue
+        var capacity: float = content.scenario.starting_storage_capacity.get(rid, 0.0)
+        for building in state.records.buildings.values():
+            if building.lifecycle == "commissioned": capacity += float(content.buildings[building.definition_id].storage_capacity.get(rid, 0.0))
+        resource.capacity = capacity
+    _sync_energy()
+
+func prune_empty_remote_accounts() -> void:
+    for trip in state.records.expeditions.values():
+        for rid in trip.cargo.keys():
+            if trip.cargo[rid] == 0.0: trip.cargo.erase(rid)
+    for id in state.return_caches.keys():
+        for rid in state.return_caches[id].keys():
+            if state.return_caches[id][rid] == 0.0: state.return_caches[id].erase(rid)
+        if state.return_caches[id].is_empty(): state.return_caches.erase(id)
+
 func _resolve(path: String, trusted: bool) -> Dictionary:
     var p = path.split("/")
     var rid = p[-1]
@@ -167,7 +187,7 @@ func _resolve(path: String, trusted: bool) -> Dictionary:
     if p.size() == 2 and p[0] == "loss" and rid in ["oxygen_kg", "energy_kwh"]:
         return {"ok": true, "resource": rid, "external": true, "source": false}
     if p.size() == 3 and p[0] in ["source", "sink"] and trusted:
-        var names = ["generation", "production", "environment", "conversion", "metabolism"] if p[0] == "source" else ["load", "battery_loss", "curtailment", "conversion", "environment", "metabolism", "process_removal", "recycler_loss", "capacity_overflow"]
+        var names = ["generation", "production", "environment", "conversion", "metabolism", "construction_refund"] if p[0] == "source" else ["load", "battery_loss", "curtailment", "conversion", "environment", "metabolism", "process_removal", "recycler_loss", "capacity_overflow", "construction"]
         if p[1] not in names: return _fail("invalid_value", "Unknown source/sink classification.")
         return {"ok": true, "resource": rid, "external": true, "source": p[0] == "source"}
     if p.size() == 2 and p[0] == "base" and state.records.resources.has(rid):

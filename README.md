@@ -18,7 +18,7 @@ The aim is to advance the game as far as possible. The initial research report's
 
 ## Current status
 
-The integrated Godot 4.7.2 prototype combines Task 02's 3D world with Task 01's A1–A3 clock, commands, atomic ledger, electrical dispatch, oxygen/water/CO2 processes and crew demand. The fixture map uses synthetic rates; the authored `landing_plain` map uses documented NASA reference crew rates and explicit game equipment/atmosphere assumptions. Construction, crew jobs/EVA, agriculture, medical/environmental outcomes and save/load remain pending. See [A3 research and solution](docs/A3_RESEARCH_AND_SOLUTION.md), [SCIENCE.md](SCIENCE.md), [world verification](tests/world/README.md) and [simulation verification](tests/simulation/README.md).
+The integrated Godot 4.7.2 prototype combines the 3D world, A1–A3 simulation, and PR #6's crew, EVA and mission-control HUD. Construction, cancellation/refunds, crew assignments, repairs, salvage trips and recall use the real transactional simulation and resource ledger. Training uses synthetic rates; the authored `landing_plain` map uses NASA reference crew rates, the named roster and explicit game assumptions. Reference-profile EVA stays disabled until suit inputs are researched. Agriculture, medical/environmental outcomes and campaign saves remain pending. See [integration notes and verification](docs/COHESIVE_GAME_INTEGRATION.md), [A3 research and solution](docs/A3_RESEARCH_AND_SOLUTION.md) and [SCIENCE.md](SCIENCE.md).
 
 ## Stack
 
@@ -67,7 +67,9 @@ Empty directories contain `.gitkeep` files so Git preserves the scaffold. Reposi
 
 ## Getting started
 
-Clone `https://github.com/kroix-ovo/mars-outpost.git`, then import `project.godot` in Godot 4.7.2 and press Play. The main scene is `scenes/world/main.tscn`. `F2` restarts the synthetic fixture colony; `F3` restarts the authored/reference Mars colony. `Space` pauses, `+`/`-` change speed, WASD pans and the wheel zooms. Click a module and press `T` to toggle it through the simulation command boundary. The overlay reports live power, batteries, oxygen/water/CO2/food, rates, forecasts and warnings. A valid construction preview still leads to an explicit `module_unavailable` rejection.
+Import `project.godot` in Godot 4.7.2 and press Play. The main scene is `scenes/world/main.tscn`. Mission control appears beside the world. `F2` restarts synthetic training; `F3` restarts the authored/reference colony. `Space` pauses, `+`/`-` change speed, WASD pans and the wheel zooms. `F1` shows diagnostics. World switches restart the colony; saves are not available yet.
+
+For the first training loop, pause, select two astronauts in **Crew & jobs**, then open **EVA** and launch the default salvage trip. Resume and wait for their return. In **Build**, choose the storage module and an open cell; hovering the world sets the placement coordinates. Place it, select its construction job, suggest available crew and assign them. The finished module adds oxygen capacity. Cancel unfinished construction to recover its materials. On the reference map, assign crew to the initial repair jobs to restore damaged solar equipment.
 
 Run all headless checks with Python 3 and the installed console executable:
 

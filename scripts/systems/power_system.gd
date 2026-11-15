@@ -17,8 +17,9 @@ func dispatch(state: RefCounted, content: Dictionary, ledger: RefCounted) -> Dic
             return _fail("Invalid modifier interval.")
         if not (event.starts_tick <= ledger.tick and ledger.tick < event.ends_tick): continue
         for m in event.modifiers:
-            if not m is Dictionary or not Schema.exact_keys(m, ["target", "factor"]) or m.target != "power_generation" or not Schema.number(m.factor) or m.factor < 0:
-                return _fail("Unsupported electrical modifier; A2 accepts power_generation only.")
+            if not m is Dictionary or not Schema.exact_keys(m, ["target", "factor"]) or m.target not in ["power_generation", "eva_movement", "eva_oxygen_kg", "eva_battery_kwh"] or not Schema.number(m.factor) or m.factor < 0:
+                return _fail("Invalid or unsupported simulation modifier.")
+            if m.target != "power_generation": continue
             modifier *= m.factor
             if not is_finite(modifier): return _fail("Electrical modifier overflow.")
             if id not in modifier_ids: modifier_ids.append(id)

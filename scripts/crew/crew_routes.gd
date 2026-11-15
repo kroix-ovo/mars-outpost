@@ -25,6 +25,23 @@ static func query(world: RefCounted, snapshot: Dictionary, from: Array, to: Arra
 		return {"reachable": false, "reason": "Routing is unavailable."}
 	return world.query_route({"from_cell": from, "to_cell": to}, snapshot)
 
+static func saved_route_clear(world: RefCounted, snapshot: Dictionary, points: Array, progress: float) -> bool:
+	# A reachable detour does not make the saved route passable. Keep the route
+	# fixed until an explicit recall/phase transition requests another route.
+	var traversed := 0.0
+	for i in range(1, points.size()):
+		var length := distance(points[i - 1], points[i])
+		traversed += length
+		if traversed <= progress + 1e-9:
+			continue
+		var a := cell(points[i - 1])
+		var b := cell(points[i])
+		var route := query(world, snapshot, a, b)
+		var direct: int = absi(a[0] - b[0]) + absi(a[1] - b[1])
+		if not route.get("reachable", false) or route.distance_m > direct + 1e-9:
+			return false
+	return true
+
 static func from_progress(world: RefCounted, snapshot: Dictionary, points: Array,
 		metres: float, to: Array) -> Dictionary:
 	var reached: Array = points[0]

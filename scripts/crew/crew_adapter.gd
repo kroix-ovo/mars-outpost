@@ -72,6 +72,8 @@ func initialize(config: Dictionary, snapshot: Dictionary) -> Dictionary:
 				or not Record.number(template.get("labor_rate_work_s_per_crew_s", 1.0), 0.0) \
 				or not Record.number(template.get("skill_weight", 0.0), 0.0):
 			return _result(false, "invalid_schema", "Invalid job template: " + kind)
+	if job_config.get("repair", {}).has("full_repair_work_s") and not Record.number(job_config.repair.full_repair_work_s, 1e-9):
+		return _result(false, "invalid_schema", "Invalid repair workload.")
 	_crew_defs = defs
 	_building_defs = buildings
 	_templates = job_config
@@ -94,6 +96,12 @@ func _read(path: String, manifest: Dictionary) -> Dictionary:
 
 func get_task_template(kind: String, work_s: float) -> Dictionary:
 	return Jobs.template(_templates, kind, work_s)
+
+func labor_capacity(member: Dictionary, kind: String) -> float:
+	return Jobs.productivity(member, kind, _templates)
+
+func repair_work_s(condition: float) -> float:
+	return float(_templates.get("repair", {}).get("full_repair_work_s", 0.0)) * (1.0 - condition)
 
 func recommended_crew(task: Dictionary, snapshot: Dictionary) -> Array:
 	var ids: Array = []

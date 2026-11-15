@@ -9,6 +9,7 @@ var rng = RandomNumberGenerator.new()
 var per_battery_energy: Dictionary = {}
 # Save-only authoritative fields, not additional public snapshot keys.
 var return_caches: Dictionary = {}
+var prepaid_build_costs: Dictionary = {}
 var power_flows: Dictionary = {}
 var life_support_flows: Dictionary = {}
 var crew_demand: Dictionary = {"requested": {}, "provided": {}, "unmet_needs": {}, "flows": {}, "wastewater_overflow_kg": 0.0}
@@ -24,6 +25,7 @@ func clone() -> OutpostGameState:
     copy.counters = counters.duplicate(true)
     copy.per_battery_energy = per_battery_energy.duplicate(true)
     copy.return_caches = return_caches.duplicate(true)
+    copy.prepaid_build_costs = prepaid_build_costs.duplicate(true)
     copy.power_flows = power_flows.duplicate(true)
     copy.life_support_flows = life_support_flows.duplicate(true)
     copy.crew_demand = crew_demand.duplicate(true)

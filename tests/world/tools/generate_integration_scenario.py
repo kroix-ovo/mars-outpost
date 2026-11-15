@@ -28,7 +28,9 @@ def outputs():
     scenario.update(
         id="synthetic_landing_plain_integration",
         description="Authored integration prototype with A3 reference crew demand and documented game equipment sizing.",
-        metadata={"status": "synthetic_test_fixture", "warning": "Reference physiology plus game assumptions, not a flight-certified habitat. Construction and crew/EVA lifecycle remain unavailable."},
+        metadata={"status": "synthetic_test_fixture", "warning": "Reference physiology plus game equipment and labor assumptions, not a flight-certified habitat. Construction and repairs are playable; EVA is disabled until suit science is configured. Agriculture and campaign saves are pending."},
+        crew_definition_path="res://data/crew/outpost_roster.json",
+        task_template_path="res://data/crew/task_templates.json",
         building_definition_paths=["res://" + p for p in definitions],
         map_path="res://data/maps/landing_plain.json",
         starting_buildings=[],
@@ -52,7 +54,8 @@ def outputs():
     scenario_bytes = encoded(scenario)
     config = read(SIM + "init/salvage_6crew.json")
     config.update(campaign_id="reference_landing_plain_life_support", map_id="landing_plain", map_revision=1,
-                  scenario_path="res://" + scenario_path, science_config_path="res://data/science/a3_reference_science.json")
+                  scenario_path="res://" + scenario_path, science_config_path="res://data/science/a3_reference_science.json",
+                  initial_crew_definition_ids=[d["id"] for d in read("data/crew/outpost_roster.json")["definitions"][:6]])
     paths = definitions + ["data/maps/landing_plain.json", scenario["resource_registry_path"][6:],
                            scenario["crew_definition_path"][6:], scenario["task_template_path"][6:],
                            config["science_config_path"][6:], "data/science/a3_reference_inputs.json"]

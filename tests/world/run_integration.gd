@@ -115,12 +115,14 @@ func _headless_bridge() -> void:
     _check(preview.valid, "probe placement previews valid: " + str(preview.reason))
     _check(int(bridge.get_snapshot().revision) == before_revision, "preview leaves the simulation revision unchanged")
 
-    # place_building goes through the contract envelope. Task 01 may still reject it as unavailable;
-    # either way the scene never changes balances itself.
+    # Queue acceptance precedes execution. An advisory placement preview cannot
+    # promise sufficient inventory; inspect the resolved command result.
     var response: Dictionary = bridge.submit_place_building(PROBE_PLACEMENT)
     for key in ["accepted", "command_id", "reason", "code", "receive_sequence", "status", "duplicate", "result"]:
         _check(response.has(key), "place_building response has " + key)
-    if response.accepted:
+    var resolved: Dictionary = bridge._backend._journal[response.command_id].result if response.accepted else {}
+    var placed: bool = response.accepted and resolved.success
+    if placed:
         var after: Dictionary = bridge.get_snapshot()
         _check(after.buildings.size() == snap.buildings.size() + 1, "accepted placement adds exactly one building")
         var created := false
@@ -133,9 +135,10 @@ func _headless_bridge() -> void:
         _check(created, "accepted placement is visible in the snapshot")
         _check(not bridge.validate_placement(PROBE_PLACEMENT).valid, "footprint is occupied after placement")
     else:
-        _check(response.code in ["module_unavailable", "placement_blocked", "insufficient_resources", "invalid_state"],
-            "rejected placement carries a contract code: " + str(response.code))
-        _check(not str(response.reason).is_empty(), "rejected placement explains itself")
+        var rejection: Dictionary = resolved if response.accepted else response
+        _check(rejection.code in ["module_unavailable", "placement_blocked", "insufficient_resources", "invalid_state"],
+            "rejected placement carries a contract code: " + str(rejection.code))
+        _check(not str(rejection.reason).is_empty(), "rejected placement explains itself")
         _check(Service.canonical_json(bridge.get_snapshot().resources) == before_resources, "rejected placement leaves balances untouched")
         _check(bridge.get_snapshot().buildings.size() == snap.buildings.size(), "rejected placement creates no building")
 
@@ -159,7 +162,7 @@ func _headless_bridge() -> void:
     var tick_after := int(bridge.get_snapshot().clock.tick_index)
     _check(tick_after >= tick_before + 10, "2 s at scale 5 advances at least 10 ticks (%d -> %d)" % [tick_before, tick_after])
     _check(counter[0] >= 1, "snapshot_changed emitted while advancing")
-    _check(bridge.get_snapshot().buildings.size() == snap.buildings.size() + (1 if response.accepted else 0), "building set stable across ticks")
+    _check(bridge.get_snapshot().buildings.size() == snap.buildings.size() + (1 if placed else 0), "building set stable across ticks")
 
     # Development-only hooks are refused on the real simulation.
     var patch: Dictionary = bridge.dev_patch_building(ids[0], {"lifecycle": "destroyed"})

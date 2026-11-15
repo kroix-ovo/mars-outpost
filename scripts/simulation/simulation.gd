@@ -1,7 +1,7 @@
 class_name OutpostSimulation
 extends RefCounted
-## A1-A3 headless runtime: atomic power, life support and crew-demand accounting.
-## Missing gameplay handlers fail explicitly; this is not a playable colony yet.
+## Atomic power, life support, construction, crew and EVA runtime.
+## Agriculture and persistence remain explicit future capabilities.
 
 const Schema = preload("res://scripts/simulation/command_schemas.gd")
 const State = preload("res://scripts/simulation/game_state.gd")
@@ -10,6 +10,8 @@ const Ledger = preload("res://scripts/simulation/resource_ledger.gd")
 const Power = preload("res://scripts/systems/power_system.gd")
 const LifeSupport = preload("res://scripts/systems/life_support_system.gd")
 const CrewDemand = preload("res://scripts/systems/crew_demand_system.gd")
+const CrewRuntime = preload("res://scripts/simulation/crew_runtime.gd")
+const CREW_COMMANDS = ["place_building", "assign_task", "cancel_task", "start_eva", "recall_eva"]
 const CONTROLS = ["set_time_scale", "set_building_enabled"]
 const MAX_TICKS_PER_ADVANCE = 120
 
@@ -42,6 +44,12 @@ func initialize(config: Dictionary, world_service: RefCounted, crew_adapter: Ref
         return _fail(content.code, content.reason)
     var candidate = State.new()
     candidate.populate(config, content)
+    if crew_adapter != null:
+        if world_service == null: return _fail("module_unavailable", "Crew gameplay requires a world service.")
+        var initialized: Dictionary = crew_adapter.initialize(config.duplicate(true), candidate.snapshot())
+        if not initialized.ok: return initialized
+        var jobs: Dictionary = CrewRuntime.new(candidate, content, world_service, crew_adapter, Ledger.new(candidate, content, {}, 0)).initial_jobs()
+        if not jobs.ok: return jobs
     _content = content.duplicate(true)
     _config = config.duplicate(true)
     _world_service = world_service
@@ -53,6 +61,12 @@ func get_snapshot() -> Dictionary:
     if _state == null:
         return _fail("not_initialized", "Initialize the simulation first.")
     return _state.snapshot()
+
+func get_capabilities() -> Dictionary:
+    return {"crew": _crew_adapter != null, "persistence": false, "agriculture": false}
+
+func supports_building(id: String) -> bool:
+    return _content.buildings.has(id) and LifeSupport.validate_process(_content.buildings[id]).ok
 
 func submit_command(command: Dictionary) -> Dictionary:
     var id: Variant = command.get("command_id")
@@ -67,7 +81,7 @@ func submit_command(command: Dictionary) -> Dictionary:
         if Schema.canonical(prior.normalized) != Schema.canonical(normalized):
             return _rejected(id, "command_id_conflict", "command_id reused with different content")
         return _accepted(id, prior, true)
-    if normalized.type not in CONTROLS:
+    if normalized.type not in CONTROLS and (normalized.type not in CREW_COMMANDS or _crew_adapter == null or _world_service == null):
         return _rejected(id, "module_unavailable", "This gameplay handler is not implemented in A3: " + normalized.type)
     if _next_receive_sequence >= Schema.MAX_EXACT_INTEGER or _state.counters.event + _pending.size() >= Schema.MAX_EXACT_INTEGER:
         return _rejected(id, "invalid_state", "Command sequence or event counter exhausted.")
@@ -155,11 +169,13 @@ func _boundary() -> bool:
         var code = "ok"
         var reason = ""
         var mutates = false
+        var domain_events: Array = []
+        var ledger = Ledger.new(candidate, _content, _committed_effects, candidate.records.clock.tick_index)
         if command.type == "set_time_scale":
             data = {"time_scale": command.payload.time_scale}
             mutates = candidate.records.clock.time_scale != command.payload.time_scale
             candidate.records.clock.time_scale = command.payload.time_scale
-        else:
+        elif command.type == "set_building_enabled":
             var building_id: String = command.payload.building_id
             data = {"building_id": building_id}
             if not candidate.records.buildings.has(building_id):
@@ -169,13 +185,26 @@ func _boundary() -> bool:
             else:
                 mutates = candidate.records.buildings[building_id].enabled != command.payload.enabled
                 candidate.records.buildings[building_id].enabled = command.payload.enabled
+        else:
+            var applied: Dictionary = CrewRuntime.new(candidate, _content, _world_service, _crew_adapter, ledger).command(command)
+            success = applied.ok
+            code = applied.code
+            reason = applied.reason
+            data = applied.get("data", {})
+            mutates = applied.get("mutates", false)
+            domain_events = applied.get("events", [])
         if mutates and candidate.records.revision >= Schema.MAX_EXACT_INTEGER:
             success = false
             code = "invalid_state"
             reason = "Revision counter exhausted."
+        if candidate.counters.event + domain_events.size() + captured.size() >= Schema.MAX_EXACT_INTEGER:
+            success = false
+            code = "invalid_state"
+            reason = "Event counter exhausted."
         if success:
             if mutates: candidate.records.revision += 1
             _state = candidate
+            _committed_effects.merge(ledger.staged)
             changed = changed or mutates
         var result = {"success": success, "code": code, "reason": reason,
             "resolved_tick": _state.records.clock.tick_index, "data": data}
@@ -187,9 +216,14 @@ func _boundary() -> bool:
         outbox.append({"id": _state.allocate("event"), "type": "command_result",
             "tick_index": _state.records.clock.tick_index, "entity_ids": entities,
             "data": dict_with_command_id(result, id)})
+        if success:
+            for event in domain_events:
+                event.id = _state.allocate("event")
+                event.tick_index = _state.records.clock.tick_index
+                outbox.append(event)
     # All captured commands resolve before callbacks run. New commands wait.
     for event in outbox:
-        command_resolved.emit(event.data.command_id, event.data.success, event.data.reason)
+        if event.type == "command_result": command_resolved.emit(event.data.command_id, event.data.success, event.data.reason)
         game_event.emit(event.duplicate(true))
     return changed
 
@@ -200,7 +234,10 @@ func _tick() -> Dictionary:
     var ledger = Ledger.new(candidate, _content, _committed_effects, candidate.records.clock.tick_index)
     var valid = ledger.validate()
     if not valid.ok: return _fail("internal_error", valid.reason)
-    # Phases 1/2: environment generation and crew intent await A3-A5.
+    var crew_runtime = CrewRuntime.new(candidate, _content, _world_service, _crew_adapter, ledger)
+    if _crew_adapter != null:
+        valid = crew_runtime.phase("intent")
+        if not valid.ok: return _fail("internal_error", valid.reason)
     # Phase 3: electrical dispatch. All balance writes go through the ledger.
     var power = _dispatch_power(candidate, ledger)
     if not power.ok: return _fail("internal_error", power.reason)
@@ -210,7 +247,9 @@ func _tick() -> Dictionary:
     # Phase 5: Task 01 alone deducts base/suit crew demand.
     var demand = _run_crew_demand(candidate, ledger)
     if not demand.ok: return _fail("internal_error", demand.reason)
-    # Phases 6/7: labor/EVA/medical outcomes and environmental hazards await peers/A5.
+    if _crew_adapter != null:
+        valid = crew_runtime.phase("progress")
+        if not valid.ok: return _fail("internal_error", valid.reason)
     # Phase 8: finalize actual committed rates, diagnostics and invariants.
     for rid in candidate.records.resources:
         var balance: Dictionary = candidate.records.resources[rid]
@@ -223,6 +262,11 @@ func _tick() -> Dictionary:
     valid = ledger.validate()
     if not valid.ok: return _fail("internal_error", valid.reason)
     var events: Array = []
+    for event in crew_runtime.events:
+        if candidate.counters.event >= Schema.MAX_EXACT_INTEGER: return _fail("internal_error", "Event counter exhausted.")
+        event.id = candidate.allocate("event")
+        event.tick_index = candidate.records.clock.tick_index
+        events.append(event)
     var crew_ids = candidate.crew_demand.unmet_needs.keys()
     crew_ids.sort()
     for id in crew_ids:

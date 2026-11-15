@@ -5,6 +5,7 @@ const Jobs = preload("res://scripts/tasks/crew_jobs.gd")
 const TERMINAL := ["completed", "failed"]
 const STORES := {"oxygen_kg": "oxygen_kg", "battery_kwh": "energy_kwh"}
 const EPS := 1e-9
+const Rates = preload("res://scripts/crew/eva_rates.gd")
 
 var world: RefCounted
 var airlock: Array
@@ -22,16 +23,10 @@ func speed(snapshot: Dictionary, ids: Array) -> float:
 	return value * modifier(snapshot, "eva_movement")
 
 func modifier(snapshot: Dictionary, target: String) -> float:
-	var value := 1.0
-	for id in Jobs.sorted_ids(snapshot.active_events):
-		for item in snapshot.active_events[id].modifiers:
-			if item.target == target:
-				value *= float(item.factor)
-	return value
+	return Rates.modifier(snapshot, target)
 
 func rate(snapshot: Dictionary, phase: String, store: String) -> float:
-	var overrides: Dictionary = policy.get("phase_rates_per_s", {}).get(phase, {})
-	return float(overrides.get(store, rates[store])) * modifier(snapshot, "eva_" + store)
+	return Rates.rate(snapshot, phase, store, rates, policy)
 
 func error(code: String, reason: String) -> Dictionary:
 	return {"ok": false, "code": code, "reason": reason}
@@ -215,7 +210,7 @@ func plan(snapshot: Dictionary, proposal: Dictionary, dt: float, context: Dictio
 			var destination: Array = airlock if trip.status == "returning" else snapshot.sites[trip.site_id].cell
 			var legal := Routes.from_progress(world, snapshot, trip.route_waypoints_m,
 				trip.route_progress_m, destination)
-			if not legal.get("reachable", false):
+			if not legal.get("reachable", false) or not Routes.saved_route_clear(world, snapshot, trip.route_waypoints_m, trip.route_progress_m):
 				strand(trip, snapshot, proposal)
 			else:
 				trip.route_progress_m = minf(trip.route_distance_m, trip.route_progress_m + pace * dt)
