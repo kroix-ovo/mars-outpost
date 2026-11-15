@@ -1,6 +1,6 @@
 extends RefCounted
 ## Designed looks for the named outpost crew (data/crew/outpost_roster.json), plus a diverse
-## fallback set for crew without a designed look (for example the training fixture crew).
+## fallback set for crew without a designed look. Training fixtures use the landing crew.
 ## Presentation only; keyed by crew definition id and never read by the simulation.
 
 const Look := preload("res://scripts/crew/astronaut_look.gd")
@@ -66,9 +66,29 @@ static func look_for(definition_id: String, display_name: String = "") -> Dictio
 	## Returns a complete look for any crew definition id.
 	if ROSTER.has(definition_id):
 		return Look.sanitize(ROSTER[definition_id])
+	var named_id := _training_identity(display_name)
+	if named_id.is_empty() and definition_id.begins_with("fixture_crew_"):
+		named_id = _training_identity("Fixture Crew " + definition_id.right(1).to_upper())
+	if not named_id.is_empty():
+		return Look.sanitize(ROSTER[named_id])
 	var pick: Dictionary = FALLBACKS[_fallback_index(definition_id)].duplicate()
 	pick.name = display_name if not display_name.is_empty() else definition_id
 	return Look.sanitize(pick)
+
+
+static func display_name(value: String) -> String:
+	## Fixture identifiers remain in the simulation; players meet the landing crew.
+	var id := _training_identity(value)
+	return str(ROSTER[id].name) if not id.is_empty() else value
+
+
+static func _training_identity(value: String) -> String:
+	for prefix in ["Fixture Crew ", "Astronaut "]:
+		if value.begins_with(prefix):
+			var suffix := value.trim_prefix(prefix)
+			if suffix.length() == 1 and suffix >= "A" and suffix <= "I":
+				return "outpost_crew_%02d" % (suffix.unicode_at(0) - 64)
+	return ""
 
 
 static func role_label(definition_id: String) -> String:

@@ -113,8 +113,11 @@ func _crew_designs() -> void:
 	for letter in "abcdefghi":
 		var look := CrewLooks.look_for("fixture_crew_" + letter, "Fixture Crew " + letter.to_upper())
 		fallback["%s|%s" % [look.skin, look.hair_style]] = true
-		check(look.name == "Fixture Crew " + letter.to_upper(), "fallback keeps the crew's own name")
+		var named_id := "outpost_crew_%02d" % (letter.unicode_at(0) - 96)
+		check(look == CrewLooks.look_for(named_id), "training astronaut keeps the landing crew identity and appearance")
+		check(CrewLooks.display_name("Fixture Crew " + letter.to_upper()) == look.name, "training HUD uses the landing crew name")
 	check(fallback.size() == 9, "nine fixture crew get nine different looks")
+	check(CrewLooks.display_name("Kai Moana") == "Kai Moana", "custom crew names remain intact")
 
 
 func _storage() -> void:
@@ -123,6 +126,7 @@ func _storage() -> void:
 	var look := Look.default_look()
 	look.name = "Kai Moana"
 	look.hair_style = "afro"
+	look.glasses = "sunglasses"
 	check(Session.save_profile(look, PROFILE), "profile saves")
 	var loaded := Session.load_profile(PROFILE)
 	check(loaded.exists and loaded.look == Look.sanitize(look), "profile round-trips")
@@ -164,6 +168,12 @@ func _figures() -> void:
 	var walker := Figure.new()
 	walker.manual_time = true
 	holder.add_child(walker)
+	var shaded := Look.default_look()
+	shaded.glasses = "sunglasses"
+	walker.apply_look(shaded)
+	check(walker.has_node("Rig/Head/SunglassesLeft") and walker.has_node("Rig/Head/SunglassesRight"), "sunglasses render two opaque lenses")
+	walker.apply_look(Look.default_look())
+	check(not walker.has_node("Rig/Head/SunglassesLeft"), "switching glasses removes the sunglasses")
 	walker.mode = "walk"
 	walker.pose(0.1)
 	var hip_a: float = walker.get_node("Rig").get_child(0).rotation.x

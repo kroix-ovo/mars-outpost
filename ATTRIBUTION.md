@@ -33,13 +33,21 @@ Source URL: Supplied by the project team (430x226 PNG, white logo on blue)
 License / usage terms: Used only to identify the project as a NASA Space Apps Challenge entry,
   per the challenge's brand use for participants. Confirm current Space Apps brand guidance
   before any public release outside the challenge.
-Required credit line: None; shown unmodified in the title screen's top-right corner.
-Modifications: None.
+Required credit line: None; shown in the title screen's top-right corner.
+Modifications: Presentation uses an AtlasTexture region to exclude excess right-hand blue
+  padding and center the original mark and wordmark. The source PNG is unchanged.
 Date accessed: 2026-11-15
 ```
 
-## Planned NASA-derived references (not yet imported)
+## Russo One display font
 
+- Creator: Jovanny Lemonad; copyright 2011–2012, reserved font name Russo.
+- Source: https://github.com/google/fonts/tree/main/ofl/russoone
+- Local files: `assets/fonts/russo_one/RussoOne-Regular.ttf` and `OFL.txt`.
+- License: SIL Open Font License 1.1; included alongside the unmodified font.
+- Used for the title's display lettering. Downloaded 2026-11-15.
+
+## Planned NASA-derived references (not yet imported)
 When these are added, download them during development, ship them locally under `assets/nasa/`, and complete a record below for each file. The game must never fetch NASA data at runtime.
 
 - Mars Trek WMTS tiles / MOLA topography for a terrain reference and heightmap. Pipeline ready: `tests/world/tools/heightmap_to_map.gd` turns a downloaded grayscale tile into a map JSON; the asset record below must be filled in first.

@@ -259,13 +259,16 @@ func _build_title() -> void:
 	column.add_theme_constant_override("separation", 6)
 	title_page.add_child(column)
 	var title_block := VBoxContainer.new()
-	title_block.add_theme_constant_override("separation", -18)
+	title_block.add_theme_constant_override("separation", -8)
 	column.add_child(title_block)
 	var line_one := UI.heading("MARS OUTPOST", 64)
 	line_one.name = "TitleLine1"
+	line_one.add_theme_font_override("font", preload("res://assets/fonts/russo_one/RussoOne-Regular.ttf"))
+	line_one.add_theme_font_size_override("font_size", 60)
 	title_block.add_child(line_one)
 	var line_two := UI.heading("SURVIVAL", 64)
 	line_two.name = "TitleLine2"
+	line_two.add_theme_font_override("font", preload("res://assets/fonts/russo_one/RussoOne-Regular.ttf"))
 	line_two.add_theme_color_override("font_color", UI.AMBER)
 	title_block.add_child(line_two)
 	var subtitle := UI.label("A Junior Astronaut Mission Trainer", 26, Color("#f4e9d8"))
@@ -307,7 +310,12 @@ func _build_title() -> void:
 	title_page.add_child(_countdown)
 	logo = TextureRect.new()
 	logo.name = "SpaceAppsLogo"
-	logo.texture = load(LOGO_PATH)
+	# The supplied PNG has excess blue padding on the right. Center the complete
+	# official mark and wordmark by excluding that padding, without redrawing it.
+	var badge := AtlasTexture.new()
+	badge.atlas = load(LOGO_PATH)
+	badge.region = Rect2(0, 0, 370, 226)
+	logo.texture = badge
 	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	logo.anchor_left = 1.0

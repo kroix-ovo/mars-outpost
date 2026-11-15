@@ -200,6 +200,18 @@ func _build_face(skin: Material, hair: Material) -> void:
 				var lens := _add(_head, _torus(0.032, 0.039), Vector3(0.052 * side, 0.018, 0.158), frame)
 				lens.rotation.x = PI * 0.5
 			_add(_head, _box(Vector3(0.03, 0.007, 0.007)), Vector3(0, 0.024, 0.162), frame)
+		"sunglasses":
+			var frame := _mat("frame", Color("#171c24"), 0.3, 0.3)
+			var tint := _mat("sunglass_lens", Color("#173342"), 0.15, 0.5)
+			for side in [-1.0, 1.0]:
+				var center := Vector3(0.054 * side, 0.021, 0.166)
+				var rim := _add(_head, _sphere(0.043), center, frame)
+				rim.scale = Vector3(1, 0.76, 0.25)
+				var lens := _add(_head, _sphere(0.037), center + Vector3(0, 0, 0.008), tint)
+				lens.name = "SunglassesLeft" if side < 0 else "SunglassesRight"
+				lens.scale = Vector3(1, 0.74, 0.2)
+				_add(_head, _box(Vector3(0.008, 0.009, 0.10)), Vector3(0.094 * side, 0.025, 0.12), frame)
+			_add(_head, _box(Vector3(0.035, 0.009, 0.012)), Vector3(0, 0.03, 0.174), frame)
 		"square":
 			var frame := _mat("frame", Color("#1d1d22"), 0.4, 0.3)
 			for side in [-1.0, 1.0]:

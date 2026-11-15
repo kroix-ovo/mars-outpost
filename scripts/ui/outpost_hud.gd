@@ -7,6 +7,7 @@ extends Control
 ## status toast at the bottom left. Empty space passes mouse input to the world.
 
 const TutorialMission = preload("res://scripts/ui/tutorial_mission.gd")
+const CrewLooks = preload("res://scripts/crew/crew_looks.gd")
 const TutorialOverlay = preload("res://scripts/ui/tutorial_overlay.gd")
 const SaveSlot = preload("res://scripts/ui/outpost_save_slot.gd")
 const Icon = preload("res://scripts/ui/hud_icon.gd")
@@ -638,7 +639,7 @@ func _resource_tooltip(id: String) -> String:
 	return text
 
 func _crew_name(value: String) -> String:
-	return value.replace("Fixture Crew ", "Astronaut ")
+	return CrewLooks.display_name(value)
 
 func _refresh_roster() -> void:
 	var selected := _selected_crew()
@@ -701,7 +702,7 @@ func _refresh_selection() -> void:
 	var suit_lines: Array[String] = []
 	for id in _keys(trip.get("suit_stores", {})):
 		var suit: Dictionary = trip.suit_stores[id]
-		suit_lines.append("%s: %.5f kg O₂ · %.5f kWh" % [_state.crew[id].display_name, suit.oxygen_kg, suit.battery_kwh])
+		suit_lines.append("%s: %.5f kg O₂ · %.5f kWh" % [_crew_name(_state.crew[id].display_name), suit.oxygen_kg, suit.battery_kwh])
 	_trip_text.text = "No expeditions yet." if trip.is_empty() else "%s · %.1f / %.1f m · work %.1f / %.1f s\nReturn margin: %s · Cargo: %s%s" % [
 		trip.status.capitalize(), trip.route_progress_m, trip.route_distance_m, trip.work_completed_s,
 		trip.work_required_s, "unavailable" if trip.return_margin_s == null else "%.1f s" % trip.return_margin_s,
