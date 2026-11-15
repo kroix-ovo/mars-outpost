@@ -25,6 +25,8 @@ func reset() -> void:
         node.queue_free()
     _nodes.clear()
     _snapshot_buildings = {}
+    _hovered_id = ""
+    _selected_id = ""
 
 
 func apply_snapshot(snapshot: Dictionary) -> void:
@@ -45,6 +47,7 @@ func apply_snapshot(snapshot: Dictionary) -> void:
             node = _spawn(record)
             _nodes[building_id] = node
         node.apply_record(record, world_service.building_cells(record))
+    _apply_highlights()
 
 
 func building_at_cell(cell: Array) -> String:
@@ -64,6 +67,24 @@ func building_at_cell(cell: Array) -> String:
 
 func node_for(building_id: String) -> Node3D:
     return _nodes.get(building_id)
+
+
+var _hovered_id: String = ""
+var _selected_id: String = ""
+
+
+func set_highlight(hovered_id: String, selected_id: String) -> void:
+    ## Presentation-only hover/selection outlines and name labels.
+    _hovered_id = hovered_id
+    _selected_id = selected_id
+    _apply_highlights()
+
+
+func _apply_highlights() -> void:
+    for building_id in _nodes:
+        var node: Node3D = _nodes[building_id]
+        if node.has_method("set_highlight"):
+            node.set_highlight(2 if building_id == _selected_id else (1 if building_id == _hovered_id else 0))
 
 
 func _spawn(record: Dictionary) -> Node3D:

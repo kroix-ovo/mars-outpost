@@ -9,12 +9,12 @@ extends Node3D
 ## building's power state from the snapshot. Lines are rebuilt only when the blocked-cell set or
 ## the building set changes; colours update on every snapshot.
 
-const SERVED := Color(0.35, 0.85, 0.95)
+const SERVED := Color(0.32, 0.72, 0.82)
 const PARTIAL := Color(1.0, 0.72, 0.15)
 const UNSERVED := Color(0.95, 0.25, 0.25)
-const IDLE := Color(0.78, 0.78, 0.84)
+const IDLE := Color(0.55, 0.55, 0.58)
 const CONSTRUCTING := Color(0.95, 0.8, 0.3)
-const WIDTH := 0.1
+const WIDTH := 0.07
 const LIFT := 0.06
 
 var world_service: RefCounted

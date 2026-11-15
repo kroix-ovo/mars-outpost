@@ -132,7 +132,7 @@ func _material(color: Color, rough: float = 0.6, metal: float = 0.0) -> Standard
 
 
 func _add_cargo(root: Node3D) -> void:
-    var crate_material := _material(Color(0.82, 0.82, 0.86))
+    var crate_material := _material(Color(0.62, 0.57, 0.5), 0.75)
     for offset in [Vector3(-0.22, 0.2, -0.18), Vector3(0.2, 0.18, 0.15), Vector3(-0.05, 0.55, 0.0)]:
         var crate := MeshInstance3D.new()
         var box := BoxMesh.new()
@@ -202,7 +202,7 @@ func _add_ice(root: Node3D) -> void:
 
 
 func _add_flag(root: Node3D, site_id: String) -> void:
-    var pole_material := _material(Color(0.82, 0.82, 0.86))
+    var pole_material := _material(Color(0.32, 0.32, 0.34), 0.5, 0.4)
     var pole := MeshInstance3D.new()
     var pole_mesh := CylinderMesh.new()
     pole_mesh.top_radius = 0.03

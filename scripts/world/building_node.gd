@@ -18,6 +18,9 @@ const STATUS_WARN := Color(1.00, 0.72, 0.15)
 const STATUS_FAIL := Color(0.95, 0.20, 0.20)
 const STATUS_OFF := Color(0.60, 0.60, 0.66)
 const SCAFFOLD := Color(0.95, 0.80, 0.30)
+const HOVER := Color(0.92, 0.94, 0.96, 0.75)
+const SELECTED := Color(1.00, 0.68, 0.22, 0.95)
+const ModuleArtScript := preload("res://scripts/world/module_art.gd")
 
 enum StatusKind { OK, WARN, FAIL, OFF }
 
@@ -38,6 +41,9 @@ var _authored: Array = []  # Node3D children supplied by an authored scene
 var _base_color: Color = Color(0.75, 0.75, 0.78)
 var _built_for: String = ""
 var _light_kind: int = -1
+var _highlight: Node3D
+var _label: Label3D
+var _highlight_mode: int = 0  # 0 none, 1 hover, 2 selected
 
 
 func apply_record(new_record: Dictionary, cells: Dictionary) -> void:
@@ -49,6 +55,8 @@ func apply_record(new_record: Dictionary, cells: Dictionary) -> void:
         _rebuild()
         _built_for = signature
     _apply_status()
+    if _highlight_mode != 0 and _label != null:
+        _label.text = _label_text()
 
 
 func status_color() -> Color:
@@ -76,7 +84,16 @@ func _rebuild() -> void:
         for child in get_children():
             if child is Node3D:
                 _authored.append(child)
-    for child in [_scaffold, _entrances, _light]:
+        # Definitions without a scene (synthetic training content) use the shared module models.
+        if _authored.is_empty() and ModuleArtScript.kind_for(definition) != "generic":
+            var art: Node3D = ModuleArtScript.new()
+            art.name = "Art"
+            art.kind = ModuleArtScript.kind_for(definition)
+            art.footprint = definition.get("footprint_cells", [[0, 0]])
+            art.entrances = definition.get("entrance_cells", [])
+            add_child(art)
+            _authored.append(art)
+    for child in [_scaffold, _entrances, _light, _highlight, _label]:
         if child != null:
             child.queue_free()
     if _body != null:
@@ -88,6 +105,9 @@ func _rebuild() -> void:
     var visual: Dictionary = definition.get("metadata", {}).get("visual", {})
     _base_color = Color.from_string(str(visual.get("color", "#bfbfc4")), Color(0.75, 0.75, 0.78))
     var height := float(visual.get("height_m", 2.0))
+    for art in _authored:
+        if "top_height" in art:
+            height = float(art.top_height)
     var shape := str(visual.get("shape", "box"))
     var anchor := Vector3(float(record.cell[0]), ground_height, float(record.cell[1]))
     position = anchor
@@ -123,13 +143,14 @@ func _rebuild() -> void:
     _light = MeshInstance3D.new()
     _light.name = "StatusLight"
     var centre := _footprint_centre(anchor)
-    _light.position = Vector3(centre.x, height + 0.4, centre.z)
+    _light.position = Vector3(centre.x, height + 0.3, centre.z)
     var light_material := StandardMaterial3D.new()
     light_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
     light_material.albedo_color = STATUS_OFF
     _light.material_override = light_material
     _light_kind = -1
     add_child(_light)
+    _build_highlight(anchor, height)
 
 
 func _collect_materials(node: Node) -> void:
@@ -142,7 +163,8 @@ func _collect_materials(node: Node) -> void:
         if source is StandardMaterial3D:
             var copy: StandardMaterial3D = source.duplicate()
             mesh_instance.material_override = copy
-            _materials.append({"material": copy, "base": copy.albedo_color})
+            _materials.append({"material": copy, "base": copy.albedo_color,
+                "emission": float(source.get_meta("indicator", 0.0))})
     for child in node.get_children():
         _collect_materials(child)
 
@@ -220,12 +242,12 @@ func _scaffold_mesh(height: float, local: Vector3) -> MeshInstance3D:
 func _entrance_pad(local: Vector3) -> MeshInstance3D:
     var instance := MeshInstance3D.new()
     var pad := BoxMesh.new()
-    pad.size = Vector3(0.7, 0.04, 0.7)
+    pad.size = Vector3(0.62, 0.03, 0.62)
     instance.mesh = pad
     instance.position = local
     var material := StandardMaterial3D.new()
-    material.albedo_color = Color(0.92, 0.92, 0.95)
-    material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    material.albedo_color = Color(0.36, 0.34, 0.32)
+    material.roughness = 0.9
     instance.material_override = material
     return instance
 
@@ -260,6 +282,9 @@ func _apply_status() -> void:
             if not bool(record.get("enabled", true)):
                 tint = tint.lerp(Color(0.5, 0.5, 0.55), 0.6)
         entry.material.albedo_color = tint
+        if float(entry.get("emission", 0.0)) > 0.0:
+            var live := not constructing and not destroyed and bool(record.get("enabled", true)) and condition > 0.0
+            entry.material.emission_energy_multiplier = float(entry.emission) * (condition if live else 0.0)
 
     var kind := StatusKind.OK
     if destroyed or codes.has("no_power") or codes.has("damaged"):
@@ -290,17 +315,17 @@ func _set_light(kind: int) -> void:
     match kind:
         StatusKind.OK:
             var sphere := SphereMesh.new()
-            sphere.radius = 0.17
-            sphere.height = 0.34
+            sphere.radius = 0.12
+            sphere.height = 0.24
             _light.mesh = sphere
         StatusKind.WARN:
             var cube := BoxMesh.new()
-            cube.size = Vector3(0.28, 0.28, 0.28)
+            cube.size = Vector3(0.22, 0.22, 0.22)
             _light.mesh = cube
             _light.rotation_degrees = Vector3(0.0, 45.0, 0.0)
         StatusKind.FAIL:
             var prism := PrismMesh.new()
-            prism.size = Vector3(0.36, 0.34, 0.36)
+            prism.size = Vector3(0.3, 0.28, 0.3)
             _light.mesh = prism
         _:
             var disc := CylinderMesh.new()
@@ -308,3 +333,71 @@ func _set_light(kind: int) -> void:
             disc.bottom_radius = 0.18
             disc.height = 0.06
             _light.mesh = disc
+
+
+# ---------------------------------------------------------------- selection feedback
+
+func set_highlight(mode: int) -> void:
+    ## 0 none, 1 hover, 2 selected. Presentation only.
+    _highlight_mode = mode
+    if _highlight == null:
+        return
+    _highlight.visible = mode != 0
+    _label.visible = mode != 0
+    var color := SELECTED if mode == 2 else HOVER
+    for child in _highlight.get_children():
+        (child as MeshInstance3D).material_override.albedo_color = color
+    _label.text = _label_text()
+
+
+func _label_text() -> String:
+    var text := str(definition.get("display_name", definition_id))
+    var lifecycle := str(record.get("lifecycle", ""))
+    if lifecycle == "constructing":
+        text += "  ·  building %d%%" % int(round(float(record.get("construction_progress", 0.0)) * 100.0))
+    elif float(record.get("condition", 1.0)) < 1.0:
+        text += "  ·  condition %d%%" % int(round(float(record.get("condition", 1.0)) * 100.0))
+    elif not bool(record.get("enabled", true)):
+        text += "  ·  off"
+    return text
+
+
+func _build_highlight(anchor: Vector3, height: float) -> void:
+    _highlight = Node3D.new()
+    _highlight.name = "Highlight"
+    add_child(_highlight)
+    var keys := {}
+    for cell in occupied_cells:
+        keys["%d,%d" % [int(cell[0]), int(cell[1])]] = true
+    # Outline only the outer edges of the footprint, so multi-cell modules read as one unit.
+    for cell in occupied_cells:
+        var x := float(cell[0]) - anchor.x
+        var z := float(cell[1]) - anchor.z
+        for edge in [[0, -1], [0, 1], [-1, 0], [1, 0]]:
+            if keys.has("%d,%d" % [int(cell[0]) + edge[0], int(cell[1]) + edge[1]]):
+                continue
+            var bar := MeshInstance3D.new()
+            var box := BoxMesh.new()
+            box.size = Vector3(1.04, 0.05, 0.07) if edge[0] == 0 else Vector3(0.07, 0.05, 1.04)
+            bar.mesh = box
+            bar.position = Vector3(x + 0.5 + edge[0] * 0.5, 0.05, z + 0.5 + edge[1] * 0.5)
+            var material := StandardMaterial3D.new()
+            material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+            material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+            material.albedo_color = HOVER
+            bar.material_override = material
+            _highlight.add_child(bar)
+    _label = Label3D.new()
+    _label.name = "NameLabel"
+    var centre := _footprint_centre(anchor)
+    _label.position = Vector3(centre.x, height + 0.65, centre.z)
+    _label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    _label.fixed_size = true
+    _label.pixel_size = 0.001
+    _label.font_size = 19
+    _label.outline_size = 8
+    _label.outline_modulate = Color(0.05, 0.05, 0.06, 0.9)
+    _label.no_depth_test = true
+    _label.render_priority = 2
+    add_child(_label)
+    set_highlight(_highlight_mode)

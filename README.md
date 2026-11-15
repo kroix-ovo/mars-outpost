@@ -67,9 +67,9 @@ Empty directories contain `.gitkeep` files so Git preserves the scaffold. Reposi
 
 ## Getting started
 
-Import `project.godot` in Godot 4.7.2 and press Play. The main scene is `scenes/world/main.tscn`. Mission control appears beside the world. `F2` restarts synthetic training; `F3` restarts the authored/reference colony. `Space` pauses, `+`/`-` change speed, WASD pans and the wheel zooms. `F1` shows diagnostics. World switches restart the colony; saves are not available yet.
+Import `project.godot` in Godot 4.7.2 and press Play. The main scene is `scenes/world/main.tscn`. Mission control overlays the world: a resource/status strip along the top, the crew roster on the left and a collapsible drawer (Jobs, Build, EVA, Systems, Guide) on the right. Clicking a module or salvage site opens it in the drawer. `F2` restarts synthetic training; `F3` restarts the authored/reference colony. `Space` pauses, `+`/`-` change speed, WASD pans and the wheel zooms. `F1` shows diagnostics. World switches restart the colony; saves are not available yet.
 
-For the first training loop, pause, select two astronauts in **Crew & jobs**, then open **EVA** and launch the default salvage trip. Resume and wait for their return. In **Build**, choose the storage module and an open cell; hovering the world sets the placement coordinates. Place it, select its construction job, suggest available crew and assign them. The finished module adds oxygen capacity. Cancel unfinished construction to recover its materials. On the reference map, assign crew to the initial repair jobs to restore damaged solar equipment.
+For the first training loop, pause, select two astronauts in the crew roster, then open **EVA** and launch the default salvage trip. Resume and wait for their return. In **Build**, choose the storage module and press **Choose a cell on the map**, then click an open cell (R rotates, Esc cancels); the coordinate fields remain for exact entry. In **Jobs**, select its construction job, suggest available crew and assign them. The finished module adds oxygen capacity. Cancel unfinished construction to recover its materials. On the reference map, assign crew to the initial repair jobs to restore damaged solar equipment.
 
 Run all headless checks with Python 3 and the installed console executable:
 

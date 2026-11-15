@@ -71,18 +71,25 @@ func _ready() -> void:
     placement.placement_submitted.connect(_on_placement_submitted)
     placement.preview_changed.connect(_on_preview)
     placement.hover_cell_changed.connect(_on_hover_cell)
-    placement.mode_changed.connect(func(_active: bool, _id: String) -> void: _refresh_overlay())
+    placement.mode_changed.connect(func(active: bool, _id: String) -> void:
+        terrain.set_grid_emphasis(active)
+        _refresh_overlay())
     _crew_view = preload("res://scripts/crew/crew_view.gd").new()
     $CrewRoot.add_child(_crew_view)
     _hud = preload("res://scenes/ui/outpost_hud.tscn").instantiate()
     $UIRoot.add_child(_hud)
-    _hud.anchor_left = 1.0
-    _hud.offset_left = -710.0
-    _hud.offset_top = 8.0
-    _hud.offset_right = -8.0
-    _hud.offset_bottom = -8.0
-    camera_rig.hud_width = 710.0
+    _hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    # The camera keeps the colony centred in the world area between the roster and the drawer.
+    _hud.layout_changed.connect(func(left_px: float, right_px: float) -> void:
+        camera_rig.hud_width = right_px - left_px)
+    _hud.refresh_layout()
     _crew_view.crew_selected.connect(_hud.select_crew)
+    _hud.crew_selection_changed.connect(_crew_view.set_selected_crew)
+    _hud.placement_requested.connect(func(definition_id: String, quarters: int) -> void:
+        placement.rotation_quarters = quarters
+        placement.begin_placement(definition_id))
+    building_selected.connect(_hud.select_building)
+    site_selected.connect(func(site_id: String, _route: Dictionary) -> void: _hud.select_site(site_id))
     get_viewport().physics_object_picking = true
     overlay_layer.visible = false
     _bind_world()
@@ -138,6 +145,21 @@ func _bind_world() -> void:
         _hud.bind(bridge._backend, bridge.crew_adapter, bridge.world_service, catalog)
         _crew_view.apply_snapshot(bridge.get_snapshot(), true)
     _on_snapshot(bridge.get_snapshot())
+    _frame_colony(map_data)
+
+
+func _frame_colony(map_data: RefCounted) -> void:
+    ## Start close enough to read the colony: frame the lander, airlock and existing modules.
+    var airlock: Array = map_data.base_airlock_cell
+    var lo := Vector2(float(airlock[0]) - 3.0, float(airlock[1]) - 2.0)
+    var hi := Vector2(float(airlock[0]) + 1.0, float(airlock[1]) + 3.0)
+    var snapshot: Dictionary = bridge.get_snapshot()
+    for record in snapshot.get("buildings", {}).values():
+        for cell in bridge.world_service.building_cells(record).occupied_cells:
+            lo = Vector2(minf(lo.x, cell[0]), minf(lo.y, cell[1]))
+            hi = Vector2(maxf(hi.x, cell[0] + 1.0), maxf(hi.y, cell[1] + 1.0))
+    var centre := (lo + hi) * 0.5
+    camera_rig.frame_area(Vector3(centre.x, 0.0, centre.y), (hi - lo).length() * 0.5)
 
 
 func _on_snapshot(snapshot: Dictionary) -> void:
@@ -155,6 +177,7 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 
 func _on_hover_cell(cell: Array) -> void:
     _hover_cell = cell
+    buildings.set_highlight(buildings.building_at_cell(cell) if not placement.active and cell.size() == 2 else "", selected_building)
     if _hud != null and cell.size() == 2: _hud.set_placement_cell(Vector2i(cell[0], cell[1]))
     var site_id: String = sites.site_at_cell(cell) if not placement.active else ""
     if site_id != _hover_site:
@@ -177,8 +200,9 @@ func _preview_site_route(site_id: String) -> void:
     routes.show_preview(_hover_route, cell, terrain.surface_height(cell[0] + 0.5, cell[1] + 0.5))
 
 
-func _on_preview(result: Dictionary, _request: Dictionary) -> void:
+func _on_preview(result: Dictionary, request: Dictionary) -> void:
     _preview = result
+    if _hud != null: _hud.set_placement_rotation(int(request.get("rotation_quarters", 0)))
     _refresh_overlay()
 
 
@@ -212,6 +236,9 @@ func _on_simulation_failed(result: Dictionary) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+    if event is InputEventMouseButton and event.pressed:
+        # Clicking the world returns keyboard focus to the camera and time controls.
+        get_viewport().gui_release_focus()
     if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not placement.active:
         _select_at(_hover_cell)
         return
@@ -259,6 +286,7 @@ func _select_at(cell: Array) -> void:
     var building_id: String = buildings.building_at_cell(cell)
     selected_site = site_id
     selected_building = building_id
+    buildings.set_highlight(building_id, building_id)
     if site_id != "":
         _preview_site_route(site_id)
         site_selected.emit(site_id, _hover_route.duplicate(true))

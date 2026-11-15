@@ -1,55 +1,11 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/building_node.gd" id="1_node"]
-
-[sub_resource type="StandardMaterial3D" id="tank"]
-albedo_color = Color(0.36, 0.7, 0.44, 1)
-metallic = 0.3
-roughness = 0.5
-
-[sub_resource type="StandardMaterial3D" id="bottle"]
-albedo_color = Color(0.88, 0.88, 0.9, 1)
-metallic = 0.5
-roughness = 0.4
-
-[sub_resource type="StandardMaterial3D" id="base"]
-albedo_color = Color(0.3, 0.3, 0.34, 1)
-roughness = 0.8
-
-[sub_resource type="CylinderMesh" id="tank_mesh"]
-top_radius = 0.33
-bottom_radius = 0.36
-height = 1.6
-
-[sub_resource type="CylinderMesh" id="bottle_mesh"]
-top_radius = 0.11
-bottom_radius = 0.11
-height = 0.9
-
-[sub_resource type="BoxMesh" id="base_mesh"]
-size = Vector3(0.9, 0.12, 0.9)
+[ext_resource type="Script" path="res://scripts/world/module_art.gd" id="2_art"]
 
 [node name="OxygenGenerator" type="Node3D"]
 script = ExtResource("1_node")
 
 [node name="Art" type="Node3D" parent="."]
-
-[node name="Base" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, 0)
-mesh = SubResource("base_mesh")
-material_override = SubResource("base")
-
-[node name="Tank" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.08, 0.92, -0.05)
-mesh = SubResource("tank_mesh")
-material_override = SubResource("tank")
-
-[node name="BottleA" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0.57, 0.28)
-mesh = SubResource("bottle_mesh")
-material_override = SubResource("bottle")
-
-[node name="BottleB" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.32, 0.57, 0.02)
-mesh = SubResource("bottle_mesh")
-material_override = SubResource("bottle")
+script = ExtResource("2_art")
+kind = "electrolyzer"

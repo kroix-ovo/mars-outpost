@@ -12,13 +12,14 @@
 [ext_resource type="PackedScene" path="res://scenes/world/landing_ship.tscn" id="9_lander"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_material"]
-sky_top_color = Color(0.77, 0.55, 0.38, 1)
-sky_horizon_color = Color(0.93, 0.74, 0.55, 1)
-sky_curve = 0.2
-ground_bottom_color = Color(0.35, 0.2, 0.14, 1)
-ground_horizon_color = Color(0.82, 0.58, 0.4, 1)
-sun_angle_max = 20.0
-sun_curve = 0.3
+sky_top_color = Color(0.46, 0.36, 0.33, 1)
+sky_horizon_color = Color(0.86, 0.66, 0.5, 1)
+sky_curve = 0.12
+sky_energy_multiplier = 0.9
+ground_bottom_color = Color(0.3, 0.18, 0.12, 1)
+ground_horizon_color = Color(0.78, 0.56, 0.42, 1)
+sun_angle_max = 12.0
+sun_curve = 0.2
 
 [sub_resource type="Sky" id="sky"]
 sky_material = SubResource("sky_material")
@@ -27,15 +28,20 @@ sky_material = SubResource("sky_material")
 background_mode = 2
 sky = SubResource("sky")
 ambient_light_source = 3
-ambient_light_color = Color(0.9, 0.72, 0.58, 1)
-ambient_light_sky_contribution = 0.6
-ambient_light_energy = 0.9
+ambient_light_color = Color(0.62, 0.6, 0.66, 1)
+ambient_light_sky_contribution = 0.45
+ambient_light_energy = 0.75
 tonemap_mode = 2
-tonemap_exposure = 1.05
+tonemap_exposure = 1.0
+tonemap_white = 6.0
 fog_enabled = true
-fog_light_color = Color(0.85, 0.62, 0.45, 1)
-fog_density = 0.004
-fog_sky_affect = 0.2
+fog_light_color = Color(0.8, 0.6, 0.46, 1)
+fog_light_energy = 0.9
+fog_density = 0.0065
+fog_sky_affect = 0.35
+adjustment_enabled = true
+adjustment_contrast = 1.06
+adjustment_saturation = 0.95
 
 [sub_resource type="StyleBoxFlat" id="overlay_style"]
 content_margin_left = 10.0
@@ -58,11 +64,22 @@ script = ExtResource("2_bridge")
 environment = SubResource("environment")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.819152, -0.4131759, 0.397703, 0, 0.6934, 0.720545, -0.5735764, -0.590235, 0.568003, 0, 20, 0)
-light_color = Color(1, 0.92, 0.82, 1)
-light_energy = 1.4
+transform = Transform3D(0.390731, -0.541059, 0.744704, 0.000000, 0.809017, 0.587785, -0.920505, -0.229666, 0.316108, 0, 20, 0)
+light_color = Color(1, 0.88, 0.74, 1)
+light_energy = 1.55
 shadow_enabled = true
-directional_shadow_max_distance = 120.0
+shadow_bias = 0.04
+shadow_normal_bias = 1.2
+shadow_blur = 1.4
+directional_shadow_mode = 1
+directional_shadow_split_1 = 0.25
+directional_shadow_max_distance = 70.0
+
+[node name="FillLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.629320, 0.539851, -0.559032, 0.000000, 0.719340, 0.694658, 0.777146, 0.437163, -0.452695, 0, 20, 0)
+light_color = Color(0.62, 0.74, 0.92, 1)
+light_energy = 0.32
+sky_mode = 1
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("3_terrain")

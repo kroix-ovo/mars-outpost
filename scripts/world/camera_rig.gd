@@ -35,6 +35,7 @@ var _home_focus: Vector3 = Vector3.ZERO
 var _orbiting: bool = false
 var _panning: bool = false
 var hud_width: float = 0.0
+var _home_distance: float = 24.0
 
 @onready var camera: Camera3D = $Camera3D
 
@@ -59,14 +60,29 @@ func set_map_bounds(size_cells: Array, airlock_cell: Array) -> void:
     _home_focus = Vector3(float(airlock_cell[0]) + 0.5, 0.0, float(airlock_cell[1]) + 0.5)
     var diagonal := bounds_max.length()
     distance_max_m = maxf(distance_max_m, diagonal * 1.2)
+    _home_distance = clampf(diagonal * 0.9, distance_min_m, distance_max_m)
     reset_view()
+
+
+func frame_area(center: Vector3, radius_m: float) -> void:
+    ## Makes the given area the home view (Home key) and moves there.
+    _home_focus = Vector3(clampf(center.x, bounds_min.x, bounds_max.x), 0.0, clampf(center.z, bounds_min.y, bounds_max.y))
+    _home_distance = clampf(radius_m * 2.6 + 6.0, 12.0, 34.0)
+    reset_view()
+    # Snap rather than glide so a restarted world opens already framed.
+    position = _target_focus
+    yaw_deg = _target_yaw
+    pitch_deg = _target_pitch
+    distance_m = _target_distance
+    if is_inside_tree() and camera != null:
+        _apply_camera()
 
 
 func reset_view() -> void:
     _target_focus = _home_focus
     _target_yaw = 35.0
-    _target_pitch = 55.0
-    _target_distance = clampf(bounds_max.length() * 0.9, distance_min_m, distance_max_m)
+    _target_pitch = 50.0
+    _target_distance = _home_distance
 
 
 func focus_on(point_m: Vector3) -> void:
@@ -84,10 +100,10 @@ func _unhandled_input(event: InputEvent) -> void:
             MOUSE_BUTTON_MIDDLE:
                 _panning = button.pressed
             MOUSE_BUTTON_WHEEL_UP:
-                if button.pressed:
+                if button.pressed and not _over_gui():
                     _target_distance = clampf(_target_distance * (1.0 - zoom_step), distance_min_m, distance_max_m)
             MOUSE_BUTTON_WHEEL_DOWN:
-                if button.pressed:
+                if button.pressed and not _over_gui():
                     _target_distance = clampf(_target_distance * (1.0 + zoom_step), distance_min_m, distance_max_m)
     elif event is InputEventMouseMotion:
         var motion := event as InputEventMouseMotion
@@ -100,6 +116,11 @@ func _unhandled_input(event: InputEvent) -> void:
     elif event is InputEventKey and event.pressed and not event.echo:
         if event.keycode == KEY_HOME:
             reset_view()
+
+
+func _over_gui() -> bool:
+    ## Wheel steps over a HUD control scroll or are ignored; they never zoom the world.
+    return get_viewport().gui_get_hovered_control() != null
 
 
 func _process(delta: float) -> void:

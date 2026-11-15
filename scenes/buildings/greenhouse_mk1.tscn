@@ -1,59 +1,11 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/building_node.gd" id="1_node"]
-
-[sub_resource type="StandardMaterial3D" id="glass"]
-transparency = 1
-albedo_color = Color(0.6, 0.9, 0.62, 0.55)
-metallic = 0.1
-roughness = 0.15
-
-[sub_resource type="StandardMaterial3D" id="frame"]
-albedo_color = Color(0.82, 0.82, 0.85, 1)
-roughness = 0.6
-
-[sub_resource type="StandardMaterial3D" id="soil"]
-albedo_color = Color(0.32, 0.22, 0.14, 1)
-roughness = 1.0
-
-[sub_resource type="CylinderMesh" id="tunnel_mesh"]
-top_radius = 0.95
-bottom_radius = 0.95
-height = 2.9
-
-[sub_resource type="BoxMesh" id="base_mesh"]
-size = Vector3(1.96, 0.16, 2.96)
-
-[sub_resource type="BoxMesh" id="bed_mesh"]
-size = Vector3(0.6, 0.3, 2.6)
+[ext_resource type="Script" path="res://scripts/world/module_art.gd" id="2_art"]
 
 [node name="Greenhouse" type="Node3D"]
 script = ExtResource("1_node")
 
 [node name="Art" type="Node3D" parent="."]
-
-[node name="Base" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.08, 1)
-mesh = SubResource("base_mesh")
-material_override = SubResource("frame")
-
-[node name="BedA" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.05, 0.3, 1)
-mesh = SubResource("bed_mesh")
-material_override = SubResource("soil")
-
-[node name="BedB" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.95, 0.3, 1)
-mesh = SubResource("bed_mesh")
-material_override = SubResource("soil")
-
-[node name="Tunnel" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.5, 0.15, 1)
-mesh = SubResource("tunnel_mesh")
-material_override = SubResource("glass")
-
-[node name="Ridge" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.5, 1.1, 1)
-mesh = SubResource("tunnel_mesh")
-material_override = SubResource("frame")
-scale = Vector3(0.05, 1.02, 0.05)
+script = ExtResource("2_art")
+kind = "greenhouse"

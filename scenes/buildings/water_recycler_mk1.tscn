@@ -1,52 +1,11 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/building_node.gd" id="1_node"]
-
-[sub_resource type="StandardMaterial3D" id="tank"]
-albedo_color = Color(0.3, 0.52, 0.78, 1)
-metallic = 0.35
-roughness = 0.45
-
-[sub_resource type="StandardMaterial3D" id="frame"]
-albedo_color = Color(0.8, 0.8, 0.84, 1)
-roughness = 0.6
-
-[sub_resource type="StandardMaterial3D" id="pump"]
-albedo_color = Color(0.3, 0.3, 0.34, 1)
-roughness = 0.8
-
-[sub_resource type="CylinderMesh" id="tank_mesh"]
-top_radius = 0.44
-bottom_radius = 0.44
-height = 1.75
-
-[sub_resource type="BoxMesh" id="saddle_mesh"]
-size = Vector3(0.3, 0.42, 0.95)
-
-[sub_resource type="BoxMesh" id="pump_mesh"]
-size = Vector3(0.5, 0.45, 0.3)
+[ext_resource type="Script" path="res://scripts/world/module_art.gd" id="2_art"]
 
 [node name="WaterRecycler" type="Node3D"]
 script = ExtResource("1_node")
 
 [node name="Art" type="Node3D" parent="."]
-
-[node name="Tank" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.5, 0.82, 0)
-mesh = SubResource("tank_mesh")
-material_override = SubResource("tank")
-
-[node name="SaddleA" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.21, 0)
-mesh = SubResource("saddle_mesh")
-material_override = SubResource("frame")
-
-[node name="SaddleB" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.21, 0)
-mesh = SubResource("saddle_mesh")
-material_override = SubResource("frame")
-
-[node name="Pump" type="MeshInstance3D" parent="Art"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.225, 0.4)
-mesh = SubResource("pump_mesh")
-material_override = SubResource("pump")
+script = ExtResource("2_art")
+kind = "recycler"
