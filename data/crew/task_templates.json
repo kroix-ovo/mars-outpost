@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "outpost_task_templates",
+  "owner": "task_03",
+  "metadata": {"status": "gameplay_configuration"},
+  "templates": {
+    "construct": {"crew_required": 1, "default_priority": 50, "labor_rate_work_s_per_crew_s": 1.0, "skill_weight": 0.5},
+    "repair": {"crew_required": 1, "default_priority": 75, "labor_rate_work_s_per_crew_s": 1.0, "skill_weight": 0.5, "full_repair_work_s": 60.0},
+    "farm": {"crew_required": 1, "default_priority": 40, "labor_rate_work_s_per_crew_s": 1.0, "skill_weight": 0.5},
+    "fatigue": {"idle": -0.0005, "travelling": 0.0001, "working": 0.0002, "eva": 0.0002}
+  }
+}

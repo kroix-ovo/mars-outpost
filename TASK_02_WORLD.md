@@ -2,6 +2,8 @@
 
 **Required interface baseline:** [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md). Implement its building-definition schema and headless placement/route queries; render its snapshots without changing resource balances. Earlier interface sketches defer to this spec.
 
+**Implementation status:** the headless `WorldService` (`scripts/world/`), map/definition loaders, the world harness scene (`scenes/world/main.tscn`) with camera, terrain blockout, placement preview, lifecycle/status visuals, utility network lines, site kinds with route previews, authored module scenes (`scenes/buildings/`) and definitions (`data/buildings/`), the authored `landing_plain` world, a heightmap import tool for NASA terrain, export presets and CI are in place. CI builds the Web, Windows and Linux exports on every push. The bridge is verified against Task 01's `OutpostSimulation` (`origin/feat/simulation-a2`) by `tests/world/run_integration.gd`; the main scene picks the simulation automatically once `scripts/simulation/` is merged. Not yet done: importing an actual NASA terrain tile with its attribution record, mounting Task 03's crew/UI scenes (no branch yet), and running the exported builds through the colony/salvage scenario (needs Task 01's gameplay commands). See [world verification](tests/world/README.md) for the test commands, controls and boundaries.
+
 ## 1. Executive summary
 
 Build the top-down 3D place where the game happens: Martian terrain, landing assets, expanding modules, utility connections, and visible exploration sites. Make the outpost readable and satisfying to build, using modular, stylized assets.
@@ -18,9 +20,9 @@ Serve players who want Planet Coaster-style camera control and expansion, plus c
 
 ## 4. Coverage
 
-- [ ] Terrain, camera, selection, landing ship, modular buildings, and placement previews.
-- [ ] Occupancy, entrances, routes, utility visualization, cargo sites, and expansion space.
-- [ ] Visual asset pipeline, NASA terrain/reference provenance, integrated main scene, and builds.
+- [x] Terrain, camera, selection, landing ship, modular buildings, and placement previews.
+- [x] Occupancy, entrances, routes, utility visualization, cargo sites, and expansion space.
+- [ ] Visual asset pipeline, NASA terrain/reference provenance, integrated main scene, and builds (pipeline, main scene and CI builds done; NASA tile import pending).
 
 Resource calculations belong to Task 01; crew behavior and HUD panels belong to Task 03. Task 02 connects their scenes and services.
 
@@ -65,12 +67,12 @@ Implement `validate_placement` and `query_route` using the exact request/respons
 
 ## 11. Acceptance checks
 
-- [ ] Placement rejects overlap, invalid terrain, and inaccessible entrances without spending materials.
-- [ ] A valid order reserves/consumes resources once through the shared command flow.
-- [ ] Modules transition visually when crew finish construction and when utilities fail.
-- [ ] Astronaut routes reach entrances and salvage sites; unreachable paths give an actionable reason.
-- [ ] The camera, picking, placement, and UI coexist without input conflicts.
-- [ ] Native and hosted browser builds load and complete the shared colony/salvage scenario.
+- [x] Placement rejects overlap, invalid terrain, and inaccessible entrances without spending materials.
+- [ ] A valid order reserves/consumes resources once through the shared command flow (scene side done; waits for Task 01's `place_building` handler).
+- [x] Modules transition visually when crew finish construction and when utilities fail (driven by snapshot lifecycle, power and blocking codes).
+- [x] Astronaut routes reach entrances and salvage sites; unreachable paths give an actionable reason.
+- [ ] The camera, picking, placement, and UI coexist without input conflicts (camera/picking/placement verified; Task 03 UI not mounted yet).
+- [ ] Native and hosted browser builds load and complete the shared colony/salvage scenario (builds produced by CI; scenario run waits for Task 01 gameplay).
 - [ ] A visible NASA-derived data/reference use is documented accurately with its actual provenance.
 
 ## 12. Phases

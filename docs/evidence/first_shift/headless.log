@@ -1,0 +1,49 @@
+CHECK tests/world/run_world.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+WORLD_PASS checks=679
+CHECK tests/simulation/run_a1.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+A1_BENCH commands=0 tick_ms=1.2113 resolve_ms=0.008 submit_ms=0.006
+A1_BENCH commands=250 tick_ms=1.2933 resolve_ms=20.184 submit_ms=3.405
+A1_BENCH commands=2000 tick_ms=1.3030 resolve_ms=171.865 submit_ms=34.624
+A1_PASS checks=14298
+CHECK tests/simulation/run_a2.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+A2_BENCH retained_commands=0 retained_effects=0 tick_ms=0.43486666666667 command_ms=0.087396
+A2_BENCH retained_commands=20000 retained_effects=20000 tick_ms=0.44576666666667 command_ms=0.094
+A2_PASS checks=41144
+CHECK tests/simulation/run_a3.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+A3_PASS checks=6718
+CHECK tests/world/run_integration.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+INTEGRATION_PASS checks=54
+CHECK tests/world/run_bridge_regressions.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+BRIDGE_PASS checks=17
+CHECK tests/crew_ui/run_crew_ui.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Task 03: 85/85 checks passed.
+CHECK tests/crew_ui/run_a3_compatibility.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+BLOCKED_ROUTE_REPRO placement_valid=true proposed_position=[5.5, 0.0, 8.5] cell=[5, 8]
+WORKLOAD_RATE_REPRO forecast_per_s=0.001 actual_A3_per_s=0.001
+A3_CREW_RESULT checks=80 failures=0
+A3_CREW_PASS
+CHECK tests/crew_ui/run_first_shift.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+FIRST_SHIFT_RESULT checks=105 failures=0
+FIRST_SHIFT_PASS
+CHECK main scene
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+HEADLESS_PASS

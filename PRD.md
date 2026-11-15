@@ -62,7 +62,7 @@ Each owner uses `tests/simulation/`, `tests/world/`, or `tests/crew_ui/` respect
 
 ### Shared interfaces — agree before implementation
 
-The [shared simulation contract](SHARED_SIMULATION_SPEC.md) now establishes exact v2 interfaces, data records, command payloads, tick ordering, accounting, navigation queries, and save/load rules. All owners implement against that document. The summary below is introductory; the spec governs any interface differences. Runtime implementation is still pending.
+The [shared simulation contract](SHARED_SIMULATION_SPEC.md) establishes exact v2 interfaces, data records, command payloads, tick ordering, accounting, navigation queries, and save/load rules. All owners implement against that document. The summary below is introductory; the spec governs any interface differences. The A1 state/clock/control foundation is implemented; see [simulation verification](tests/simulation/README.md) for tested behavior and remaining systems.
 
 ```text
 submit_command(command: Dictionary) -> Dictionary

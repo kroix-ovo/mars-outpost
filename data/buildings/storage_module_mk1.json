@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "storage_module_mk1",
+  "display_name": "Storage Module",
+  "scene_path": "res://scenes/buildings/storage_module_mk1.tscn",
+  "footprint_cells": [[0, 0], [0, 1]],
+  "entrance_cells": [[1, 0]],
+  "build_cost": {"alloy": 5, "electronics": 1},
+  "construction_work_s": 45.0,
+  "power_generation_kw": 0.0,
+  "power_demand_kw": 0.0,
+  "power_priority": 0,
+  "process_priority": 0,
+  "process": {"inputs_per_s": {}, "outputs_per_s": {}},
+  "storage_capacity": {"alloy": 40, "electronics": 40, "oxygen_kg": 80.0, "potable_water_kg": 400.0},
+  "battery_charge_limit_kw": 0.0,
+  "battery_discharge_limit_kw": 0.0,
+  "battery_charge_efficiency": 1.0,
+  "battery_discharge_efficiency": 1.0,
+  "maintenance_work_s_per_s": 0.0,
+  "unlocks_required": [],
+  "metadata": {
+    "status": "authored_blockout",
+    "balance_status": "placeholder_pending_science_md",
+    "balance_note": "Capacities and cost are placeholders pending SCIENCE.md. Footprint and entrance geometry are authoritative.",
+    "category": "logistics",
+    "description": "Pressurised rack and tank space. More room for salvaged parts, oxygen and water.",
+    "visual": {"shape": "box", "color": "#c48a4a", "height_m": 2.4}
+  }
+}

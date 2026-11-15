@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/building_node.gd" id="1_node"]
+[ext_resource type="Script" path="res://scripts/world/module_art.gd" id="2_art"]
+
+[node name="Greenhouse" type="Node3D"]
+script = ExtResource("1_node")
+
+[node name="Art" type="Node3D" parent="."]
+script = ExtResource("2_art")
+kind = "greenhouse"

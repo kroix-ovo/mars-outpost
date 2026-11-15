@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "id": "synthetic_landing_plain_integration",
+  "description": "Authored integration prototype with A3 reference crew demand and documented game equipment sizing.",
+  "metadata": {
+    "status": "synthetic_test_fixture",
+    "warning": "Reference physiology plus game equipment and labor assumptions, not a flight-certified habitat. Construction and repairs are playable; EVA is disabled until suit science is configured. Agriculture and campaign saves are pending."
+  },
+  "resource_registry_path": "res://tests/simulation/fixtures/definitions/resources.json",
+  "building_definition_paths": [
+    "res://data/buildings/battery_bank_mk1.json",
+    "res://data/buildings/co2_scrubber_mk1.json",
+    "res://data/buildings/greenhouse_mk1.json",
+    "res://data/buildings/solar_array_mk1.json",
+    "res://data/buildings/storage_module_mk1.json",
+    "res://data/buildings/water_electrolyzer_mk1.json",
+    "res://data/buildings/water_recycler_mk1.json"
+  ],
+  "crew_definition_path": "res://data/crew/outpost_roster.json",
+  "task_template_path": "res://data/crew/task_templates.json",
+  "map_path": "res://data/maps/landing_plain.json",
+  "starting_storage_capacity": {
+    "alloy": 50,
+    "electronics": 50,
+    "food_kcal": 200000.0,
+    "hydrogen_kg": 10.0,
+    "oxygen_kg": 200.0,
+    "potable_water_kg": 1100.0,
+    "raw_water_kg": 100.0,
+    "wastewater_kg": 50.0
+  },
+  "starting_inventory": {
+    "alloy": 24,
+    "co2_kg": 0.5,
+    "electronics": 11,
+    "food_kcal": 100000.0,
+    "hydrogen_kg": 0.0,
+    "oxygen_kg": 140.0,
+    "potable_water_kg": 620.0,
+    "raw_water_kg": 0.0,
+    "wastewater_kg": 1.0
+  },
+  "starting_buildings": [
+    {
+      "definition_id": "solar_array_mk1",
+      "cell": [
+        13,
+        20
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 1.0
+    },
+    {
+      "definition_id": "solar_array_mk1",
+      "cell": [
+        13,
+        18
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 0.82
+    },
+    {
+      "definition_id": "battery_bank_mk1",
+      "cell": [
+        17,
+        20
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 1.0,
+      "battery_stored_kwh": 14.0
+    },
+    {
+      "definition_id": "water_recycler_mk1",
+      "cell": [
+        13,
+        26
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 1.0
+    },
+    {
+      "definition_id": "water_electrolyzer_mk1",
+      "cell": [
+        16,
+        26
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 1.0
+    },
+    {
+      "definition_id": "co2_scrubber_mk1",
+      "cell": [
+        13,
+        23
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 1.0
+    },
+    {
+      "definition_id": "storage_module_mk1",
+      "cell": [
+        18,
+        23
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 1.0
+    }
+  ],
+  "site_definitions": {
+    "cargo_cache_lander_debris": {
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    },
+    "survey_ridge_saddle": {
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    },
+    "ice_survey_hollow": {
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    }
+  },
+  "sites": [
+    {
+      "id": "site_cargo_debris",
+      "definition_id": "cargo_cache_lander_debris",
+      "cell": [
+        22,
+        30
+      ],
+      "cargo": {
+        "alloy": 6,
+        "electronics": 3
+      }
+    },
+    {
+      "id": "site_survey_ridge",
+      "definition_id": "survey_ridge_saddle",
+      "cell": [
+        29,
+        12
+      ],
+      "cargo": {}
+    },
+    {
+      "id": "site_ice_hollow",
+      "definition_id": "ice_survey_hollow",
+      "cell": [
+        15,
+        39
+      ],
+      "cargo": {
+        "raw_water_kg": 40.0
+      }
+    }
+  ],
+  "scheduled_events": [],
+  "technology_unlocked_ids": []
+}

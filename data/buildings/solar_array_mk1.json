@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "solar_array_mk1",
+  "display_name": "Solar Array",
+  "scene_path": "res://scenes/buildings/solar_array_mk1.tscn",
+  "footprint_cells": [[0, 0], [1, 0], [2, 0]],
+  "entrance_cells": [[1, 1]],
+  "build_cost": {"alloy": 3, "electronics": 2},
+  "construction_work_s": 40.0,
+  "power_generation_kw": 3.0,
+  "power_demand_kw": 0.0,
+  "power_priority": 0,
+  "process_priority": 0,
+  "process": {"inputs_per_s": {}, "outputs_per_s": {}},
+  "storage_capacity": {},
+  "battery_charge_limit_kw": 0.0,
+  "battery_discharge_limit_kw": 0.0,
+  "battery_charge_efficiency": 1.0,
+  "battery_discharge_efficiency": 1.0,
+  "maintenance_work_s_per_s": 0.0,
+  "unlocks_required": [],
+  "metadata": {
+    "status": "authored_blockout",
+    "balance_status": "placeholder_pending_science_md",
+    "balance_note": "Generation, cost and work values are game abstractions awaiting SCIENCE.md entries (InSight/Perseverance solar and dust data). Footprint and entrance geometry are authoritative.",
+    "category": "power",
+    "description": "Deployable photovoltaic strip. Output falls as dust settles; a crew member can brush the panels.",
+    "visual": {"shape": "panel", "color": "#2b3a67", "height_m": 0.6}
+  }
+}

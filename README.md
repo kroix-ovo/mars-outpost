@@ -18,7 +18,7 @@ The aim is to advance the game as far as possible. The initial research report's
 
 ## Current status
 
-Godot project scaffold initialized using the research report's repository structure. There is no playable build or implemented simulation yet.
+The integrated Godot 4.7.2 prototype combines the 3D world, A1â€“A3 simulation, and PR #6's crew, EVA and mission-control HUD. Construction, cancellation/refunds, crew assignments, repairs, salvage trips and recall use the real transactional simulation and resource ledger. Training uses synthetic rates; the authored `landing_plain` map uses NASA reference crew rates, the named roster and explicit game assumptions. Reference-profile EVA stays disabled until suit inputs are researched. Agriculture, medical/environmental outcomes and campaign saves remain pending. See [integration notes and verification](docs/COHESIVE_GAME_INTEGRATION.md), [A3 research and solution](docs/A3_RESEARCH_AND_SOLUTION.md) and [SCIENCE.md](SCIENCE.md).
 
 ## Stack
 
@@ -67,7 +67,19 @@ Empty directories contain `.gitkeep` files so Git preserves the scaffold. Reposi
 
 ## Getting started
 
-Clone `https://github.com/kroix-ovo/mars-outpost.git`, then import `project.godot` in Godot 4. A main scene has not been created yet.
+Import `project.godot` in Godot 4.7.2 and press Play. The game starts on the **Mars Outpost Survival** title screen (`scenes/frontend/front_end.tscn`), with the title music looping. **New Game** opens the astronaut designer (name, skin tone, hair, eyes, facial hair, glasses, build, height, suit and trim), then a lineup of the six named crew and a skippable landing intro that leads into the training mission. **Load Game** opens a scenario directly (training or reference colony); colony saves wait on simulation persistence. **Settings** covers music volume, full screen and the intro. The colony itself is `scenes/world/main.tscn`, which still runs on its own for tests and the editor. Mission control overlays the world: a resource/status strip along the top, the crew roster on the left and a collapsible drawer (Jobs, Build, EVA, Systems, Guide) on the right. Clicking a module or salvage site opens it in the drawer. `F2` restarts synthetic training; `F3` restarts the authored/reference colony. `Space` pauses, `+`/`-` change speed, WASD or edge scrolling pans, middle-drag rotates and tilts, wheel or Z/X zooms, Home/End tilts and F recentres. Right-click cancels; 1/2/3 changes speed. `F1` shows diagnostics. World switches restart the colony; saves are not available yet.
+
+The colony opens paused on an interactive tutorial that greets your commander by name: press **Start tutorial**. One card at a time explains the next action and why, and a pulsing highlight points at the exact control or map spot to use. Every step advances only from your real selections and committed simulation results: a two-astronaut salvage spacewalk, placing and building a storage module, then (after an explicit restart into the reference colony) inspecting life support and finishing the starting repair. Mistakes such as an empty recall, a blocked cell or a cancelled job show a recovery hint instead of getting stuck. **Skip tutorial** switches to free play; the **Guide** tab can resume it, or restart it from a fresh training colony.
+
+HUD text uses a 1280×720 logical canvas with a 16 px minimum; larger windows scale it up. The top strip prioritizes oxygen, water, power and battery. Full resource accounting is available under **Systems**. Crew details and mission pages scroll when space is limited.
+
+For the first training loop, pause, select two astronauts in the crew roster, then open **EVA** and launch the default salvage trip. Resume and wait for their return. In **Build**, choose the storage module and press **Choose a cell on the map**, then click an open cell (R rotates, Esc cancels); the coordinate fields remain for exact entry. In **Jobs**, select its construction job, suggest available crew and assign them. The finished module adds oxygen capacity. Cancel unfinished construction to recover its materials. On the reference map, assign crew to the initial repair jobs to restore damaged solar equipment.
+
+Run all headless checks with Python 3 and the installed console executable:
+
+```powershell
+python tests/run_headless_checks.py --godot '<godot-console>' --benchmark
+```
 
 Read `GAME_DESIGN.md` for the design direction, `SCIENCE.md` before adding simulation quantities, and `ATTRIBUTION.md` when importing external assets.
 
@@ -75,9 +87,9 @@ Read `GAME_DESIGN.md` for the design direction, `SCIENCE.md` before adding simul
 
 Start with the [shared product requirements](PRD.md), which define the interfaces, integration milestones, and acceptance criteria for all three contributors.
 
-Before implementing shared boundaries, read [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md): the established v2 command payloads, snapshot schemas, fixed-step/pause rules, resource accounting, world queries, crew adapter, and save/load contract. This is the implementation baseline for all three tasks; runtime code is still to be built.
+Before implementing shared boundaries, read [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md): the established v2 command payloads, snapshot schemas, fixed-step/pause rules, resource accounting, world queries, crew adapter, and save/load contract. This is the implementation baseline for all three tasks; the A1 foundation implements part of it, with later systems still to be built.
 
-The [simulation reconciliation](SIMULATION_RECONCILIATION.md) records the review decisions behind contract 2.0.0. [Fixture tooling](tests/simulation/tools/README.md) regenerates and checks the synthetic reference outputs; Godot runtime conformance remains to be implemented and tested.
+The [simulation reconciliation](SIMULATION_RECONCILIATION.md) records the review decisions behind contract 2.0.0. [Fixture tooling](tests/simulation/tools/README.md) regenerates and checks the synthetic reference outputs; A1/A2 runtime conformance is tested, with remaining gameplay scenarios awaiting later packages.
 
 1. [Simulation and colony systems](TASK_01_SIMULATION.md): resources, life support, power, hazards, progression, and persistence.
 2. [3D world, construction, and integration](TASK_02_WORLD.md): terrain, camera, buildings, navigation services, assets, and delivery.
