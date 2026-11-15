@@ -29,16 +29,15 @@ func _process(_delta: float) -> bool:
                 placement.hover_cell = [7, 5]
                 placement.hover_cell_changed.emit([7, 5])
                 placement.call("_refresh")
-                _step = 1
-                _frame = 0
+                _next()
         1:
             if _frame >= 10:
                 _capture("world_02_preview_valid")
                 var placement: Node3D = _main.get_node("Placement")
                 placement.hover_cell = [7, 3]
+                placement.hover_cell_changed.emit([7, 3])
                 placement.call("_refresh")
-                _step = 2
-                _frame = 0
+                _next()
         2:
             if _frame >= 10:
                 _capture("world_03_preview_blocked")
@@ -50,26 +49,55 @@ func _process(_delta: float) -> bool:
                 bridge.dev_patch_building("building_000003", {"blocking_codes": ["no_power"], "power_requested_kw": 1.0, "power_served_kw": 0.0})
                 bridge.dev_patch_building("building_000004", {"blocking_codes": ["input_limited:wastewater_kg"], "power_requested_kw": 1.0, "power_served_kw": 1.0})
                 bridge.dev_patch_building("building_000005", {"lifecycle": "destroyed", "blocking_codes": ["destroyed"]})
-                _step = 3
-                _frame = 0
+                _next()
         3:
             if _frame >= 10:
                 _capture("world_04_constructing_and_status")
                 var bridge: Node = _main.get_node("Integration")
                 bridge._backend.advance(30.0)
+                _main.call("_on_hover_cell", [12, 8])
                 var rig: Node3D = _main.get_node("CameraRig")
-                rig._target_distance = 14.0
+                rig._target_distance = 16.0
                 rig._target_yaw = -30.0
-                rig._target_pitch = 40.0
-                rig.focus_on(Vector3(6.0, 0.0, 5.0))
-                _step = 4
-                _frame = 0
+                rig._target_pitch = 42.0
+                rig.focus_on(Vector3(8.0, 0.0, 6.0))
+                _next()
         4:
             if _frame >= 45:
-                _capture("world_05_commissioned_close")
+                _capture("world_05_commissioned_route_preview")
+                _main.load_world(1)
+                _next()
+        5:
+            if _frame >= 45:
+                _capture("world_06_landing_plain_overview")
+                _main.call("_on_hover_cell", [15, 39])
+                _main.call("_select_at", [15, 39])
+                var rig: Node3D = _main.get_node("CameraRig")
+                rig._target_distance = 22.0
+                rig._target_yaw = 20.0
+                rig._target_pitch = 48.0
+                rig.focus_on(Vector3(15.0, 0.0, 26.0))
+                _next()
+        6:
+            if _frame >= 45:
+                _capture("world_07_landing_plain_modules_and_ice_route")
+                var placement: Node3D = _main.get_node("Placement")
+                placement.begin_placement("greenhouse_mk1")
+                placement.hover_cell = [17, 29]
+                placement.hover_cell_changed.emit([17, 29])
+                placement.rotate_preview(1)
+                _next()
+        7:
+            if _frame >= 10:
+                _capture("world_08_landing_plain_rotated_preview")
                 print("SCREENSHOTS_DONE")
                 quit(0)
     return false
+
+
+func _next() -> void:
+    _step += 1
+    _frame = 0
 
 
 func _capture(name: String) -> void:

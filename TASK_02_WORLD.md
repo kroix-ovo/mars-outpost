@@ -2,7 +2,7 @@
 
 **Required interface baseline:** [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md). Implement its building-definition schema and headless placement/route queries; render its snapshots without changing resource balances. Earlier interface sketches defer to this spec.
 
-**B1–B2 implementation:** the headless `WorldService` (`scripts/world/`), map/definition loaders, the world harness scene (`scenes/world/main.tscn`) with camera, terrain blockout, placement preview, lifecycle/status visuals, sites and routes, authored definitions under `data/buildings/`, export presets and CI are in place. See [world verification](tests/world/README.md) for the test command, controls and the exact boundary of what is implemented.
+**Implementation status:** the headless `WorldService` (`scripts/world/`), map/definition loaders, the world harness scene (`scenes/world/main.tscn`) with camera, terrain blockout, placement preview, lifecycle/status visuals, utility network lines, site kinds with route previews, authored module scenes (`scenes/buildings/`) and definitions (`data/buildings/`), the authored `landing_plain` world, a heightmap import tool for NASA terrain, export presets and CI are in place. Not yet done: importing an actual NASA terrain tile with its attribution record, Task 01/03 integration once their branches land, and verified exports (templates are only available in CI). See [world verification](tests/world/README.md) for the test command, controls and boundaries.
 
 ## 1. Executive summary
 

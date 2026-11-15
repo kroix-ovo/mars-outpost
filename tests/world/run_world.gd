@@ -25,6 +25,7 @@ func _initialize() -> void:
     _definition_validation()
     _authored_content()
     _bridge_flow()
+    _landing_plain_demo()
     if failures.is_empty():
         print("WORLD_PASS checks=", checks)
         quit(0)
@@ -401,4 +402,66 @@ func _bridge_flow() -> void:
     bridge.set_time_scale(0)
     bridge._backend.advance(5.0)
     _equal(bridge.get_snapshot().clock.tick_index, 6, "paused clock does not advance")
+    bridge.free()
+
+
+func _landing_plain_demo() -> void:
+    ## The authored world (map, definitions, scenes, demo snapshot) loads through the bridge and
+    ## every site and module entrance is reachable from the airlock.
+    var bridge: Node = preload("res://scripts/world/sim_bridge.gd").new()
+    bridge.backend = bridge.Backend.STUB
+    var boot: Dictionary = bridge.boot()
+    _check(boot.ok, "fixture bridge boot: " + boot.reason)
+    var switched: Dictionary = bridge.load_world("res://data/maps/landing_plain.json", "res://data/buildings",
+        "res://tests/world/fixtures/landing_plain_demo_snapshot.json", bridge.Backend.STUB)
+    _check(switched.ok, "load landing_plain world: " + switched.reason)
+    if not switched.ok:
+        bridge.free()
+        return
+    var snapshot: Dictionary = bridge.get_snapshot()
+    _equal(snapshot.map.id, "landing_plain", "demo snapshot map id")
+    _equal(bridge.map_data.id, "landing_plain", "bridge map switched")
+    var airlock: Array = bridge.map_data.base_airlock_cell
+    for site_id in snapshot.sites:
+        var route: Dictionary = bridge.query_route(airlock, snapshot.sites[site_id].cell)
+        _check(route.reachable, "demo site reachable: " + site_id + " " + route.reason)
+    var site_script := preload("res://scripts/world/site_view.gd")
+    _equal(site_script.kind_of("ice_survey_hollow"), site_script.Kind.ICE, "ice site kind")
+    _equal(site_script.kind_of("survey_ridge_saddle"), site_script.Kind.SURVEY, "survey site kind")
+    _equal(site_script.kind_of("cargo_cache_lander_debris"), site_script.Kind.CARGO, "cargo site kind")
+    for building_id in snapshot.buildings:
+        var building: Dictionary = snapshot.buildings[building_id]
+        var cells: Dictionary = bridge.world_service.building_cells(building)
+        _check(not cells.occupied_cells.is_empty(), "demo building has footprint: " + building_id)
+        for cell in cells.occupied_cells:
+            _check(bridge.map_data.is_buildable(cell), "demo building on buildable terrain: " + building_id)
+        var reachable := false
+        for entrance in cells.entrance_cells:
+            if bridge.query_route(airlock, entrance).reachable:
+                reachable = true
+        _check(reachable, "demo building entrance reachable: " + building_id)
+    # Every authored definition points at a scene whose root carries the shared building logic.
+    for id in bridge.definitions.ids():
+        var definition: Dictionary = bridge.definitions.get_definition(id)
+        _check(definition.scene_path is String and ResourceLoader.exists(definition.scene_path), "scene exists for " + id)
+        if definition.scene_path is String and ResourceLoader.exists(definition.scene_path):
+            var instance: Node = load(definition.scene_path).instantiate()
+            _check(instance.has_method("apply_record"), "scene root uses building_node.gd: " + id)
+            _check(instance.get_node_or_null("Art") != null, "scene has Art child: " + id)
+            instance.free()
+    # Utility lines follow authoritative routes; no module is cut off in the demo layout.
+    var utilities: Node3D = preload("res://scripts/world/utility_view.gd").new()
+    utilities.setup(bridge.world_service, null)
+    utilities.apply_snapshot(snapshot)
+    _equal(utilities.unreachable_buildings(), [], "no cut-off modules in demo layout")
+    _equal(utilities.get_child_count(), snapshot.buildings.size(), "one utility line per building")
+    utilities.free()
+    # Placement on the apron (passable, not buildable) is refused with the terrain reason.
+    var apron: Dictionary = bridge.validate_placement({"definition_id": "battery_bank_mk1", "cell": [11, 24], "rotation_quarters": 0})
+    _equal(apron.reason, "cell [11, 24] is not buildable", "apron is not buildable")
+    # A failed world switch keeps the current world.
+    var failed: Dictionary = bridge.load_world("res://data/maps/missing.json", "res://data/buildings", "res://tests/world/fixtures/landing_plain_demo_snapshot.json", bridge.Backend.STUB)
+    _equal(failed.ok, false, "missing map fails to load")
+    _equal(bridge.map_data.id, "landing_plain", "failed switch keeps previous world")
+    _equal(bridge.get_snapshot().map.id, "landing_plain", "failed switch keeps previous snapshot")
     bridge.free()

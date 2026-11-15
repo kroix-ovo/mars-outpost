@@ -19,7 +19,9 @@ What `run_world.gd` covers:
 - **Harness injection.** `set_injected_blocked_cells` changes detours, unreachability and route ids, and clearing it restores the original id.
 - **Request validation.** Missing keys, unknown definitions, rotation out of range, fractional cells, snapshot/map mismatch and uninitialized services all return the contract shape with empty arrays and a machine code.
 - **Definitions and maps.** The section 7 schema validator, the registry copy semantics, and map validation (airlock in bounds and passable).
-- **Authored content.** `data/buildings/*.json` and `data/maps/landing_plain.json` load through the same validators, every authored building is placeable somewhere on the authored map, and every authored definition is labelled `balance_status: placeholder_pending_science_md`.
+- **Authored content.** `data/buildings/*.json` and `data/maps/landing_plain.json` load through the same validators, every authored building is placeable somewhere on the authored map, every definition is labelled `balance_status: placeholder_pending_science_md`, and each `scene_path` resolves to a scene rooted on `building_node.gd` with an `Art` child.
+- **Bridge flow (contract section 13).** Through `SimulationBridge` and the development stub: preview, a blocked `place_building` that fails at resolution without creating anything, a valid one that creates a constructing building and task, re-validation seeing the new footprint, duplicate command ids returning the cached result, explicit `module_unavailable` for EVA, commissioning after simulated work with a `building_commissioned` event, and a paused clock. Resource balances are byte-identical before and after.
+- **Landing plain demo.** The authored world loads through `load_world`; every demo site and module entrance is reachable from the airlock, the utility network has one line per module and no cut-off module, the landing apron refuses placement with the terrain reason, and a failed world switch keeps the previous world.
 
 ## Booting the world scene headless
 
@@ -29,16 +31,41 @@ Catches script errors in the scene graph without a window:
 & 'C:\Users\Pierre\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --quit-after 30
 ```
 
+## Screenshots
+
+```powershell
+& 'C:\Users\Pierre\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe' --path . --script tests/world/screenshot.gd
+```
+
+Opens a window briefly and writes eight captures to `docs/screenshots/` (fixture world: overview, valid and blocked previews, construction and status states, commissioned modules with a site route preview; authored world: overview, modules with the ice-site route, rotated greenhouse preview).
+
 ## Running the world harness
 
 Open the project in Godot 4.7.2 and press Play, or run the console executable with `--path .` and no other arguments. The main scene boots `scenes/world/main.tscn`:
 
-- `Integration` (`SimulationBridge`) loads the map and building definitions, builds the headless `WorldService`, and attaches a backend. When `scripts/simulation/simulation.gd` exists and initializes, it uses Task 01's `OutpostSimulation`; otherwise it uses the development `FixtureSimulationStub`, which renders `salvage_6crew_tick0` and handles only `place_building`, `set_building_enabled` and `set_time_scale`. The stub never changes resource balances.
-- Keys: `1`–`9` pick a building, `R`/`Shift+R` rotate, left click place, `Esc` cancel, `G` grid, `Space` pause, `+`/`-` time scale, `F1` hide overlay, `K`/`L` force `no_power` on/off for the hovered building (stub only). Camera: WASD/arrows or middle-drag pan, right-drag or Q/E orbit, wheel zoom, Home reset.
+- `Integration` (`SimulationBridge`) loads the map and building definitions, builds the headless `WorldService`, and attaches a backend. When `scripts/simulation/simulation.gd` exists and initializes, it uses Task 01's `OutpostSimulation`; otherwise it uses the development `FixtureSimulationStub`, which handles only `place_building`, `set_building_enabled` and `set_time_scale` and never changes resource balances.
+- Two world presets: `F2` the Task 01 fixture world (`fixture_flat_16`, `salvage_6crew_tick0`), `F3` the authored `landing_plain` world with the seven `data/buildings/` modules and three site kinds (cargo, survey, ice) from `tests/world/fixtures/landing_plain_demo_snapshot.json`.
+- Keys: `1`–`9` pick a building, `R`/`Shift+R` rotate, left click place, `Esc` cancel, `G` grid, `Space` pause, `+`/`-` time scale, `F1` hide overlay, `K`/`L` force `no_power` on/off for the hovered building (stub only). Click a site to pin its route preview (distance and route id, or the unreachable reason); click a module to select it. Camera: WASD/arrows or middle-drag pan, right-drag or Q/E orbit, wheel zoom, Home reset.
+- Signals for Task 03: `site_selected(site_id, route)`, `building_selected(building_id)`, `world_loaded(preset_name)`; call `begin_placement(definition_id)` from the HUD instead of the number keys.
+
+## Status language
+
+Module state uses colour **and** shape so it reads without colour vision: green sphere = operating, amber cube = warning (`partial_power`, `input_limited:*`, `output_full:*`, low condition), red triangle = failure (`no_power`, `damaged`, destroyed), grey disc = off (constructing or `disabled`). Utility lines from the airlock to each module follow the authoritative route and use the same palette for power served / partial / none, yellow while constructing, grey when idle.
+
+## Heightmap import (B5 pipeline)
+
+`tests/world/tools/heightmap_to_map.gd` converts a grayscale heightmap (for example a MOLA or Mars Trek DEM tile shipped under `assets/nasa/`) into a `WorldMapData` JSON:
+
+```powershell
+& '<godot console exe>' --headless --path . --script tests/world/tools/heightmap_to_map.gd -- --heightmap res://assets/nasa/<tile>.png --out res://data/maps/<id>.json --id <id> --size 48 --min-m 0 --max-m 12 --airlock 10,24 --source "<provenance>"
+```
+
+No NASA tile is in the repository yet; `ATTRIBUTION.md` must receive the asset record before the output map is committed.
 
 ## Boundaries
 
 - Placement previews are advisory. Only Task 01 spends materials; the scene only submits `place_building` commands through the bridge.
 - Crew figures and the HUD belong to Task 03 and mount under `Main/CrewRoot` and `Main/UIRoot`.
-- The authored `landing_plain` terrain is a procedural blockout, not NASA elevation data. Nothing under `assets/nasa/` has been imported yet; `ATTRIBUTION.md` records that state.
+- `landing_plain` terrain is a procedural blockout, not NASA elevation data. Nothing under `assets/nasa/` has been imported yet.
 - Balance numbers in `data/buildings/` are placeholders awaiting `SCIENCE.md` entries; footprint and entrance geometry are authoritative.
+- Utility lines visualize the single shared network of contract section 7; they do not imply separate grids or pipe routing.
