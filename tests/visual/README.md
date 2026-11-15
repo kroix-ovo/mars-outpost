@@ -1,6 +1,6 @@
 # Visual and input evidence
 
-Both scripts need a real window (the headless display server uses a 64×64 dummy viewport and does not render). Run from the repository root with the Godot 4.7.2 console executable after the project has been imported once.
+The rendered scripts need a real window (the headless display server uses a 64×64 dummy viewport and does not render). Run from the repository root with the Godot 4.7.2 console executable after the project has been imported once.
 
 ```powershell
 & '<godot-console>' --path . --resolution 1600x900 --script tests/visual/run_hud_input_probe.gd
@@ -15,3 +15,15 @@ Both scripts need a real window (the headless display server uses a 64×64 dummy
 ```
 
 `capture_visual_evidence.gd` plays both worlds through the production simulation and HUD handlers: module selection, a training EVA launch and recall, a completed salvage trip, map placement, construction assignment and commissioning, a reference repair, the disabled reference EVA, the collapsed drawer and the diagnostics view. It writes PNGs to `docs/evidence/visual_polish/<window size>/` and prints `EVIDENCE` lines with the observed simulation states. The project uses `canvas_items` stretch, so a 1280×720 window shows the same 1600×900 logical layout scaled to 80%.
+
+
+The guided mission layout has a separate rendered check:
+
+```powershell
+& '<godot-console>' --path . --resolution 1280x720 --script tests/visual/run_first_shift_layout.gd
+& '<godot-console>' --path . --resolution 1600x900 --script tests/visual/run_first_shift_layout.gd
+```
+
+It checks panel bounds, status-strip overflow and physical guide text size, then captures the training guide, a two-crew EVA plan and the reference guide in `docs/evidence/first_shift/<window size>/`. Success marker: `FIRST_SHIFT_LAYOUT_PASS`. These are scripted rendered checks; they do not certify audio or human usability.
+
+`tests/crew_ui/run_first_shift.gd` runs through the real main scene, HUD handlers and production simulation: empty recall, successful salvage, placement, labor, commissioning, transition to reference repairs, all starting repair completions, and restart. It checks progress against those outcomes and is included in `tests/run_headless_checks.py`.

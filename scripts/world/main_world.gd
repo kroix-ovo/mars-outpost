@@ -82,6 +82,7 @@ func _ready() -> void:
     # The camera keeps the colony centred in the world area between the roster and the drawer.
     _hud.layout_changed.connect(func(left_px: float, right_px: float) -> void:
         camera_rig.hud_width = right_px - left_px)
+    _hud.reference_requested.connect(func(): load_world(1))
     _hud.refresh_layout()
     _crew_view.crew_selected.connect(_hud.select_crew)
     _hud.crew_selection_changed.connect(_crew_view.set_selected_crew)

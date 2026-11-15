@@ -6,6 +6,7 @@ extends Control
 ## a collapsible contextual drawer (Jobs / Build / EVA / Systems / Guide) on the right and a
 ## status toast at the bottom left. Empty space passes mouse input to the world.
 
+const FirstShift = preload("res://scripts/ui/first_shift.gd")
 const SaveSlot = preload("res://scripts/ui/outpost_save_slot.gd")
 const Icon = preload("res://scripts/ui/hud_icon.gd")
 const TERMINAL := ["completed", "cancelled", "failed"]
@@ -20,6 +21,7 @@ const DRAWER_WIDTH := 384.0
 const CREW_WIDTH := 252.0
 const TOP_HEIGHT := 46.0
 
+signal reference_requested
 signal crew_selected(crew_id: String)
 signal placement_preview(request: Dictionary, result: Dictionary)
 ## Emitted when the visible world area changes: pixels covered on the left and right.
@@ -37,7 +39,11 @@ var _state: Dictionary = {}
 var _session := ""
 var _seq := 0
 var _pending: Dictionary = {}
-var _tutorial: Dictionary = {}
+var _mission := FirstShift.new()
+var _mission_reset := true
+var _mission_title: Label
+var _mission_text: Label
+var _mission_action: Button
 var _stale := false
 var _alert_ids: Array = []
 var _hud_title: Label
@@ -82,6 +88,7 @@ var _chips: Dictionary = {}  # resource key -> {label, icon}
 var _alert_chip: PanelContainer
 var _alert_icon: Control
 var _top: PanelContainer
+var _crew_body: VBoxContainer
 var _crew_card: PanelContainer
 var _drawer: PanelContainer
 var _drawer_body: VBoxContainer
@@ -113,7 +120,7 @@ func bind(simulation: RefCounted, crew_adapter: RefCounted, world_service: RefCo
 	_save_path = save_path
 	_state = {}
 	_pending.clear()
-	_tutorial.clear()
+	_mission_reset = true
 	_alert_ids.clear()
 	_reset_session()
 	if _simulation == null:
@@ -123,6 +130,7 @@ func bind(simulation: RefCounted, crew_adapter: RefCounted, world_service: RefCo
 	if is_node_ready():
 		_on_snapshot(_simulation.get_snapshot())
 		_refresh_capabilities()
+		_open_tab("Guide")
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -208,13 +216,18 @@ func _build_crew_card() -> void:
 	_crew_card.offset_left = 8
 	_crew_card.offset_top = 64
 	_crew_card.offset_right = 8 + CREW_WIDTH
-	var body := _column(_crew_card, 6)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_crew_card.add_child(scroll)
+	var body := _column(scroll, 6)
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_crew_body = body
 	var head := _row(body, 6)
 	head.add_child(Icon.make("crew", AMBER, 16))
 	var crew_title := _label(head, "CREW", 13)
 	crew_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	crew_title.add_theme_color_override("font_color", AMBER)
-	_crew_hint = _label(head, "Ctrl/Shift: multi", 11)
+	_crew_hint = _label(body, "Ctrl/Shift: select several", 16)
 	_crew_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_crew_hint.add_theme_color_override("font_color", DIM)
 	_crew_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -232,6 +245,12 @@ func _build_crew_card() -> void:
 		_refresh_selection())
 	_crew_text = _label(body, "", 12)
 	_crew_text.add_theme_color_override("font_color", DIM)
+	var rule := HSeparator.new()
+	body.add_child(rule)
+	_mission_title = _label(body, "FIRST SHIFT", 16)
+	_mission_title.add_theme_color_override("font_color", AMBER)
+	_mission_text = _label(body, "", 16)
+	_mission_action = _button(body, "Open EVA", _mission_next)
 
 func _build_drawer() -> void:
 	_drawer = _panel(self)
@@ -248,23 +267,26 @@ func _build_drawer() -> void:
 	var drawer_title := _label(head, "MISSION CONTROL", 13)
 	drawer_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	drawer_title.add_theme_color_override("font_color", AMBER)
-	var head_spacer := Control.new()
-	head_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(head_spacer)
-	_save_button = _button(head, "Save", func(): _save_load.call_deferred(false))
-	_load_button = _button(head, "Load", func(): _save_load.call_deferred(true))
+	var tools := _row(outer, 6)
+	tools.name = "PersistenceControls"
+	_save_button = _button(tools, "Save", func(): _save_load.call_deferred(false))
+	_load_button = _button(tools, "Load", func(): _save_load.call_deferred(true))
 	_mute = CheckButton.new()
 	_mute.focus_mode = Control.FOCUS_NONE
 	_mute.tooltip_text = "Mute interface sounds"
-	_mute.add_theme_font_size_override("font_size", 12)
+	_mute.add_theme_font_size_override("font_size", 16)
 	_mute.text = "Mute"
-	head.add_child(_mute)
+	tools.add_child(_mute)
 	_drawer_body = _column(outer, 6)
 	_drawer_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_tabs = TabContainer.new()
 	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_tabs.focus_mode = Control.FOCUS_NONE
-	_tabs.tab_changed.connect(func(_i: int): _fit_drawer.call_deferred())
+	_tabs.tab_changed.connect(func(_i: int):
+		if _tabs.get_tab_title(_tabs.current_tab) == "Systems" and not _state.is_empty():
+			_mission.done.systems = true
+			_refresh_guide()
+		_fit_drawer.call_deferred())
 	_drawer_body.add_child(_tabs)
 
 	var jobs := _page("Jobs")
@@ -360,20 +382,31 @@ func _apply_layout() -> void:
 	if _drawer == null:
 		return
 	var width := size.x if size.x > 0 else 1600.0
+	# Keep the essentials readable at 720p; full accounting remains in Systems.
+	for key in ["co2", "food"]:
+		_chips[key].label.get_parent().visible = width >= 1450.0
 	var drawer_width := DRAWER_WIDTH if width >= 1400 else 352.0
 	_drawer.offset_left = -8 - (drawer_width if _drawer_open else 46.0)
 	_drawer_body.visible = _drawer_open
+	_drawer.get_child(0).get_node("PersistenceControls").visible = _drawer_open
 	for child in _drawer_toggle.get_parent().get_children():
 		if child != _drawer_toggle:
 			child.visible = _drawer_open
 	_drawer_toggle.text = "»" if _drawer_open else "«"
 	_crew_card.offset_top = 8 + TOP_HEIGHT + 8
 	_drawer.offset_top = 8 + TOP_HEIGHT + 8
-	_crew_card.reset_size()
+	_fit_crew_card.call_deferred()
 	var right_edge := width - 8 - (drawer_width if _drawer_open else 46.0) - 12
 	_toast.offset_right = minf(right_edge, _toast.offset_left + 620.0)
 	_fit_drawer.call_deferred()
 	layout_changed.emit(8.0 + CREW_WIDTH, 8.0 + (drawer_width if _drawer_open else 46.0))
+
+func _fit_crew_card() -> void:
+	if _crew_body == null or not is_inside_tree():
+		return
+	var available := maxf(80.0, size.y - _crew_card.offset_top - 8.0)
+	var height := minf(available, _crew_body.get_combined_minimum_size().y + 24.0)
+	_crew_card.offset_bottom = _crew_card.offset_top + height
 
 func _fit_drawer() -> void:
 	## The drawer is only as tall as the open page needs, so the world stays visible below it.
@@ -459,7 +492,7 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 		_stale = false
 		if not _state.is_empty():
 			_pending.clear()
-			_tutorial.clear()
+			_mission_reset = true
 			_reset_session()
 	elif tick != int(_state.clock.tick_index):
 		_stale = false
@@ -467,6 +500,10 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 			or snapshot.tasks != _state.tasks:
 		_stale = true
 	_state = snapshot
+	if _mission_reset:
+		_mission.reset(snapshot)
+		_mission_reset = false
+	_mission.observe(snapshot)
 	if _simulation != null and _simulation.has_method("get_capabilities"):
 		_hud_title.text = "TRAINING · SYNTHETIC" if snapshot.campaign_id.begins_with("fixture_") else "REFERENCE COLONY"
 	var scale_value: int = int(snapshot.clock.time_scale)
@@ -572,13 +609,13 @@ func _refresh_selection() -> void:
 			[c.display_name, roundi(c.health * 100), roundi(c.fatigue * 100), roundi(c.stress * 100),
 				"  /  ".join(skills)])
 	var chosen := _selected_crew()
-	if chosen.size() > 2:
+	if chosen.size() > 1:
 		var names: Array[String] = []
 		for id in chosen:
 			names.append(_state.crew[id].display_name)
 		details = ["%d selected: %s" % [chosen.size(), ", ".join(names)]]
 	_crew_text.text = "Select an astronaut to inspect their skills." if details.is_empty() else "\n".join(details)
-	_crew_card.reset_size()
+	_fit_crew_card.call_deferred()
 	crew_selection_changed.emit(_selected_crew())
 	var task: Dictionary = _state.tasks.get(_selected(_tasks), {})
 	_task_text.text = "No jobs available." if task.is_empty() else "%s · %.1f / %.1f work s\n%d / %d crew assigned · priority %d%s" % [
@@ -791,7 +828,6 @@ func _on_event(event: Dictionary) -> void:
 		_pending.erase(event.data.command_id)
 		_status.text = _explain(type) + " accepted." if event.data.success else event.data.reason
 		if event.data.success:
-			_tutorial[type] = true
 			_refresh_guide()
 		_play("confirm" if event.data.success else "warning")
 	elif event.type in ["building_commissioned", "eva_returned", "task_completed"]:
@@ -805,7 +841,7 @@ func _save_load(load_game: bool) -> void:
 	_status.text = ("Save loaded." if load_game else "Colony saved.") if result.ok else result.reason
 	if result.ok and load_game:
 		_pending.clear()
-		_tutorial.clear()
+		_mission_reset = true
 		_reset_session()
 		_stale = false
 		_on_snapshot(_simulation.get_snapshot())
@@ -823,14 +859,32 @@ func _reset_session() -> void:
 	_seq = 0
 
 func _refresh_guide() -> void:
-	_tutorial_text.text = "FIRST SHIFT\n\n%s\n\n%s\n\n%s\n\n%s" % [
-		_guide("start_eva", "Training: select two idle astronauts in the crew roster, open EVA, check supplies and launch. Salvage brings the materials needed to build."),
-		_guide("place_building", "Build: pick a module, choose a cell on the map and click to place it. Then assign crew to its construction job."),
-		_guide("assign_task", "Jobs: choose the construction job, suggest available crew, then assign. Watch work finish and the module come online."),
-		_guide("recall_eva", "EVA: pick the active expedition and recall it. Watch for return route warnings.")]
+	if _tutorial_text == null:
+		return
+	var objectives := _mission.objectives()
+	var complete := _mission.completed_count()
+	var title := "FIRST SHIFT" if _mission.training else "COLONY REPAIRS"
+	_mission_title.text = "%s · %d/%d" % [title, complete, objectives.size()]
+	var active := _mission.current()
+	var lines: Array[String] = [title]
+	for objective in objectives:
+		lines.append(("✓  " if _mission.done.has(objective[0]) else "○  ") + objective[1] + "\n" + objective[2])
+	if active.is_empty():
+		_mission_text.text = "Shift complete! Salvage returned and new storage is online." if _mission.training else "Repairs complete! Keep monitoring supplies and alerts."
+		_mission_action.text = "Start colony repairs" if _mission.training else "Inspect systems"
+		lines.append(_mission_text.text)
+	else:
+		_mission_text.text = active[1] + "\nOpen Guide for the steps and purpose."
+		_mission_action.text = "Open " + active[3]
+	_tutorial_text.text = "\n\n".join(lines)
+	_fit_crew_card.call_deferred()
 
-func _guide(key: String, detail: String) -> String:
-	return ("✓  " if _tutorial.has(key) else "○  ") + detail
+func _mission_next() -> void:
+	var active := _mission.current()
+	if active.is_empty() and _mission.training:
+		reference_requested.emit()
+	else:
+		_open_tab("Systems" if active.is_empty() else active[3])
 
 func _task_options() -> Dictionary:
 	var keys := _keys(_state.tasks)
@@ -909,7 +963,7 @@ func _keys(records: Dictionary) -> Array:
 
 func _make_theme() -> Theme:
 	var t := Theme.new()
-	t.default_font_size = 14
+	t.default_font_size = 16
 	t.set_color("font_color", "Label", INK)
 	for type in ["Button", "OptionButton", "CheckButton"]:
 		t.set_color("font_color", type, INK)
@@ -917,7 +971,7 @@ func _make_theme() -> Theme:
 		t.set_color("font_pressed_color", type, Color("#1a1308"))
 		t.set_color("font_hover_pressed_color", type, Color("#1a1308"))
 		t.set_color("font_disabled_color", type, Color(0.55, 0.53, 0.5, 0.7))
-		t.set_font_size("font_size", type, 13)
+		t.set_font_size("font_size", type, 16)
 	for type in ["Button", "OptionButton"]:
 		t.set_stylebox("normal", type, _box(Color("#20262d"), 4, 9, 4, Color("#323a43")))
 		t.set_stylebox("hover", type, _box(Color("#2a323b"), 4, 9, 4, AMBER.darkened(0.2)))
@@ -933,7 +987,7 @@ func _make_theme() -> Theme:
 	t.set_color("font_selected_color", "TabContainer", AMBER)
 	t.set_color("font_unselected_color", "TabContainer", DIM)
 	t.set_color("font_hovered_color", "TabContainer", INK)
-	t.set_font_size("font_size", "TabContainer", 13)
+	t.set_font_size("font_size", "TabContainer", 16)
 	t.set_stylebox("panel", "ItemList", _box(Color(0, 0, 0, 0.18), 4, 4, 4))
 	t.set_stylebox("selected", "ItemList", _box(Color(AMBER, 0.28), 3, 4, 2))
 	t.set_stylebox("selected_focus", "ItemList", _box(Color(AMBER, 0.28), 3, 4, 2))
@@ -941,12 +995,12 @@ func _make_theme() -> Theme:
 	t.set_stylebox("focus", "ItemList", StyleBoxEmpty.new())
 	t.set_color("font_color", "ItemList", INK)
 	t.set_color("font_selected_color", "ItemList", Color.WHITE)
-	t.set_font_size("font_size", "ItemList", 13)
+	t.set_font_size("font_size", "ItemList", 16)
 	t.set_constant("v_separation", "ItemList", 5)
 	t.set_stylebox("normal", "LineEdit", _box(Color("#0f1317"), 3, 6, 3, Color("#323a43")))
 	t.set_stylebox("focus", "LineEdit", _box(Color("#0f1317"), 3, 6, 3, AMBER))
 	t.set_color("font_color", "LineEdit", INK)
-	t.set_font_size("font_size", "LineEdit", 13)
+	t.set_font_size("font_size", "LineEdit", 16)
 	t.set_stylebox("panel", "TooltipPanel", _box(Color("#0d1014"), 4, 8, 6, Color("#3a434d")))
 	t.set_color("font_color", "TooltipLabel", INK)
 	return t
@@ -1037,7 +1091,7 @@ func _label(parent: Node, value: String = "", size_px: int = 14) -> Label:
 	var label := Label.new()
 	label.text = value
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_font_size_override("font_size", size_px)
+	label.add_theme_font_size_override("font_size", maxi(size_px, 16))
 	parent.add_child(label)
 	return label
 
