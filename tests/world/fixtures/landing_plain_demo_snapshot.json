@@ -1,0 +1,47 @@
+{
+  "contract_version": "2.0.0",
+  "snapshot_version": 2,
+  "campaign_id": "task02_landing_plain_demo",
+  "revision": 0,
+  "clock": {"tick_index": 0, "elapsed_s": 0.0, "time_scale": 1},
+  "rng": {"seed": "42", "state": "708718527385777908"},
+  "map": {"id": "landing_plain", "revision": 1},
+  "resources": {
+    "alloy": {"id": "alloy", "unit": "count", "amount": 24, "capacity": 90.0, "reserved": 0, "net_rate_per_s": 0.0, "forecast_empty_s": null},
+    "electronics": {"id": "electronics", "unit": "count", "amount": 11, "capacity": 90.0, "reserved": 0, "net_rate_per_s": 0.0, "forecast_empty_s": null},
+    "oxygen_kg": {"id": "oxygen_kg", "unit": "kg", "amount": 140.0, "capacity": 280.0, "reserved": 0.0, "net_rate_per_s": 0.0, "forecast_empty_s": null},
+    "potable_water_kg": {"id": "potable_water_kg", "unit": "kg", "amount": 620.0, "capacity": 1500.0, "reserved": 0.0, "net_rate_per_s": 0.0, "forecast_empty_s": null},
+    "energy_kwh": {"id": "energy_kwh", "unit": "kwh", "amount": 14.0, "capacity": 20.0, "reserved": 0.0, "net_rate_per_s": 0.0, "forecast_empty_s": null}
+  },
+  "power": {"generated_kw": 6.0, "requested_kw": 2.9, "served_kw": 2.9, "battery_stored_kwh": 14.0, "battery_capacity_kwh": 20.0},
+  "buildings": {
+    "building_000001": {"id": "building_000001", "definition_id": "solar_array_mk1", "cell": [13, 20], "rotation_quarters": 0, "lifecycle": "commissioned", "enabled": true, "condition": 1.0, "construction_task_id": null, "construction_progress": 1.0, "power_requested_kw": 0.0, "power_served_kw": 0.0, "operating_fraction": 1.0, "blocking_codes": []},
+    "building_000002": {"id": "building_000002", "definition_id": "solar_array_mk1", "cell": [13, 18], "rotation_quarters": 0, "lifecycle": "commissioned", "enabled": true, "condition": 0.82, "construction_task_id": null, "construction_progress": 1.0, "power_requested_kw": 0.0, "power_served_kw": 0.0, "operating_fraction": 0.82, "blocking_codes": []},
+    "building_000003": {"id": "building_000003", "definition_id": "battery_bank_mk1", "cell": [17, 20], "rotation_quarters": 0, "lifecycle": "commissioned", "enabled": true, "condition": 1.0, "construction_task_id": null, "construction_progress": 1.0, "power_requested_kw": 0.0, "power_served_kw": 0.0, "operating_fraction": 1.0, "blocking_codes": []},
+    "building_000004": {"id": "building_000004", "definition_id": "water_recycler_mk1", "cell": [13, 26], "rotation_quarters": 0, "lifecycle": "commissioned", "enabled": true, "condition": 1.0, "construction_task_id": null, "construction_progress": 1.0, "power_requested_kw": 0.8, "power_served_kw": 0.8, "operating_fraction": 1.0, "blocking_codes": []},
+    "building_000005": {"id": "building_000005", "definition_id": "water_electrolyzer_mk1", "cell": [16, 26], "rotation_quarters": 0, "lifecycle": "commissioned", "enabled": true, "condition": 1.0, "construction_task_id": null, "construction_progress": 1.0, "power_requested_kw": 1.5, "power_served_kw": 1.5, "operating_fraction": 1.0, "blocking_codes": []},
+    "building_000006": {"id": "building_000006", "definition_id": "co2_scrubber_mk1", "cell": [13, 23], "rotation_quarters": 0, "lifecycle": "commissioned", "enabled": true, "condition": 1.0, "construction_task_id": null, "construction_progress": 1.0, "power_requested_kw": 0.6, "power_served_kw": 0.6, "operating_fraction": 1.0, "blocking_codes": []},
+    "building_000007": {"id": "building_000007", "definition_id": "storage_module_mk1", "cell": [18, 23], "rotation_quarters": 0, "lifecycle": "commissioned", "enabled": true, "condition": 1.0, "construction_task_id": null, "construction_progress": 1.0, "power_requested_kw": 0.0, "power_served_kw": 0.0, "operating_fraction": 0.0, "blocking_codes": []},
+    "building_000008": {"id": "building_000008", "definition_id": "greenhouse_mk1", "cell": [13, 29], "rotation_quarters": 0, "lifecycle": "constructing", "enabled": true, "condition": 1.0, "construction_task_id": "task_000001", "construction_progress": 0.35, "power_requested_kw": 0.0, "power_served_kw": 0.0, "operating_fraction": 0.0, "blocking_codes": ["constructing"]}
+  },
+  "crew": {
+    "crew_000001": {"id": "crew_000001", "definition_id": "demo_crew_a", "display_name": "Commander", "status": "idle", "location_kind": "base", "position_m": [10.5, 0.0, 24.5], "task_id": null, "expedition_id": null, "health": 1.0, "fatigue": 0.1, "stress": 0.1, "radiation_dose_msv": 0.0, "skills": {"engineering": 0.7, "piloting": 0.9}},
+    "crew_000002": {"id": "crew_000002", "definition_id": "demo_crew_b", "display_name": "Engineer", "status": "working", "location_kind": "base", "position_m": [13.5, 0.0, 32.5], "task_id": "task_000001", "expedition_id": null, "health": 1.0, "fatigue": 0.3, "stress": 0.1, "radiation_dose_msv": 0.0, "skills": {"engineering": 0.9}},
+    "crew_000003": {"id": "crew_000003", "definition_id": "demo_crew_c", "display_name": "Botanist", "status": "idle", "location_kind": "base", "position_m": [10.5, 0.0, 24.5], "task_id": null, "expedition_id": null, "health": 1.0, "fatigue": 0.0, "stress": 0.0, "radiation_dose_msv": 0.0, "skills": {"botany": 0.9}},
+    "crew_000004": {"id": "crew_000004", "definition_id": "demo_crew_d", "display_name": "Geologist", "status": "idle", "location_kind": "base", "position_m": [10.5, 0.0, 24.5], "task_id": null, "expedition_id": null, "health": 1.0, "fatigue": 0.0, "stress": 0.0, "radiation_dose_msv": 0.0, "skills": {"geology": 0.9}},
+    "crew_000005": {"id": "crew_000005", "definition_id": "demo_crew_e", "display_name": "Medic", "status": "idle", "location_kind": "base", "position_m": [10.5, 0.0, 24.5], "task_id": null, "expedition_id": null, "health": 1.0, "fatigue": 0.0, "stress": 0.0, "radiation_dose_msv": 0.0, "skills": {"medicine": 0.9}},
+    "crew_000006": {"id": "crew_000006", "definition_id": "demo_crew_f", "display_name": "Technician", "status": "idle", "location_kind": "base", "position_m": [10.5, 0.0, 24.5], "task_id": null, "expedition_id": null, "health": 1.0, "fatigue": 0.0, "stress": 0.0, "radiation_dose_msv": 0.0, "skills": {"engineering": 0.6, "geology": 0.4}}
+  },
+  "tasks": {
+    "task_000001": {"id": "task_000001", "kind": "construct", "target_id": "building_000008", "status": "active", "priority": 50, "crew_required": 1, "assigned_crew_ids": ["crew_000002"], "required_work_s": 120.0, "completed_work_s": 42.0, "blocked_code": null, "expedition_id": null}
+  },
+  "expeditions": {},
+  "sites": {
+    "site_cargo_debris": {"id": "site_cargo_debris", "definition_id": "cargo_cache_lander_debris", "cell": [22, 30], "reserved_by_expedition_id": null, "remaining_cargo": {"alloy": 6, "electronics": 3}},
+    "site_survey_ridge": {"id": "site_survey_ridge", "definition_id": "survey_ridge_saddle", "cell": [29, 12], "reserved_by_expedition_id": null, "remaining_cargo": {}},
+    "site_ice_hollow": {"id": "site_ice_hollow", "definition_id": "ice_survey_hollow", "cell": [15, 39], "reserved_by_expedition_id": null, "remaining_cargo": {"raw_water_kg": 40.0}}
+  },
+  "technology": {"unlocked_ids": []},
+  "active_events": {},
+  "alerts": []
+}
