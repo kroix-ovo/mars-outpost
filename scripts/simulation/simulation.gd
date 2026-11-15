@@ -1,11 +1,13 @@
 class_name OutpostSimulation
 extends RefCounted
-## A1 foundation. Running ticks advance the clock only until A2/A3 are integrated.
+## A1/A2 headless foundation with atomic electrical dispatch and accounting.
 ## Missing gameplay handlers fail explicitly; this is not a playable colony yet.
 
 const Schema = preload("res://scripts/simulation/command_schemas.gd")
 const State = preload("res://scripts/simulation/game_state.gd")
 const Definitions = preload("res://scripts/simulation/definitions.gd")
+const Ledger = preload("res://scripts/simulation/resource_ledger.gd")
+const Power = preload("res://scripts/systems/power_system.gd")
 const CONTROLS = ["set_time_scale", "set_building_enabled"]
 const MAX_TICKS_PER_ADVANCE = 120
 
@@ -25,6 +27,9 @@ var _busy: bool = false
 var _journal: Dictionary = {}
 var _pending: Array[String] = []
 var _next_receive_sequence: int = 1
+# Immutable campaign receipts are never included in gameplay clones. A5 will
+# serialize these in core.committed_effects, without changing the save envelope.
+var _committed_effects: Dictionary = {}
 
 func initialize(config: Dictionary, world_service: RefCounted, crew_adapter: RefCounted) -> Dictionary:
     if _busy or _state != null:
@@ -61,7 +66,7 @@ func submit_command(command: Dictionary) -> Dictionary:
             return _rejected(id, "command_id_conflict", "command_id reused with different content")
         return _accepted(id, prior, true)
     if normalized.type not in CONTROLS:
-        return _rejected(id, "module_unavailable", "This gameplay handler is not implemented in A1: " + normalized.type)
+        return _rejected(id, "module_unavailable", "This gameplay handler is not implemented in A2: " + normalized.type)
     if _next_receive_sequence >= Schema.MAX_EXACT_INTEGER or _state.counters.event + _pending.size() >= Schema.MAX_EXACT_INTEGER:
         return _rejected(id, "invalid_state", "Command sequence or event counter exhausted.")
     var entry = {"normalized": normalized.duplicate(true), "receive_sequence": _next_receive_sequence,
@@ -190,11 +195,58 @@ func _tick() -> Dictionary:
     if _state.records.clock.tick_index >= Schema.MAX_EXACT_INTEGER or _state.records.revision >= Schema.MAX_EXACT_INTEGER:
         return _fail("invalid_state", "Clock or revision counter exhausted.")
     var candidate = _state.clone()
+    var ledger = Ledger.new(candidate, _content, _committed_effects, candidate.records.clock.tick_index)
+    var valid = ledger.validate()
+    if not valid.ok: return _fail("internal_error", valid.reason)
+    # Phases 1/2: environment generation and crew intent await A3-A5.
+    # Phase 3: electrical dispatch. All balance writes go through the ledger.
+    var power = _dispatch_power(candidate, ledger)
+    if not power.ok: return _fail("internal_error", power.reason)
+    # Phases 4-7: processes, crew demand/progress and hazards remain unavailable.
+    # Phase 8: finalize actual committed rates, diagnostics and invariants.
+    for rid in candidate.records.resources:
+        var balance: Dictionary = candidate.records.resources[rid]
+        balance.net_rate_per_s = balance.amount - _state.records.resources[rid].amount
+        balance.forecast_empty_s = (balance.amount - balance.reserved) / -balance.net_rate_per_s if balance.net_rate_per_s < 0 else null
+        if not Schema.number(balance.net_rate_per_s) or (balance.forecast_empty_s != null and not Schema.number(balance.forecast_empty_s)):
+            return _fail("internal_error", "Resource diagnostic overflow: " + rid)
+    _finalize_power_alerts(candidate)
+    valid = ledger.validate()
+    if not valid.ok: return _fail("internal_error", valid.reason)
     candidate.records.clock.tick_index += 1
     candidate.records.clock.elapsed_s = float(candidate.records.clock.tick_index)
     candidate.records.revision += 1
     _state = candidate
+    _committed_effects.merge(ledger.staged)
     return _ok()
+
+func _dispatch_power(candidate: RefCounted, ledger: RefCounted) -> Dictionary:
+    return Power.new().dispatch(candidate, _content, ledger)
+
+func _finalize_power_alerts(candidate: RefCounted) -> void:
+    var prior: Dictionary = {}
+    var wanted: Dictionary = {}
+    for alert in candidate.records.alerts:
+        prior[alert.id] = alert
+        if alert.code not in ["power_shortfall", "battery_low"]: wanted[alert.id] = alert
+    var ids = candidate.records.buildings.keys()
+    ids.sort()
+    for id in ids:
+        var b: Dictionary = candidate.records.buildings[id]
+        if b.power_served_kw < b.power_requested_kw:
+            var key = "power_shortfall:" + id
+            wanted[key] = _power_alert(key, "power_shortfall", "Equipment is not receiving full power.", [id], candidate.records.clock.tick_index, prior)
+    var power: Dictionary = candidate.records.power
+    if power.battery_capacity_kwh > 0 and power.battery_stored_kwh < _content.science.alerts.battery_low_fraction * power.battery_capacity_kwh:
+        wanted.battery_low = _power_alert("battery_low", "battery_low", "Stored electrical energy is low.", [], candidate.records.clock.tick_index, prior)
+    candidate.records.alerts = []
+    ids = wanted.keys()
+    ids.sort()
+    for id in ids: candidate.records.alerts.append(wanted[id])
+
+static func _power_alert(id: String, code: String, message: String, entities: Array, tick: int, prior: Dictionary) -> Dictionary:
+    return {"id": id, "code": code, "message": message, "severity": "warning", "entity_ids": entities,
+        "first_tick": prior[id].first_tick if prior.has(id) else tick}
 
 func _guard() -> Dictionary:
     if _state == null: return _fail("not_initialized", "Initialize the simulation first.")

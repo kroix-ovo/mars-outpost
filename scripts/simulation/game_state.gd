@@ -7,6 +7,9 @@ var accumulator_s: float = 0.0
 var counters: Dictionary = {"building": 0, "crew": 0, "task": 0, "expedition": 0, "event": 0}
 var rng = RandomNumberGenerator.new()
 var per_battery_energy: Dictionary = {}
+# Save-only authoritative fields, not additional public snapshot keys.
+var return_caches: Dictionary = {}
+var power_flows: Dictionary = {}
 
 func allocate(kind: String) -> String:
     counters[kind] += 1
@@ -18,6 +21,8 @@ func clone() -> OutpostGameState:
     copy.accumulator_s = accumulator_s
     copy.counters = counters.duplicate(true)
     copy.per_battery_energy = per_battery_energy.duplicate(true)
+    copy.return_caches = return_caches.duplicate(true)
+    copy.power_flows = power_flows.duplicate(true)
     copy.rng.seed = rng.seed
     copy.rng.state = rng.state
     return copy

@@ -4,6 +4,8 @@
 
 **A1 implementation:** shared state initialization, clock, normalized command queue, core controls, and detached snapshots are implemented under `scripts/simulation/`. See [headless verification and remaining boundaries](tests/simulation/README.md). Full gameplay command handlers depend on later work packages and peer services.
 
+**A2 implementation:** atomic ledger transactions, unit/count/storage validation, staged effect receipts, deterministic generation/load/battery dispatch, explicit electrical losses/curtailment, power alerts, and committed energy rates/depletion forecasts are implemented. Headless A2 checks cover the reference power sequence, synthetic remote-account transfers, rollback and combined command/effect history scaling. Life support, metabolism, actual EVA behavior, jobs/production, broader forecasting, hazards and persistence remain A3–A5; their commands remain explicitly unavailable. Public schemas and `project.godot` are unchanged.
+
 ## 1. Executive summary
 
 Build the authoritative simulation that makes the outpost behave like connected engineering systems. Give the other owners stable state, commands, forecasts, and events so buildings, crew, and UI all act on the same colony.
@@ -51,6 +53,8 @@ Follow `PRD.md` section 6. Coordinate tick order with Task 03, whose crew/task/E
 | A4 | Data-driven building production, agriculture/ISRU/technology effects and forecasts | 4 |
 | A5 | Wear, dust/radiation/event effects, emergency state, authoritative save/load | 4 |
 | A6 | Headless invariants, deterministic replay, save continuity, integration debugging | 4 |
+
+A1 and A2 are implemented with local headless verification. This does not mark the combined product acceptance criteria below complete; A3–A6 and Tasks 02/03 integration remain pending.
 
 Points indicate relative planning effort. Rebalance with the team after A1/B1/C1 and the first integrated loop.
 
