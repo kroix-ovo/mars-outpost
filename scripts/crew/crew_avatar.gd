@@ -15,6 +15,10 @@ func apply_record(record: Dictionary, snap: bool = false) -> void:
 	_initialized = true
 	$Nameplate.text = "%s · %s" % [record.display_name, record.status.capitalize()]
 	visible = record.status != "dead"
+	$Picker.input_ray_pickable = visible
+
+func set_selected(active: bool) -> void:
+	$Nameplate.modulate = Color("#ffe3a8") if active else Color.WHITE
 
 func _process(dt: float) -> void:
 	if _initialized:

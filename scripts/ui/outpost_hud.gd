@@ -3,7 +3,10 @@ extends PanelContainer
 
 const SaveSlot = preload("res://scripts/ui/outpost_save_slot.gd")
 const TERMINAL := ["completed", "cancelled", "failed"]
+enum Tab { CREW, LIFE_SUPPORT, BUILD, EVA, FIELD_GUIDE }
 signal crew_selected(crew_id: String)
+signal crew_selection_changed(crew_ids: Array)
+signal campaign_loaded(snapshot: Dictionary)
 signal placement_preview(request: Dictionary, result: Dictionary)
 
 var _simulation: RefCounted
@@ -17,6 +20,10 @@ var _seq := 0
 var _pending: Dictionary = {}
 var _tutorial: Dictionary = {}
 var _stale := false
+var _shown_selection: Array = []
+var _next_task_id := ""
+var _next_trip_id := ""
+var _priority_task_id := ""
 var _alert_ids: Array = []
 var _hud_title: Label
 var _vitals: Label
@@ -28,6 +35,9 @@ var _crew_text: Label
 var _tasks: OptionButton
 var _task_text: Label
 var _priority: SpinBox
+var _suggest_button: Button
+var _assign_button: Button
+var _cancel_button: Button
 var _resources: Label
 var _oxygen_info: Label
 var _buildings: OptionButton
@@ -63,10 +73,7 @@ func bind(simulation: RefCounted, crew_adapter: RefCounted, world_service: RefCo
 	_catalog = building_catalog.duplicate(true)
 	_save_path = save_path
 	_state = {}
-	_pending.clear()
-	_tutorial.clear()
-	_alert_ids.clear()
-	_reset_session()
+	_reset_campaign_view()
 	if _simulation == null:
 		return
 	_simulation.connect("state_changed", _on_snapshot)
@@ -82,7 +89,9 @@ func _ready() -> void:
 	add_theme_stylebox_override("panel", skin)
 	var body := _column(self)
 	_hud_title = _label(body, "MARS OUTPOST   /   MISSION CONTROL", 23)
-	var top := _row(body)
+	var top := HFlowContainer.new()
+	top.add_theme_constant_override("h_separation", 8)
+	body.add_child(top)
 	_button(top, "Pause", func(): _time(0))
 	_button(top, "1×", func(): _time(1))
 	_button(top, "5×", func(): _time(5))
@@ -99,7 +108,10 @@ func _ready() -> void:
 	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_child(_tabs)
 	var command := _page("Crew & jobs")
-	var split := _row(command)
+	var split := HFlowContainer.new()
+	split.add_theme_constant_override("h_separation", 12)
+	split.add_theme_constant_override("v_separation", 12)
+	command.add_child(split)
 	var roster := _column(split)
 	roster.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label(roster, "Select astronauts (Ctrl / Command or Shift for multiple)", 15)
@@ -119,9 +131,9 @@ func _ready() -> void:
 	_tasks.item_selected.connect(func(_i: int): _refresh_selection())
 	_task_text = _label(jobs)
 	_priority = _number(jobs, "Priority", 0, 100, 1, 50)
-	_button(jobs, "Suggest available crew", _suggest)
-	_button(jobs, "Assign selected crew", _assign)
-	_button(jobs, "Cancel selected job", func():
+	_suggest_button = _button(jobs, "Suggest available crew", _suggest)
+	_assign_button = _button(jobs, "Assign selected crew", _assign)
+	_cancel_button = _button(jobs, "Cancel selected job", func():
 		var id := _selected(_tasks)
 		if not id.is_empty():
 			_send("cancel_task", {"task_id": id}))
@@ -149,7 +161,9 @@ func _ready() -> void:
 	_label(eva, "Plan a salvage trip using the selected astronauts", 18)
 	_sites = _option(eva)
 	_sites.item_selected.connect(func(_i: int): _preview_eva())
-	var supplies := _row(eva)
+	var supplies := HFlowContainer.new()
+	supplies.add_theme_constant_override("h_separation", 8)
+	eva.add_child(supplies)
 	_work = _number(supplies, "Work (s)", 1, 100000, 1, 20)
 	_oxygen = _number(supplies, "Oxygen / person (kg)", 0, 1000, 0.00001, 0.12)
 	_battery = _number(supplies, "Battery / person (kWh)", 0, 1000, 0.00001, 0.006)
@@ -165,7 +179,10 @@ func _ready() -> void:
 		_send("recall_eva", {"expedition_id": _selected(_trips)}))
 	var onboarding := _page("Field guide")
 	_tutorial_text = _label(onboarding)
-	_label(onboarding, "Use Pause to plan. Commands resolve while paused; movement and work resume at 1×, 5× or 20×. Quick save keeps one local slot.")
+	_button(onboarding, "Go to crew and jobs", func(): _tabs.current_tab = Tab.CREW)
+	_button(onboarding, "Go to building controls", func(): _tabs.current_tab = Tab.BUILD)
+	_button(onboarding, "Go to EVA planning", func(): _tabs.current_tab = Tab.EVA)
+	_label(onboarding, "Use Pause to plan. Commands resolve while paused. Movement and work resume at 1×, 5× or 20×. Quick save keeps one local slot.")
 	_status = _label(body, "Ready")
 	_status.modulate = Color.html("#abd5fa")
 	_audio = AudioStreamPlayer.new()
@@ -180,9 +197,20 @@ func select_crew(id: String) -> void:
 		return
 	for index in range(_crew.item_count):
 		if _crew.get_item_metadata(index) == id:
-			_crew.select(index)
+			_crew.select(index, true)
+			_tabs.current_tab = Tab.CREW
 			_refresh_selection()
 			return
+
+func select_site(id: String) -> void:
+	if _sites != null and _select_option(_sites, id):
+		_tabs.current_tab = Tab.EVA
+		_preview_eva()
+
+func select_building(id: String) -> void:
+	if _buildings != null and _select_option(_buildings, id):
+		_tabs.current_tab = Tab.BUILD
+		_refresh_selection()
 
 func set_placement_cell(cell: Vector2i) -> void:
 	if _x != null:
@@ -197,9 +225,7 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 	if _state.is_empty() or snapshot.campaign_id != _state.campaign_id or snapshot.revision < _state.revision:
 		_stale = false
 		if not _state.is_empty():
-			_pending.clear()
-			_tutorial.clear()
-			_reset_session()
+			_reset_campaign_view()
 	elif tick != int(_state.clock.tick_index):
 		_stale = false
 	elif snapshot.buildings != _state.buildings or snapshot.expeditions != _state.expeditions \
@@ -215,6 +241,11 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 	_fill_options(_catalog_menu, _building_options(_catalog, true))
 	_fill_options(_sites, _labels(snapshot.sites))
 	_fill_options(_trips, _labels(snapshot.expeditions))
+	if _select_option(_tasks, _next_task_id):
+		_next_task_id = ""
+		_tabs.current_tab = Tab.CREW
+	if _select_option(_trips, _next_trip_id):
+		_next_trip_id = ""
 	_refresh_life_support()
 	_refresh_selection()
 	_refresh_guide()
@@ -245,8 +276,12 @@ func _refresh_roster() -> void:
 func _refresh_selection() -> void:
 	if _state.is_empty():
 		return
+	var selected := _selected_crew()
+	if selected != _shown_selection:
+		_shown_selection = selected
+		crew_selection_changed.emit(selected.duplicate())
 	var details: Array[String] = []
-	for id in _selected_crew():
+	for id in selected:
 		var c: Dictionary = _state.crew[id]
 		var skills: Array[String] = []
 		for skill in _keys(c.skills):
@@ -259,6 +294,14 @@ func _refresh_selection() -> void:
 	_task_text.text = "No jobs available." if task.is_empty() else "%s · %.1f / %.1f work s\n%d / %d crew assigned · priority %d%s" % [
 		task.status.capitalize(), task.completed_work_s, task.required_work_s, task.assigned_crew_ids.size(),
 		task.crew_required, task.priority, "" if task.blocked_code == null else "\nBlocked: " + _explain(task.blocked_code)]
+	var can_work: bool = not task.is_empty() and task.kind != "eva" and task.status not in TERMINAL
+	var open_slots: bool = can_work and task.assigned_crew_ids.size() < int(task.crew_required)
+	_cancel_button.disabled = not can_work
+	_suggest_button.disabled = not open_slots or _adapter == null
+	_assign_button.disabled = not open_slots or selected.is_empty()
+	if _priority_task_id != _selected(_tasks):
+		_priority_task_id = _selected(_tasks)
+		_priority.set_value_no_signal(task.get("priority", 50))
 	var building: Dictionary = _state.buildings.get(_selected(_buildings), {})
 	_toggle_building.disabled = building.is_empty() or building.get("lifecycle") == "destroyed"
 	_toggle_building.text = "Disable module" if building.get("enabled", false) else "Enable module"
@@ -444,6 +487,11 @@ func _on_event(event: Dictionary) -> void:
 		_status.text = _explain(type) + " accepted." if event.data.success else event.data.reason
 		if event.data.success:
 			_tutorial[type] = true
+			var result_data: Dictionary = event.data.get("data", {})
+			if type == "place_building":
+				_next_task_id = result_data.get("task_id", "")
+			elif type == "start_eva":
+				_next_trip_id = result_data.get("expedition_id", "")
 			_refresh_guide()
 		_play("confirm" if event.data.success else "warning")
 	elif event.type in ["building_commissioned", "eva_returned", "task_completed"]:
@@ -456,11 +504,11 @@ func _save_load(load_game: bool) -> void:
 	var result := SaveSlot.load_slot(_simulation, _save_path) if load_game else SaveSlot.save(_simulation, _save_path)
 	_status.text = ("Save loaded." if load_game else "Colony saved.") if result.ok else result.reason
 	if result.ok and load_game:
-		_pending.clear()
-		_tutorial.clear()
-		_reset_session()
-		_stale = false
-		_on_snapshot(_simulation.get_snapshot())
+		_reset_campaign_view()
+		_state = {}
+		var restored: Dictionary = _simulation.get_snapshot()
+		_on_snapshot(restored)
+		campaign_loaded.emit(restored.duplicate(true))
 	_play("confirm" if result.ok else "warning")
 
 func _play(id: String) -> void:
@@ -470,16 +518,28 @@ func _play(id: String) -> void:
 	if _audio.stream != null:
 		_audio.play()
 
-func _reset_session() -> void:
+func _reset_campaign_view() -> void:
+	_pending.clear()
+	_tutorial.clear()
+	_alert_ids.clear()
+	_next_task_id = ""
+	_next_trip_id = ""
+	_priority_task_id = ""
+	_stale = false
+	if _crew != null:
+		_crew.deselect_all()
+	if not _shown_selection.is_empty():
+		_shown_selection = []
+		crew_selection_changed.emit([])
 	_session = "hud_" + Crypto.new().generate_random_bytes(12).hex_encode()
 	_seq = 0
 
 func _refresh_guide() -> void:
 	_tutorial_text.text = "FIRST SHIFT\n\n%s\n\n%s\n\n%s\n\n%s" % [
-		_guide("assign_task", "Crew & jobs: select an astronaut, choose a farm or repair job, and assign them."),
-		_guide("place_building", "Build: pick a module and open cell. Place it, then assign crew to the construction job."),
-		_guide("start_eva", "EVA: select idle crew and a site. Check the reserve forecast and launch."),
-		_guide("recall_eva", "EVA: pick the active expedition and recall it. Watch for return route warnings.")]
+		_guide("assign_task", "Choose a farm or repair job and assign an astronaut. Use Suggest available crew if you need help. Unpause to see them travel and work."),
+		_guide("place_building", "Choose a module and a cell with a valid preview. Place it, then assign crew to the construction job that opens."),
+		_guide("start_eva", "Select idle astronauts and a salvage site. Check oxygen and battery for travel, work and return before launching."),
+		_guide("recall_eva", "Recall the team while it is travelling out or working. Recall before work is complete sends the crew home without salvage.")]
 
 func _guide(key: String, detail: String) -> String:
 	return ("✓  " if _tutorial.has(key) else "○  ") + detail
@@ -535,6 +595,15 @@ func _fill_options(widget: OptionButton, items: Dictionary) -> void:
 	else:
 		for i in range(keys.size()):
 			widget.set_item_text(i, items[keys[i]])
+
+func _select_option(widget: OptionButton, id: String) -> bool:
+	if id.is_empty():
+		return false
+	for i in range(widget.item_count):
+		if widget.get_item_metadata(i) == id:
+			widget.select(i)
+			return true
+	return false
 
 func _selected(widget: OptionButton) -> String:
 	return "" if widget.selected < 0 else str(widget.get_item_metadata(widget.selected))

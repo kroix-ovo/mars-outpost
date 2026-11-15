@@ -9,11 +9,12 @@ godot --headless --path . res://tests/crew_ui/harness.tscn --quit-after 5
 godot --path . res://tests/crew_ui/harness.tscn
 ```
 
-The standalone training scenario opens paused. In **Crew & jobs**, select an
-astronaut, choose the farm or repair job, and assign them. Use **5×** to follow
+The standalone training scenario opens paused. The **Field guide** has links
+to Crew & jobs, Build and EVA. In **Crew & jobs**, select an astronaut,
+choose the farm or repair job, and assign them. Use **5×** to follow
 travel, work, then completion. In **Build**, choose the Fixture Electrolyzer
 and use cell (4, 8) to create an unfinished module. Assign an idle crew member
-to its construction job. In **EVA**, select idle crew, keep the 20 s work
+to the construction job that opens. In **EVA**, select idle crew, keep the 20 s work
 plan and default stores, and examine the three phases and reserve. Try a
 smaller oxygen load, then restore the default and launch. Recall during
 outbound travel or work. Save a moving trip, advance it, then load the
@@ -21,11 +22,24 @@ checkpoint and watch it resume. The training slot is separate from the
 production quick save.
 
 `fixture_facade.gd` and `fixture_world.gd` are test-only. The former models
-enough labor/completion and ledger behavior to exercise the controls; it is
-not an accounting oracle, a production save format, or a replacement for
-Task 01. The tests also validate unmodified shared save fixtures. Real-world
-mounting, the production ledger/save pipeline, a first-time player session
-and web export verification need the integrated build.
+enough labor/completion and ledger behavior to exercise the controls and is
+scoped to fixture gameplay and its own training save. The tests also
+validate unmodified shared save fixtures. Track 01 provides authoritative
+placement, job completion, EVA transfers and campaign saves for the game.
+
+For a checkout with the world and simulation PRs applied, run the optional
+integration check:
+
+```sh
+godot --headless --path . --script tests/crew_ui/run_world_mount.gd
+```
+
+The check mounts Mission Control in the real world scene, validates an EVA
+preview with the real route service, toggles power through the real facade,
+and compares live oxygen rates, warnings and alerts with the HUD. It also
+checks rebinding when changing maps. It skips on a Track 03-only checkout.
+Plan a first-time player session and native/browser smoke tests once the
+production gameplay loop is wired.
 
 ## Owned changes
 
@@ -38,8 +52,10 @@ and web export verification need the integrated build.
 
 ## Task 01: adapter registration
 
-Construct `preload("res://scripts/crew/crew_adapter.gd").new(world_service)`
-and pass it as the crew adapter to `OutpostSimulation.initialize`. During
+Once the campaign's world service is configured, construct
+`preload("res://scripts/crew/crew_adapter.gd").new(world_service)` and pass
+the new adapter to `OutpostSimulation.initialize`. Use a new adapter for
+a new world service. During
 initialization call `adapter.initialize(config, initial_snapshot)` before
 publishing the campaign. The adapter loads only manifest-listed scenario,
 map, science, crew, job template and building definition paths. Existing
@@ -85,20 +101,30 @@ crew suggestions rank available, reachable crew by skill, health and fatigue.
 
 ## Task 02: scene mounting
 
-Place `scenes/ui/outpost_hud.tscn` under a CanvasLayer (or a layout
-container for a side panel). Call `hud.bind(sim, adapter, world_service,
-definitions_by_id)`, passing the same initialized instances and immutable
-building definition records used by the world. The HUD does not drive the
-clock; the world integration still calls `sim.advance(delta)`, including
-while paused. Set map picks with `hud.set_placement_cell(Vector2i(x, z))`
-and subscribe to `placement_preview(request, result)` to display footprint
-feedback. The facade revalidates before each commit.
+Instantiate `scenes/ui/outpost_mission_control.tscn` once under the world's
+`UIRoot`. After both the world and simulation are initialized, call:
 
-Mount `scenes/crew/crew_view.tscn` under the world root, call
-`apply_snapshot(sim.get_snapshot())`, and connect `state_changed` to
-`apply_snapshot`. On a successful load call `apply_snapshot(snapshot, true)`
-if the checkpoint has the same campaign and revision and should snap
-immediately. Enable physics object picking in the viewport for clicks and
-connect `crew_view.crew_selected` to `hud.select_crew`. If the HUD needs a
-custom quick save slot, pass a separate `user://` path to `bind`. Verify
-platform save replacement and browser persistence when exporting.
+```gdscript
+mission_control.bind($CrewRoot, simulation, adapter, world_service, definitions_by_id)
+building_selected.connect(mission_control.hud.select_building)
+site_selected.connect(func(id: String, _route: Dictionary):
+    mission_control.hud.select_site(id))
+```
+
+`definitions_by_id` is the map of stable definition IDs to the world's
+building definition records. Connect the map selection signals once.
+Rebind after a world change with the new facade, adapter, route service,
+and catalog. The mount creates the crew view under `CrewRoot`, connects
+crew selection in both directions, and snaps crew positions on HUD loads.
+Use `hud.set_placement_cell(Vector2i(x, z))` when the player picks a build
+cell on the map and `hud.placement_preview` for world ghost feedback.
+While using the HUD's placement control, route the pick to the HUD and
+let the HUD submit the order once. The facade revalidates each order.
+
+The right dock can collapse to leave the viewport available. Enable physics
+object picking on the world viewport for crew clicks. World integration
+continues to call `simulation.advance(delta)` including while paused.
+For a custom layout, `outpost_hud.tscn` and `crew_view.tscn` remain usable
+independently. Pass a separate `user://` save path to `bind` if the
+installer needs a separate slot. Verify file replacement and browser
+persistence in the exported game.

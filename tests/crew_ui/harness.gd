@@ -18,9 +18,12 @@ func _ready() -> void:
 	fixture.state.clock.time_scale = 0
 	$HUD.bind(fixture, fixture.adapter, fixture.world, fixture.catalog, "user://crew_ui_harness_save.json")
 	$HUD.set_placement_cell(Vector2i(4, 8))
-	$CrewPreview/Viewport/CrewView.crew_selected.connect($HUD.select_crew)
-	fixture.state_changed.connect($CrewPreview/Viewport/CrewView.apply_snapshot)
-	$CrewPreview/Viewport/CrewView.apply_snapshot(fixture.get_snapshot())
+	var view: Node3D = $CrewPreview/Viewport/CrewView
+	view.crew_selected.connect($HUD.select_crew)
+	$HUD.crew_selection_changed.connect(view.set_selected_crew)
+	$HUD.campaign_loaded.connect(func(snapshot: Dictionary): view.apply_snapshot(snapshot, true))
+	fixture.state_changed.connect(view.apply_snapshot)
+	view.apply_snapshot(fixture.get_snapshot())
 
 func _process(delta: float) -> void:
 	if not fixture.state.is_empty():

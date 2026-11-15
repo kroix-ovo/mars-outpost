@@ -81,8 +81,8 @@ func process_pending_commands() -> void:
 	for id in commands:
 		var command: Dictionary = journal[id]
 		var result := _resolve(command)
-		var data: Dictionary = result.get("result_data", {}).duplicate()
-		data.merge({"command_id": id, "success": result.ok, "reason": result.reason, "code": result.code})
+		var data := {"command_id": id, "success": result.ok, "reason": result.reason, "code": result.code,
+			"resolved_tick": state.clock.tick_index, "data": result.get("result_data", {}).duplicate(true)}
 		_emit("command_result", data)
 		command_resolved.emit(id, result.ok, result.reason)
 		if result.ok:

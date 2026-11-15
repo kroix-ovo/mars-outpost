@@ -4,6 +4,7 @@ const Fixture = preload("res://tests/crew_ui/fixture_facade.gd")
 const Routes = preload("res://scripts/crew/crew_routes.gd")
 const Slot = preload("res://scripts/ui/outpost_save_slot.gd")
 const HUD = preload("res://scenes/ui/outpost_hud.tscn")
+const MissionControl = preload("res://scenes/ui/outpost_mission_control.tscn")
 const CREW := "crew_000001"
 const OTHER := "crew_000002"
 const SITE := "site_cargo_a"
@@ -61,6 +62,7 @@ func _run() -> void:
 	_saves()
 	_edge_cases()
 	_ui()
+	_first_shift()
 	print("Task 03: %d/%d checks passed." % [checks - failures, checks])
 	quit(0 if failures == 0 else 1)
 
@@ -226,6 +228,80 @@ func _ui() -> void:
 	f.process_pending_commands()
 	check(f.state.expeditions[TRIP].status == "returning", "HUD recall targets current expedition")
 	hud.queue_free()
+
+func _first_shift() -> void:
+	var f := opened()
+	var crew_root := Node3D.new()
+	root.add_child(crew_root)
+	var control := MissionControl.instantiate()
+	root.add_child(control)
+	var save_path := "user://crew_ui_first_shift_%d.json" % OS.get_process_id()
+	control.bind(crew_root, f, f.adapter, f.world, f.catalog, save_path)
+	var hud: PanelContainer = control.hud
+	var view: Node3D = crew_root.get_child(0)
+	check(view.get_child_count() == 6, "Mission Control mounts one avatar per crew member")
+	view.crew_selected.emit(CREW)
+	check(hud._selected_crew() == [CREW] and view._selected_crew == [CREW],
+		"World and HUD share crew selection")
+	view.crew_selected.emit(OTHER)
+	check(hud._selected_crew() == [OTHER], "Picking a second astronaut selects only that astronaut")
+	control._toggle.pressed.emit()
+	check(not hud.visible and control.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"Collapsing Mission Control exposes the map")
+	control._toggle.pressed.emit()
+
+	check(hud._assign_button.disabled, "Assign is disabled until a job is selected")
+	hud.select_building("building_000003")
+	check(hud._selected(hud._buildings) == "building_000003" and hud._tabs.current_tab == hud.Tab.BUILD,
+		"Map building selection opens its inspector")
+	hud.set_placement_cell(Vector2i(4, 8))
+	hud._select_option(hud._catalog_menu, "fixture_electrolyzer")
+	hud._preview_build()
+	check(not hud._place.disabled, "Valid, affordable placement is enabled")
+	hud._place.pressed.emit()
+	f.process_pending_commands()
+	check(hud._selected(hud._tasks) == JOB and hud._tabs.current_tab == hud.Tab.CREW,
+		"Successful placement opens the new construction job")
+	hud._suggest_button.pressed.emit()
+	check(hud._selected_crew().size() == 1 and not hud._assign_button.disabled,
+		"Suggested crew can take the new job")
+	hud._assign_button.pressed.emit()
+	f.process_pending_commands()
+	check(hud._assign_button.disabled and not hud._cancel_button.disabled,
+		"Occupied job slot prevents accidental reassignment")
+	ticks(f, 20)
+	check(f.state.buildings.building_000006.lifecycle == "commissioned", "Build and assign through the mounted HUD")
+
+	hud.select_crew(OTHER)
+	hud.select_site(SITE)
+	check(hud._selected(hud._sites) == SITE and hud._tabs.current_tab == hud.Tab.EVA
+		and not hud._launch.disabled, "Map site selection opens a valid EVA plan")
+	hud._oxygen.value = 0.01
+	check(hud._launch.disabled and "Load at least" in hud._eva_forecast.text, "Unsafe suit load shows a reserve warning")
+	hud._oxygen.value = 0.12
+	hud._launch.pressed.emit()
+	f.process_pending_commands()
+	ticks(f, 2)
+	hud._save_load(false)
+	var astronaut: Node3D = view._avatars[OTHER]
+	var saved_position: Vector3 = astronaut._target
+	astronaut.position += Vector3(5.0, 0.0, 5.0)
+	hud._save_load(true)
+	check(astronaut.position.is_equal_approx(saved_position) and hud._selected_crew().is_empty(),
+		"Loading the same checkpoint snaps avatars and clears the old selection")
+	hud._recall.pressed.emit()
+	f.process_pending_commands()
+	check(f.state.expeditions[TRIP].status == "returning", "Recall works from the restored expedition")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))
+
+	var next := opened(5)
+	control.bind(crew_root, next, next.adapter, next.world, next.catalog)
+	check(hud._crew.item_count == 5 and view._avatars.size() == 5 and crew_root.get_child_count() == 1,
+		"Rebinding reuses the mount and shows the new roster")
+	ticks(f, 1)
+	check(hud._crew.item_count == 5, "Old simulation no longer updates Mission Control")
+	control.free()
+	crew_root.free()
 
 # The shared contract allows float tolerance across JSON and engine boundaries.
 func equivalent(a: Variant, b: Variant) -> bool:

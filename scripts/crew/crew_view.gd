@@ -7,6 +7,7 @@ signal crew_selected(crew_id: String)
 var _avatars: Dictionary = {}
 var _campaign := ""
 var _revision := -1
+var _selected_crew: Array = []
 
 func apply_snapshot(snapshot: Dictionary, force_snap: bool = false) -> void:
 	if not snapshot.has("crew"):
@@ -27,3 +28,9 @@ func apply_snapshot(snapshot: Dictionary, force_snap: bool = false) -> void:
 			avatar.selected.connect(func(crew_id: String): crew_selected.emit(crew_id))
 			_avatars[id] = avatar
 		_avatars[id].apply_record(snapshot.crew[id], snap)
+		_avatars[id].set_selected(id in _selected_crew)
+
+func set_selected_crew(ids: Array) -> void:
+	_selected_crew = ids.duplicate()
+	for id in _avatars:
+		_avatars[id].set_selected(id in _selected_crew)
