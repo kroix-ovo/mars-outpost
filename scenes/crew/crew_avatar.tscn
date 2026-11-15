@@ -1,0 +1,36 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/crew/crew_avatar.gd" id="1"]
+
+[sub_resource type="StandardMaterial3D" id="Suit"]
+albedo_color = Color(0.86, 0.76, 0.55, 1)
+
+[sub_resource type="CapsuleMesh" id="Body"]
+material = SubResource("Suit")
+radius = 0.23
+height = 1.3
+
+[sub_resource type="CapsuleShape3D" id="Hit"]
+radius = 0.3
+height = 1.4
+
+[node name="CrewAvatar" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Suit" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.7, 0)
+mesh = SubResource("Body")
+
+[node name="Nameplate" type="Label3D" parent="."]
+position = Vector3(0, 1.58, 0)
+billboard = 1
+font_size = 46
+outline_size = 10
+
+[node name="Picker" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Picker"]
+position = Vector3(0, 0.7, 0)
+shape = SubResource("Hit")
+
+[connection signal="input_event" from="Picker" to="." method="_on_pick"]
