@@ -30,6 +30,8 @@ func _process(_delta: float) -> bool:
 		_out = "%s/%dx%d" % [OUT_ROOT, window.x, window.y]
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_out))
 		_hud = _main.get("_hud")
+		# These scripts exercise free play; the interactive tutorial has its own checks.
+		_hud.tutorial_press("skip")
 		_bridge = _main.get_node("Integration")
 		print("EVIDENCE window ", window, " logical viewport ", size, " backend ", _bridge.backend_kind)
 	match _step:

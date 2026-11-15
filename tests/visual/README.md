@@ -17,13 +17,28 @@ The rendered scripts need a real window (the headless display server uses a 64×
 `capture_visual_evidence.gd` plays both worlds through the production simulation and HUD handlers: module selection, a training EVA launch and recall, a completed salvage trip, map placement, construction assignment and commissioning, a reference repair, the disabled reference EVA, the collapsed drawer and the diagnostics view. It writes PNGs to `docs/evidence/visual_polish/<window size>/` and prints `EVIDENCE` lines with the observed simulation states. The project uses `canvas_items` stretch, so a 1280×720 window shows the same 1600×900 logical layout scaled to 80%.
 
 
-The guided mission layout has a separate rendered check:
+The interactive tutorial has a rendered walkthrough with layout assertions:
 
 ```powershell
-& '<godot-console>' --path . --resolution 1280x720 --script tests/visual/run_first_shift_layout.gd
-& '<godot-console>' --path . --resolution 1600x900 --script tests/visual/run_first_shift_layout.gd
+& '<godot-console>' --path . --resolution 1280x720 --audio-driver Dummy --script tests/visual/run_tutorial_layout.gd
+& '<godot-console>' --path . --resolution 1600x900 --audio-driver Dummy --script tests/visual/run_tutorial_layout.gd
 ```
 
-It checks panel bounds, status-strip overflow and physical guide text size, then captures the training guide, a two-crew EVA plan and the reference guide in `docs/evidence/first_shift/<window size>/`. Success marker: `FIRST_SHIFT_LAYOUT_PASS`. These are scripted rendered checks; they do not certify audio or human usability.
+It plays the tutorial through HUD handlers and the production simulation and, at each key step, asserts the following, then saves PNGs to `docs/evidence/tutorial/<window size>/`:
 
-`tests/crew_ui/run_first_shift.gd` runs through the real main scene, HUD handlers and production simulation: empty recall, successful salvage, placement, labor, commissioning, transition to reference repairs, all starting repair completions, and restart. It checks progress against those outcomes and is included in `tests/run_headless_checks.py`.
+- the card and every highlight are on screen;
+- no highlighted control or world target is hidden under the card;
+- card text is at least 16 physical pixels;
+- Launch is fully visible.
+
+Success marker: `TUTORIAL_LAYOUT_PASS`. The input probe and the visual-polish capture call `tutorial_press("skip")` first, because they exercise free play.
+
+`tests/crew_ui/run_tutorial_mission.gd` (in `tests/run_headless_checks.py`, marker `TUTORIAL_PASS`) plays the whole tutorial headless against the real backend and covers:
+
+- paused welcome, with Start tutorial as the single pointed-at action;
+- out-of-order selection, collapsed drawer, skip/resume, a failed tick with restart;
+- a one-astronaut salvage shortfall, an empty recall, then full salvage;
+- blocked placement, placement, cancelled construction with refund, assignment and commissioning;
+- the reference restart, systems, a cancelled starting repair with restart recovery, every repair, the debrief and finish.
+
+These are scripted checks; they do not certify audio or human usability.

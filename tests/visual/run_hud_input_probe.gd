@@ -32,6 +32,8 @@ func _process(_delta: float) -> bool:
 		0:
 			if _frame >= 10:
 				_hud = _main.get("_hud")
+				# These scripts exercise free play; the interactive tutorial has its own checks.
+				_hud.tutorial_press("skip")
 				_rig = _main.get_node("CameraRig")
 				_check(_rig._target_distance <= 34.0, "camera starts framed on the colony (distance %.1f)" % _rig._target_distance)
 				_hud._time(0)

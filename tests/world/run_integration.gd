@@ -36,6 +36,9 @@ func _process(_delta: float) -> bool:
     _frames += 1
     var bridge: Node = _main.get_node("Integration")
     if _frames == 2:
+        # These checks exercise free play with a running clock; the tutorial (which starts each
+        # colony paused) is covered by tests/crew_ui/run_tutorial_mission.gd.
+        _main._hud.tutorial_press("skip")
         _check(bridge.backend_kind == "simulation", "scene AUTO backend picks OutpostSimulation, got " + bridge.backend_kind)
         _scene_tick_at_start = int(bridge.get_snapshot().get("clock", {}).get("tick_index", -1))
         bridge.set_time_scale(20)

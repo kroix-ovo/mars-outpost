@@ -6,7 +6,8 @@ extends Control
 ## a collapsible contextual drawer (Jobs / Build / EVA / Systems / Guide) on the right and a
 ## status toast at the bottom left. Empty space passes mouse input to the world.
 
-const FirstShift = preload("res://scripts/ui/first_shift.gd")
+const TutorialMission = preload("res://scripts/ui/tutorial_mission.gd")
+const TutorialOverlay = preload("res://scripts/ui/tutorial_overlay.gd")
 const SaveSlot = preload("res://scripts/ui/outpost_save_slot.gd")
 const Icon = preload("res://scripts/ui/hud_icon.gd")
 const TERMINAL := ["completed", "cancelled", "failed"]
@@ -22,6 +23,7 @@ const CREW_WIDTH := 252.0
 const TOP_HEIGHT := 46.0
 
 signal reference_requested
+signal training_requested
 signal crew_selected(crew_id: String)
 signal placement_preview(request: Dictionary, result: Dictionary)
 ## Emitted when the visible world area changes: pixels covered on the left and right.
@@ -39,11 +41,38 @@ var _state: Dictionary = {}
 var _session := ""
 var _seq := 0
 var _pending: Dictionary = {}
-var _mission := FirstShift.new()
-var _mission_reset := true
-var _mission_title: Label
-var _mission_text: Label
-var _mission_action: Button
+var _tour := TutorialMission.new()
+var _tour_enabled := false  # Only the main scene turns the tutorial on.
+var _tour_reset := true
+var _tour_step: Dictionary = {}
+var _tour_step_id := ""
+var _tour_failure := {}
+var _sim_failed := ""
+var _tour_card: PanelContainer
+var _tour_progress: Label
+var _tour_flash: Label
+var _tour_title: Label
+var _tour_body: Label
+var _tour_recovery: Label
+var _tour_move: Label
+var _tour_action: Label
+var _tour_why: Label
+var _tour_buttons: HBoxContainer
+var _tour_skip: Button
+var _tour_primary: Button
+var _tour_overlay: Control
+var _tour_guide_buttons: HBoxContainer
+var _tour_resume: Button
+var _world_projector: Callable
+var _world_points: Dictionary = {}
+var _world_placement := {"active": false, "definition_id": "", "valid": true, "reason": ""}
+var _recommended_cell: Array = []
+var _recommended_for := ""
+var _eva_summary: Label
+var _eva_details: VBoxContainer
+var _eva_details_toggle: Button
+var _suggest_button: Button
+var _assign_button: Button
 var _stale := false
 var _alert_ids: Array = []
 var _hud_title: Label
@@ -95,6 +124,8 @@ var _drawer_body: VBoxContainer
 var _drawer_toggle: Button
 var _toast: PanelContainer
 var _detail_toggle: Button
+var _eva_forecast_ok := false
+var _eva_forecast_reason := ""
 var _alert_list: Label
 var _crew_hint: Label
 var _drawer_open := true
@@ -120,7 +151,9 @@ func bind(simulation: RefCounted, crew_adapter: RefCounted, world_service: RefCo
 	_save_path = save_path
 	_state = {}
 	_pending.clear()
-	_mission_reset = true
+	_tour_reset = true
+	_sim_failed = ""
+	_tour_failure = {}
 	_alert_ids.clear()
 	_reset_session()
 	if _simulation == null:
@@ -130,7 +163,6 @@ func bind(simulation: RefCounted, crew_adapter: RefCounted, world_service: RefCo
 	if is_node_ready():
 		_on_snapshot(_simulation.get_snapshot())
 		_refresh_capabilities()
-		_open_tab("Guide")
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -139,6 +171,7 @@ func _ready() -> void:
 	_build_crew_card()
 	_build_drawer()
 	_build_toast()
+	_build_tutorial()
 	_audio = AudioStreamPlayer.new()
 	add_child(_audio)
 	resized.connect(_apply_layout)
@@ -245,12 +278,6 @@ func _build_crew_card() -> void:
 		_refresh_selection())
 	_crew_text = _label(body, "", 12)
 	_crew_text.add_theme_color_override("font_color", DIM)
-	var rule := HSeparator.new()
-	body.add_child(rule)
-	_mission_title = _label(body, "FIRST SHIFT", 16)
-	_mission_title.add_theme_color_override("font_color", AMBER)
-	_mission_text = _label(body, "", 16)
-	_mission_action = _button(body, "Open EVA", _mission_next)
 
 func _build_drawer() -> void:
 	_drawer = _panel(self)
@@ -283,9 +310,7 @@ func _build_drawer() -> void:
 	_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_tabs.focus_mode = Control.FOCUS_NONE
 	_tabs.tab_changed.connect(func(_i: int):
-		if _tabs.get_tab_title(_tabs.current_tab) == "Systems" and not _state.is_empty():
-			_mission.done.systems = true
-			_refresh_guide()
+		_tour_refresh()
 		_fit_drawer.call_deferred())
 	_drawer_body.add_child(_tabs)
 
@@ -296,10 +321,10 @@ func _build_drawer() -> void:
 	_task_text = _label(jobs, "", 13)
 	_priority = _number(jobs, "Priority (higher first)", 0, 100, 1, 50)
 	var job_actions := _row(jobs, 6)
-	var suggest := _button(job_actions, "Suggest crew", _suggest)
-	suggest.tooltip_text = "Select the recommended available astronauts"
-	var assign := _button(job_actions, "Assign selected", _assign)
-	assign.tooltip_text = "Assign the astronauts selected in the crew roster"
+	_suggest_button = _button(job_actions, "Suggest crew", _suggest)
+	_suggest_button.tooltip_text = "Select the recommended available astronauts"
+	_assign_button = _button(job_actions, "Assign selected", _assign)
+	_assign_button.tooltip_text = "Assign the astronauts selected in the crew roster"
 	var cancel := _button(jobs, "Cancel job", func():
 		var id := _selected(_tasks)
 		if not id.is_empty():
@@ -330,17 +355,26 @@ func _build_drawer() -> void:
 
 	var eva := _page("EVA")
 	_section(eva, "Plan a salvage trip")
-	_hint(eva, "Uses the astronauts selected in the crew roster.")
+	_hint(eva, "Uses the astronauts selected in the crew list.")
 	_sites = _option(eva)
 	_sites.item_selected.connect(func(_i: int): _preview_eva())
-	var supplies := _row(eva, 6)
+	# Plain-language safety summary and Launch stay at the top; editable supply numbers and
+	# the per-phase forecast live behind a toggle so Launch never falls below the fold.
+	_eva_summary = _label(eva, "", 16)
+	_launch = _button(eva, "Launch expedition", func(): _send("start_eva", _eva_request()))
+	_eva_details_toggle = _button(eva, "Show supplies and forecast details", func():
+		_eva_details.visible = not _eva_details.visible
+		_eva_details_toggle.text = "Hide supplies and forecast details" if _eva_details.visible else "Show supplies and forecast details"
+		_fit_drawer.call_deferred())
+	_eva_details = _column(eva, 6)
+	_eva_details.visible = false
+	var supplies := _row(_eva_details, 6)
 	_work = _number(supplies, "Work s", 1, 100000, 1, 20)
 	_oxygen = _number(supplies, "O₂ kg each", 0, 1000, 0.00001, 0.12)
 	_battery = _number(supplies, "kWh each", 0, 1000, 0.00001, 0.006)
 	for field in [_work, _oxygen, _battery]:
 		field.value_changed.connect(func(_v: float): _preview_eva())
-	_eva_forecast = _label(eva, "", 12)
-	_launch = _button(eva, "Launch expedition", func(): _send("start_eva", _eva_request()))
+	_eva_forecast = _label(_eva_details, "", 12)
 	_section(eva, "Expeditions")
 	_trips = _option(eva)
 	_trips.item_selected.connect(func(_i: int): _refresh_selection())
@@ -360,7 +394,17 @@ func _build_drawer() -> void:
 	_resources.visible = false
 
 	var onboarding := _page("Guide")
-	_tutorial_text = _label(onboarding, "", 13)
+	_section(onboarding, "Tutorial")
+	_tutorial_text = _label(onboarding, "", 16)
+	_tour_guide_buttons = _row(onboarding, 6)
+	_tour_resume = _button(_tour_guide_buttons, "Resume tutorial", func():
+		_tour.active = true
+		_tour_refresh())
+	var restart := _button(_tour_guide_buttons, "Restart tutorial", func():
+		_tour.restart()
+		training_requested.emit())
+	restart.tooltip_text = "Starts the tutorial again from a fresh training colony."
+	_section(onboarding, "Controls")
 	_hint(onboarding, "Pause to plan; commands also resolve while paused. Resume at 1×, 5× or 20×. F2 starts training with synthetic values; F3 starts the reference life-support scenario. F1 shows diagnostics. Campaign saves and agriculture are pending.")
 	_hint(onboarding, "Camera: WASD or middle-drag pans, right-drag or Q/E orbits, wheel zooms, Home recentres. Click modules, sites or astronauts to inspect them.")
 
@@ -400,6 +444,7 @@ func _apply_layout() -> void:
 	_toast.offset_right = minf(right_edge, _toast.offset_left + 620.0)
 	_fit_drawer.call_deferred()
 	layout_changed.emit(8.0 + CREW_WIDTH, 8.0 + (drawer_width if _drawer_open else 46.0))
+	_tour_refresh.call_deferred()
 
 func _fit_crew_card() -> void:
 	if _crew_body == null or not is_inside_tree():
@@ -492,7 +537,7 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 		_stale = false
 		if not _state.is_empty():
 			_pending.clear()
-			_mission_reset = true
+			_tour_reset = true
 			_reset_session()
 	elif tick != int(_state.clock.tick_index):
 		_stale = false
@@ -500,10 +545,6 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 			or snapshot.tasks != _state.tasks:
 		_stale = true
 	_state = snapshot
-	if _mission_reset:
-		_mission.reset(snapshot)
-		_mission_reset = false
-	_mission.observe(snapshot)
 	if _simulation != null and _simulation.has_method("get_capabilities"):
 		_hud_title.text = "TRAINING · SYNTHETIC" if snapshot.campaign_id.begins_with("fixture_") else "REFERENCE COLONY"
 	var scale_value: int = int(snapshot.clock.time_scale)
@@ -515,11 +556,15 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 	_fill_options(_buildings, _building_options(snapshot.buildings))
 	_fill_options(_catalog_menu, _catalog_options())
 	_fill_options(_sites, _labels(snapshot.sites))
+	var known_trips := _trips.item_count
 	_fill_options(_trips, _labels(snapshot.expeditions))
+	if _trips.item_count > known_trips and known_trips > 0:
+		# A newly launched trip becomes the one shown (and recalled) in the EVA tab.
+		_trips.select(_trips.item_count - 1)
 	_refresh_life_support()
 	_refresh_selection()
-	_refresh_guide()
 	_preview_build()
+	_tour_refresh()
 	_fit_drawer.call_deferred()
 
 func _duration(seconds: int) -> String:
@@ -617,6 +662,7 @@ func _refresh_selection() -> void:
 	_crew_text.text = "Select an astronaut to inspect their skills." if details.is_empty() else "\n".join(details)
 	_fit_crew_card.call_deferred()
 	crew_selection_changed.emit(_selected_crew())
+	_tour_refresh.call_deferred()
 	var task: Dictionary = _state.tasks.get(_selected(_tasks), {})
 	_task_text.text = "No jobs available." if task.is_empty() else "%s · %.1f / %.1f work s\n%d / %d crew assigned · priority %d%s" % [
 		task.status.capitalize(), task.completed_work_s, task.required_work_s, task.assigned_crew_ids.size(),
@@ -748,6 +794,7 @@ func _preview_build() -> void:
 	_build_preview.text = ("Ready to place. " if result.valid else result.reason + " ") + "Cost: " + _amounts(definition.get("build_cost", {}))
 	_build_preview.add_theme_color_override("font_color", OK_GREEN if result.valid else INK)
 	_place.disabled = not result.valid
+	_tour_refresh.call_deferred()
 	if _place_on_map != null:
 		_place_on_map.disabled = definition.is_empty() or not supported
 	placement_preview.emit(request, result)
@@ -779,6 +826,17 @@ func _preview_eva() -> void:
 	_eva_forecast.text = "\n".join(lines)
 	_eva_forecast.add_theme_color_override("font_color", OK_GREEN if r.ok else INK)
 	_launch.disabled = not r.ok
+	_eva_forecast_ok = r.ok
+	_eva_forecast_reason = "" if r.ok else str(r.reason)
+	if r.ok and r.has("remaining"):
+		var o2 := 100.0 * float(r.remaining.oxygen_kg) / maxf(_oxygen.value, 1e-9)
+		var power := 100.0 * float(r.remaining.battery_kwh) / maxf(_battery.value, 1e-9)
+		_eva_summary.text = "Safe to launch. Each astronaut should come home with about %d%% of their suit oxygen and %d%% of their suit battery left." % [roundi(o2), roundi(power)]
+		_eva_summary.add_theme_color_override("font_color", OK_GREEN)
+	else:
+		_eva_summary.text = "Not ready: " + str(r.reason)
+		_eva_summary.add_theme_color_override("font_color", INK)
+	_tour_refresh()
 
 func _assign() -> void:
 	var id := _selected(_tasks)
@@ -820,6 +878,7 @@ func _send(type: String, payload: Dictionary) -> void:
 		_status.text = "Queued: " + _explain(type)
 	else:
 		_status.text = result.reason
+		_tour_note_failure(str(result.reason))
 		_play("warning")
 
 func _on_event(event: Dictionary) -> void:
@@ -827,9 +886,13 @@ func _on_event(event: Dictionary) -> void:
 		var type: String = _pending[event.data.command_id]
 		_pending.erase(event.data.command_id)
 		_status.text = _explain(type) + " accepted." if event.data.success else event.data.reason
-		if event.data.success:
-			_refresh_guide()
+		if not event.data.success:
+			_tour_note_failure(str(event.data.reason))
 		_play("confirm" if event.data.success else "warning")
+	elif event.type == "command_result" and not event.data.success:
+		# Commands from the world (map placement) are not tracked as pending HUD commands.
+		_status.text = str(event.data.reason)
+		_tour_note_failure(str(event.data.reason))
 	elif event.type in ["building_commissioned", "eva_returned", "task_completed"]:
 		_status.text = _explain(event.type)
 		_play("confirm")
@@ -841,7 +904,7 @@ func _save_load(load_game: bool) -> void:
 	_status.text = ("Save loaded." if load_game else "Colony saved.") if result.ok else result.reason
 	if result.ok and load_game:
 		_pending.clear()
-		_mission_reset = true
+		_tour_reset = true
 		_reset_session()
 		_stale = false
 		_on_snapshot(_simulation.get_snapshot())
@@ -859,32 +922,424 @@ func _reset_session() -> void:
 	_seq = 0
 
 func _refresh_guide() -> void:
+	## Guide tab: the tutorial checklist for the current colony plus resume/restart controls.
 	if _tutorial_text == null:
 		return
-	var objectives := _mission.objectives()
-	var complete := _mission.completed_count()
-	var title := "FIRST SHIFT" if _mission.training else "COLONY REPAIRS"
-	_mission_title.text = "%s · %d/%d" % [title, complete, objectives.size()]
-	var active := _mission.current()
-	var lines: Array[String] = [title]
-	for objective in objectives:
-		lines.append(("✓  " if _mission.done.has(objective[0]) else "○  ") + objective[1] + "\n" + objective[2])
-	if active.is_empty():
-		_mission_text.text = "Shift complete! Salvage returned and new storage is online." if _mission.training else "Repairs complete! Keep monitoring supplies and alerts."
-		_mission_action.text = "Start colony repairs" if _mission.training else "Inspect systems"
-		lines.append(_mission_text.text)
+	var lines: Array[String] = []
+	if _tour_step.is_empty():
+		lines.append("Tutorial finished. Restart it any time." if _tour.finished else "The tutorial is paused. Resume it, or restart it from a fresh training colony.")
 	else:
-		_mission_text.text = active[1] + "\nOpen Guide for the steps and purpose."
-		_mission_action.text = "Open " + active[3]
-	_tutorial_text.text = "\n\n".join(lines)
-	_fit_crew_card.call_deferred()
+		lines.append("%s · step %d of %d" % [_tour_step.phase_title, _tour_step.index + 1, _tour_step.total])
+		for item in _tour_step.checklist:
+			lines.append(("✓  " if item.done else ("▸  " if item.current else "○  ")) + str(item.title))
+	_tutorial_text.text = "\n".join(lines)
+	_tour_resume.visible = _tour_enabled and not _tour.active and not _tour.finished
 
-func _mission_next() -> void:
-	var active := _mission.current()
-	if active.is_empty() and _mission.training:
-		reference_requested.emit()
+# ---------------------------------------------------------------- tutorial mission
+
+func enable_tutorial(enabled: bool = true) -> void:
+	## The main scene opts in. Test harnesses that bind the HUD directly stay tutorial-free.
+	_tour_enabled = enabled
+	_tour.restart()
+	_tour.active = enabled
+	_tour_reset = true
+	_tour_refresh()
+
+func on_simulation_failed(result: Dictionary) -> void:
+	_sim_failed = str(result.get("reason", "unknown error"))
+	_tour_refresh()
+
+func set_world_projector(projector: Callable) -> void:
+	_world_projector = projector
+
+func set_world_points(points: Dictionary) -> void:
+	_world_points = points.duplicate()
+
+func set_world_placement(active: bool, definition_id: String, result: Dictionary) -> void:
+	_world_placement = {"active": active, "definition_id": definition_id,
+		"valid": bool(result.get("valid", true)), "reason": str(result.get("reason", ""))}
+	_tour_refresh.call_deferred()
+
+func tutorial_step() -> Dictionary:
+	return _tour_step.duplicate(true)
+
+func tutorial_press(id: String) -> void:
+	## Same handler the card buttons use; exposed for tests and keyboard shortcuts.
+	_tour_button(id)
+
+func _tour_note_failure(reason: String) -> void:
+	_tour_failure = {"step": _tour_step_id, "text": reason}
+	_tour_refresh.call_deferred()
+
+func _build_tutorial() -> void:
+	_tour_card = _panel(self)
+	_tour_card.name = "TutorialCard"
+	_tour_card.add_theme_stylebox_override("panel", _box(Color(0.06, 0.07, 0.085, 0.96), 10, 18, 14, Color(AMBER, 0.85)))
+	var body := _column(_tour_card, 6)
+	_tour_progress = _label(body, "", 14)
+	_tour_progress.add_theme_color_override("font_color", DIM)
+	_tour_flash = _label(body, "", 16)
+	_tour_flash.add_theme_color_override("font_color", OK_GREEN)
+	_tour_title = _label(body, "", 22)
+	_tour_title.add_theme_color_override("font_color", AMBER)
+	_tour_body = _label(body, "", 17)
+	_tour_recovery = _label(body, "", 17)
+	_tour_recovery.add_theme_color_override("font_color", Color("#ffb08a"))
+	_tour_move = _label(body, "YOUR MOVE", 13)
+	_tour_move.add_theme_color_override("font_color", AMBER)
+	_tour_action = _label(body, "", 18)
+	_tour_action.add_theme_color_override("font_color", Color.WHITE)
+	_tour_why = _label(body, "", 15)
+	_tour_why.add_theme_color_override("font_color", DIM)
+	var row := _row(body, 8)
+	_tour_buttons = _row(row, 8)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+	_tour_skip = _button(row, "Skip tutorial", func(): _tour_button("skip"))
+	_tour_skip.flat = true
+	_tour_skip.add_theme_color_override("font_color", DIM)
+	_tour_skip.tooltip_text = "Hide the tutorial and play freely. Resume or restart it from the Guide tab."
+	_tour_card.visible = false
+	_tour_overlay = TutorialOverlay.new()
+	_tour_overlay.name = "TutorialHighlight"
+	add_child(_tour_overlay)
+	_tour_overlay.resolver = _tour_targets
+	_tour_overlay.visible = false
+
+func _tour_ctx() -> Dictionary:
+	var training: bool = str(_state.get("campaign_id", "")).begins_with("fixture_")
+	var storage_id := ""
+	for id in _keys(_catalog):
+		if id.contains("storage"):
+			storage_id = id
+			break
+	var names := {}
+	for id in _state.get("crew", {}):
+		names[id] = _state.crew[id].display_name
+	var catalog_names := {}
+	for id in _catalog:
+		catalog_names[id] = _catalog[id].get("display_name", id)
+	return {"snapshot": _state, "training": training,
+		"tab": _tabs.get_tab_title(_tabs.current_tab) if _drawer_open else "",
+		"drawer_open": _drawer_open, "selected_crew": _selected_crew(),
+		"selected_site": _selected(_sites), "selected_task": _selected(_tasks),
+		"catalog_selected": _selected(_catalog_menu), "storage_id": storage_id,
+		"storage_cost": _catalog.get(storage_id, {}).get("build_cost", {}),
+		"storage_effect": _storage_effect(storage_id),
+		"placement": _world_placement, "forecast_ok": _eva_forecast_ok,
+		"forecast_reason": _eva_forecast_reason, "sim_failed": _sim_failed,
+		"names": names, "catalog_names": catalog_names}
+
+func _storage_effect(definition_id: String) -> String:
+	## Describe what the storage module adds, read from its definition (never assumed).
+	var parts: Array[String] = []
+	var capacity: Dictionary = _catalog.get(definition_id, {}).get("storage_capacity", {})
+	for id in _keys(capacity):
+		var unit: String = _state.get("resources", {}).get(id, {}).get("unit", "")
+		parts.append("%s more %s of %s storage" % [_short_number(float(capacity[id])), unit, _resource_name(id).to_lower()])
+	return "it gives the colony " + " and ".join(parts) if not parts.is_empty() else "more storage capacity"
+
+static func _short_number(value: float) -> String:
+	return str(int(value)) if is_equal_approx(value, roundf(value)) else "%.1f" % value
+
+func _tour_refresh() -> void:
+	if _tour_card == null or _state.is_empty() or _tabs == null:
+		return
+	if not _tour_enabled:
+		_tour_card.visible = false
+		_tour_overlay.visible = false
+		return
+	if _tour_reset:
+		# A colony (re)started: remember what it began with and start paused, as taught.
+		_tour_reset = false
+		_tour.set_baseline(_state)
+		_recommended_for = ""
+		if _tour.active and int(_state.clock.time_scale) != 0:
+			_time(0)
+	if _tabs.get_tab_title(_tabs.current_tab) == "Systems" and _drawer_open:
+		_tour.mark_systems_seen()
+	_tour_step = _tour.evaluate(_tour_ctx())
+	_refresh_guide()
+	if _tour_step.is_empty():
+		_tour_card.visible = false
+		_tour_overlay.visible = false
+		return
+	if _tour_step.id != _tour_step_id:
+		_tour_step_id = _tour_step.id
+		_scroll_target_into_view.call_deferred()
+	var step := _tour_step
+	_tour_card.visible = true
+	_tour_overlay.visible = true
+	_tour_progress.text = "%s · step %d of %d" % [step.phase_title, step.index + 1, step.total]
+	var flashing: bool = Time.get_ticks_msec() < _tour.flash_until_ms
+	_tour_flash.text = _tour.flash if flashing else ""
+	_tour_flash.visible = flashing
+	_tour_title.text = step.title
+	_tour_body.text = step.body
+	var recovery: String = step.recovery
+	if recovery.is_empty() and _tour_failure.get("step", "") == step.id:
+		recovery = "That did not work: %s" % _tour_failure.text
+	if recovery.is_empty() and _target_hidden_in_drawer(step.target):
+		recovery = "Mission control is hidden. Click « at the top right to show it."
+	_tour_recovery.text = recovery
+	_tour_recovery.visible = not recovery.is_empty()
+	_tour_action.text = step.action
+	_tour_why.text = ("Why: " + step.why) if not str(step.why).is_empty() else ""
+	_tour_why.visible = not _tour_why.text.is_empty()
+	for child in _tour_buttons.get_children():
+		child.queue_free()
+	_tour_primary = null
+	for spec in step.buttons:
+		var button := _button(_tour_buttons, spec.label, _tour_button.bind(str(spec.id)))
+		button.disabled = bool(spec.get("disabled", false))
+		if spec.id == "skip":
+			button.flat = true
+			button.add_theme_color_override("font_color", DIM)
+		elif _tour_primary == null and not str(spec.id).begins_with("add_crew:"):
+			# The one prominent action: filled amber, larger text.
+			_tour_primary = button
+			button.add_theme_font_size_override("font_size", 19)
+			button.add_theme_color_override("font_color", Color("#1a1308"))
+			button.add_theme_stylebox_override("normal", _box(AMBER, 6, 18, 9, AMBER))
+			button.add_theme_stylebox_override("hover", _box(AMBER.lightened(0.15), 6, 18, 9, AMBER))
+		else:
+			button.add_theme_stylebox_override("normal", _box(Color(AMBER, 0.2), 4, 12, 6, AMBER))
+	_tour_skip.visible = not step.centered
+	_place_tour_card()
+
+func _place_tour_card() -> void:
+	## Width is fixed; height follows content through grow directions, so autowrapped text
+	## never collapses the card to its narrowest word.
+	var step := _tour_step
+	var width := size.x if size.x > 0 else 1280.0
+	var card_w := 0.0
+	if step.centered:
+		card_w = minf(600.0, width - 80.0)
+		_tour_card.set_anchors_preset(Control.PRESET_CENTER)
+		_tour_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_tour_card.grow_vertical = Control.GROW_DIRECTION_BOTH
+		_tour_card.offset_left = -card_w * 0.5
+		_tour_card.offset_right = card_w * 0.5
+		_tour_card.offset_top = 0
+		_tour_card.offset_bottom = 0
 	else:
-		_open_tab("Systems" if active.is_empty() else active[3])
+		var left := 8.0 + CREW_WIDTH + 12.0
+		var right := width - 8.0 - (_drawer.size.x if _drawer.visible else 0.0) - 12.0
+		var points: Array = _tour_targets().points
+		# Steps that point into the world use a wide, short card so the target stays clear.
+		var world_step := not points.is_empty()
+		card_w = clampf(right - left, 300.0, 640.0 if world_step else 480.0)
+		_tour_why.visible = _tour_why.visible and not world_step
+		# Bottom of the world area by default; at the top when the target is in the lower half.
+		var at_top := false
+		var middle := (8.0 + TOP_HEIGHT + (size.y if size.y > 0 else 720.0)) * 0.5
+		for point in points:
+			if point.at.y > middle:
+				at_top = true
+		_tour_card.anchor_left = 0.0
+		_tour_card.anchor_right = 0.0
+		_tour_card.anchor_top = 0.0 if at_top else 1.0
+		_tour_card.anchor_bottom = _tour_card.anchor_top
+		_tour_card.grow_vertical = Control.GROW_DIRECTION_END if at_top else Control.GROW_DIRECTION_BEGIN
+		_tour_card.offset_left = left
+		_tour_card.offset_right = left + card_w
+		_tour_card.offset_top = 8.0 + TOP_HEIGHT + 8.0 if at_top else -56.0
+		_tour_card.offset_bottom = _tour_card.offset_top
+	_tour_card.custom_minimum_size = Vector2(card_w, 0)
+	move_child(_tour_card, get_child_count() - 1)
+	move_child(_tour_overlay, get_child_count() - 1)
+
+func _tour_button(id: String) -> void:
+	if id == "skip":
+		_tour.skip()
+		_status.text = "Tutorial hidden. Resume or restart it from the Guide tab."
+	elif id.begins_with("add_crew:"):
+		var crew_id := id.get_slice(":", 1)
+		for i in _crew.item_count:
+			if _crew.get_item_metadata(i) == crew_id:
+				_crew.select(i, false)
+		_refresh_selection()
+	elif id == "go_reference" or id == "restart_reference":
+		reference_requested.emit()
+	elif id == "restart_training":
+		training_requested.emit()
+	else:
+		_tour.acknowledge(id)
+	_tour_refresh()
+
+func _scroll_target_into_view() -> void:
+	var control := _tour_control(str(_tour_step.get("target", {}).get("id", ""))) if _tour_step.get("target", {}).get("kind") == "control" else null
+	if control == null or not control.is_visible_in_tree():
+		return
+	var parent := control.get_parent()
+	while parent != null and not parent is ScrollContainer:
+		parent = parent.get_parent()
+	if parent is ScrollContainer:
+		parent.ensure_control_visible(control)
+
+func _target_hidden_in_drawer(target: Dictionary) -> bool:
+	return not _drawer_open and target.get("kind") in ["tab", "control"] and target.get("id") != "oxygen_info_hidden"
+
+func _tour_control(id: String) -> Control:
+	match id:
+		"eva_summary": return _eva_summary
+		"launch": return _launch
+		"catalog": return _catalog_menu
+		"place_on_map": return _place_on_map
+		"tasks": return _tasks
+		"suggest": return _suggest_button
+		"assign": return _assign_button
+		"oxygen_info": return _oxygen_info
+		"trip_text": return _trip_text
+	return null
+
+func _tour_targets() -> Dictionary:
+	## Screen rects/points for the current step's target, in HUD coordinates.
+	var result := {"rects": [], "points": []}
+	if _tour_step.is_empty():
+		return result
+	var target: Dictionary = _tour_step.get("target", {})
+	result.context = []
+	if _tour_primary != null and is_instance_valid(_tour_primary) and _tour_primary.is_visible_in_tree():
+		# This step waits for the card's own button: point only at it, keep the subject as context.
+		result.rects.append(_tour_primary.get_global_rect())
+		var context := {"rects": [], "points": []}
+		if target.get("kind") == "world" or target.has("world"):
+			_add_world_target(context, target if target.get("kind") == "world" else target.world)
+		elif target.get("kind") == "control":
+			var control := _tour_control(str(target.id))
+			if control != null and control.is_visible_in_tree():
+				context.rects.append(_visible_rect(control))
+		result.context = context.points + context.rects
+		return result
+	if _target_hidden_in_drawer(target):
+		result.rects.append(_drawer_toggle.get_global_rect())
+		return result
+	match str(target.get("kind", "")):
+		"crew":
+			for i in _crew.item_count:
+				if _crew.get_item_metadata(i) == target.id:
+					var r := _crew.get_item_rect(i)
+					result.rects.append(Rect2(_crew.get_global_rect().position + r.position, r.size))
+		"tab":
+			var bar := _tabs.get_tab_bar()
+			for i in _tabs.get_tab_count():
+				if _tabs.get_tab_title(i) == target.id:
+					var r := bar.get_tab_rect(i)
+					result.rects.append(Rect2(bar.get_global_rect().position + r.position, r.size))
+		"control":
+			var control := _tour_control(str(target.id))
+			if control != null and control.is_visible_in_tree():
+				result.rects.append(_visible_rect(control))
+		"speed":
+			var button: Button = _speed_buttons.get(int(target.id))
+			if button != null:
+				result.rects.append(button.get_global_rect())
+		"world":
+			_add_world_target(result, target)
+	var secondary: Dictionary = target.get("world", {})
+	if not secondary.is_empty():
+		_add_world_target(result, secondary)
+	var extra := str(target.get("secondary", ""))
+	if not extra.is_empty():
+		var control := _tour_control(extra)
+		if control != null and control.is_visible_in_tree():
+			result.rects.append(_visible_rect(control))
+	return result
+
+func _visible_rect(control: Control) -> Rect2:
+	var rect := control.get_global_rect()
+	var parent := control.get_parent()
+	while parent != null:
+		if parent is ScrollContainer:
+			rect = rect.intersection(parent.get_global_rect())
+			break
+		parent = parent.get_parent()
+	return rect
+
+func _add_world_target(result: Dictionary, target: Dictionary) -> void:
+	var point: Variant = null
+	var label := str(target.get("label", ""))
+	match str(target.get("kind", "world")) + ":" + str(target.get("id", "")):
+		"world:lander":
+			point = _world_points.get("lander")
+		"world:cell":
+			var cell := _recommended_storage_cell()
+			if not cell.is_empty():
+				point = Vector3(cell[0] + 0.5, 0.1, cell[1] + 0.5)
+		"world:trip":
+			point = _trip_position()
+		"world:storage":
+			point = _storage_position()
+		"world:building":
+			point = _building_position(str(target.get("building", "")))
+	if str(target.get("kind")) == "site":
+		var site: Dictionary = _state.get("sites", {}).get(str(target.get("id", "")), {})
+		if not site.is_empty():
+			point = Vector3(site.cell[0] + 0.5, 0.6, site.cell[1] + 0.5)
+			label = "Salvage cache"
+	elif str(target.get("kind")) == "building":
+		point = _building_position(str(target.get("id", "")))
+		label = "Damaged module"
+	if point == null or not _world_projector.is_valid():
+		return
+	var screen: Variant = _world_projector.call(point)
+	if screen == null:
+		return
+	result.points.append({"at": get_global_transform().affine_inverse() * (screen as Vector2), "label": label})
+
+func _building_position(id: String) -> Variant:
+	var b: Dictionary = _state.get("buildings", {}).get(id, {})
+	if b.is_empty() or _world == null:
+		return null
+	var cells: Array = _world.building_cells(b).occupied_cells
+	var total := Vector3.ZERO
+	for cell in cells:
+		total += Vector3(cell[0] + 0.5, 0.0, cell[1] + 0.5)
+	return total / maxf(1.0, cells.size()) + Vector3(0, 0.8, 0)
+
+func _storage_position() -> Variant:
+	var storage_id: String = _tour_ctx().storage_id
+	var newest := ""
+	for id in _keys(_state.get("buildings", {})):
+		if _state.buildings[id].definition_id == storage_id:
+			newest = id
+	return _building_position(newest) if not newest.is_empty() else null
+
+func _trip_position() -> Variant:
+	var trip: Dictionary = {}
+	for id in _keys(_state.get("expeditions", {})):
+		if _state.expeditions[id].status not in ["completed", "failed"]:
+			trip = _state.expeditions[id]
+	if trip.is_empty():
+		return null
+	var total := Vector3.ZERO
+	for id in trip.crew_ids:
+		var p: Array = _state.crew[id].position_m
+		total += Vector3(p[0], p[1], p[2])
+	return total / maxf(1.0, trip.crew_ids.size()) + Vector3(0, 1.0, 0)
+
+func _recommended_storage_cell() -> Array:
+	## A valid storage cell east of the habitat, nearest the airlock. Cached per revision.
+	var storage_id: String = _tour_ctx().storage_id
+	var key := "%s|%s|%s" % [_state.get("campaign_id", ""), _state.get("revision", -1), storage_id]
+	if key == _recommended_for:
+		return _recommended_cell
+	_recommended_for = key
+	_recommended_cell = []
+	if _world == null or storage_id.is_empty() or not _world.has_method("validate_placement"):
+		return _recommended_cell
+	var airlock: Array = _world.map.base_airlock_cell
+	for radius in range(2, 9):
+		for dz in range(-radius, radius + 1):
+			for dx in range(2, radius + 3):
+				var cell := [int(airlock[0]) + dx, int(airlock[1]) + dz]
+				var check: Dictionary = _world.validate_placement({"definition_id": storage_id, "cell": cell, "rotation_quarters": 0}, _state)
+				if check.valid:
+					_recommended_cell = cell
+					return _recommended_cell
+	return _recommended_cell
 
 func _task_options() -> Dictionary:
 	var keys := _keys(_state.tasks)
@@ -906,8 +1361,8 @@ func _building_options(records: Dictionary, is_catalog: bool = false) -> Diction
 	var result := {}
 	for id in _keys(records):
 		var b: Dictionary = records[id]
-		result[id] = b.get("display_name", id) if is_catalog else "%s · %s" % [
-			_catalog.get(b.definition_id, {}).get("display_name", b.definition_id), id]
+		result[id] = b.get("display_name", id) if is_catalog else "%s · #%s" % [
+			_catalog.get(b.definition_id, {}).get("display_name", b.definition_id), _serial(id)]
 	return result
 
 func _catalog_options() -> Dictionary:
@@ -920,8 +1375,22 @@ func _catalog_options() -> Dictionary:
 func _labels(records: Dictionary) -> Dictionary:
 	var result := {}
 	for id in _keys(records):
-		result[id] = "%s · %s" % [id, records[id].status.capitalize()] if records[id].has("status") else id
+		var record: Dictionary = records[id]
+		if record.has("site_id"):
+			result[id] = "Trip %s · %s" % [_serial(id), record.status.capitalize()]
+		elif record.has("definition_id") and record.has("remaining_cargo"):
+			result[id] = _humanize(str(record.definition_id))
+		else:
+			result[id] = "%s · %s" % [id, record.status.capitalize()] if record.has("status") else id
 	return result
+
+static func _serial(id: String) -> String:
+	## "expedition_000002" -> "2": readable numbering instead of developer IDs.
+	var digits := id.get_slice("_", id.get_slice_count("_") - 1)
+	return str(int(digits)) if digits.is_valid_int() else id
+
+static func _humanize(definition_id: String) -> String:
+	return definition_id.trim_prefix("fixture_").replace("_", " ").capitalize()
 
 func _fill_options(widget: OptionButton, items: Dictionary) -> void:
 	var keep := _selected(widget)

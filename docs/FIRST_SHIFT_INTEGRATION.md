@@ -1,5 +1,7 @@
 # Visual polish and guided first shift
 
+> **Superseded.** The four-objective checklist (`first_shift.gd`) was replaced by the interactive tutorial mission; see [TUTORIAL_REVIEW_HANDOFF.md](TUTORIAL_REVIEW_HANDOFF.md). This page is kept as history.
+
 The clean `codex/cohesive-game` checkout was fast-forwarded from `6de5938` to reviewed visual-polish commit `39f38b6`. The following local changes add readable mission guidance on top of that integration.
 
 The HUD opens Guide on a new colony and keeps the current objective beside the roster. Training asks the player to return salvage, place a storage module, assign its construction crew, and commission it. Completion comes from committed simulation snapshots, including actual EVA return and module lifecycle. Starting modules, unrelated module definitions, an empty recall, and placement without construction do not satisfy those completion conditions. The next-mission button loads the existing reference colony, where the objectives are to inspect Systems and finish all starting repair jobs. Reference EVA remains unavailable under the existing science configuration.

@@ -70,6 +70,7 @@ func _ready() -> void:
     placement.setup(bridge.world_service, camera_rig, terrain, Callable(bridge, "get_snapshot"))
     placement.placement_submitted.connect(_on_placement_submitted)
     placement.preview_changed.connect(_on_preview)
+    placement.mode_changed.connect(func(_active: bool, _id: String) -> void: _sync_hud_placement())
     placement.hover_cell_changed.connect(_on_hover_cell)
     placement.mode_changed.connect(func(active: bool, _id: String) -> void:
         terrain.set_grid_emphasis(active)
@@ -83,6 +84,13 @@ func _ready() -> void:
     _hud.layout_changed.connect(func(left_px: float, right_px: float) -> void:
         camera_rig.hud_width = right_px - left_px)
     _hud.reference_requested.connect(func(): load_world(1))
+    _hud.training_requested.connect(func(): load_world(0))
+    # The interactive tutorial is presentation-only: it reads snapshots and highlights targets.
+    _hud.enable_tutorial(true)
+    _hud.set_world_projector(func(point: Vector3) -> Variant:
+        var camera: Camera3D = camera_rig.camera
+        return null if camera == null or camera.is_position_behind(point) else camera.unproject_position(point))
+    bridge.simulation_failed.connect(_hud.on_simulation_failed)
     _hud.refresh_layout()
     _crew_view.crew_selected.connect(_hud.select_crew)
     _hud.crew_selection_changed.connect(_crew_view.set_selected_crew)
@@ -143,6 +151,7 @@ func _bind_world() -> void:
     if _hud != null:
         var catalog := {}
         for id in bridge.definitions.ids(): catalog[id] = bridge.definitions.get_definition(id)
+        _hud.set_world_points({"lander": lander.position + Vector3(0.0, 3.0, 0.0)})
         _hud.bind(bridge._backend, bridge.crew_adapter, bridge.world_service, catalog)
         _crew_view.apply_snapshot(bridge.get_snapshot(), true)
     _on_snapshot(bridge.get_snapshot())
@@ -201,15 +210,25 @@ func _preview_site_route(site_id: String) -> void:
     routes.show_preview(_hover_route, cell, terrain.surface_height(cell[0] + 0.5, cell[1] + 0.5))
 
 
+func _sync_hud_placement() -> void:
+    if _hud != null:
+        _hud.set_world_placement(placement.active, placement.definition_id, _preview if placement.active else {})
+
+
 func _on_preview(result: Dictionary, request: Dictionary) -> void:
     _preview = result
+    _sync_hud_placement()
     if _hud != null: _hud.set_placement_rotation(int(request.get("rotation_quarters", 0)))
     _refresh_overlay()
 
 
 func _on_placement_submitted(payload: Dictionary) -> void:
     _last_message = "Submitting placement..."
+    var before: int = bridge.get_snapshot().get("buildings", {}).size()
     var response: Dictionary = bridge.submit_place_building(payload)
+    # Leave placement mode once the module exists, so a second click cannot place another by accident.
+    if response.accepted and bridge.get_snapshot().get("buildings", {}).size() > before:
+        placement.cancel_placement()
     if not response.accepted:
         _last_message = "Rejected: %s (%s)" % [response.reason, response.code]
     else:
