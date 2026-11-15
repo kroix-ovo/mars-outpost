@@ -1,6 +1,23 @@
 # Attribution and science sources
 
-No external assets have been imported yet. Record each asset's provenance before adding it to the repository. Scientific parameter references belong in `SCIENCE.md`.
+Record each asset's provenance before adding it to the repository. Scientific parameter references belong in `SCIENCE.md`.
+
+## Current state
+
+- **No external assets have been imported yet.** Every mesh, material and colour in the world scene is generated procedurally by scripts under `scripts/world/` or hand-authored as Godot primitives in `scenes/world/landing_ship.tscn`.
+- `data/maps/landing_plain.json` is a **procedural blockout terrain** authored for this project. Its heights, ridge and crater are game abstractions. It is **not** derived from NASA Mars Trek, MOLA or any other NASA dataset, and no such derivation may be claimed until an entry below records it.
+- No NASA logos, flags, mission identifiers or insignia are used anywhere in the project.
+
+- Authored module scenes under `scenes/buildings/` and the markers in `scripts/world/site_view.gd` are built from Godot primitive meshes only.
+
+## Planned NASA-derived references (not yet imported)
+
+When these are added, download them during development, ship them locally under `assets/nasa/`, and complete a record below for each file. The game must never fetch NASA data at runtime.
+
+- Mars Trek WMTS tiles / MOLA topography for a terrain reference and heightmap. Pipeline ready: `tests/world/tools/heightmap_to_map.gd` turns a downloaded grayscale tile into a map JSON; the asset record below must be filled in first.
+- SWIM subsurface ice maps for the landing-site selection screen.
+- NASA Image and Video Library stills for loading screens and debrief cards (credit each image, e.g. "NASA/JPL-Caltech").
+- Perseverance surface audio for ambience.
 
 ## Asset record template
 

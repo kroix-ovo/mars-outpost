@@ -1,0 +1,294 @@
+extends Node3D
+## Main world scene controller (Task 02 owns this scene). Wires the simulation bridge to the
+## terrain, buildings, utility lines, sites, routes, camera and placement preview, and offers the
+## mount points Task 03 uses: $CrewRoot (Node3D) for crew scenes and $UIRoot (CanvasLayer) for
+## the HUD. Task 03 can also listen to site_selected / building_selected and call
+## begin_placement(definition_id) instead of using the developer keys.
+##
+## Developer overlay keys (until the Task 03 HUD lands):
+##   1-9 pick a building to place, R rotate, Esc cancel, G grid, F1 overlay, Space pause/resume,
+##   +/- time scale, F2/F3 switch world preset, K/L force no_power/clear on hovered building (stub).
+
+signal site_selected(site_id: String, route: Dictionary)
+signal building_selected(building_id: String)
+signal world_loaded(preset_name: String)
+
+const WORLDS := [
+    {
+        "name": "fixture_flat_16",
+        "map": "res://tests/simulation/fixtures/definitions/map/fixture_flat_16.json",
+        "definitions": "res://tests/simulation/fixtures/definitions/buildings",
+        "snapshot": "res://tests/simulation/fixtures/snapshots/salvage_6crew_tick0.json",
+        "backend": 0,  # AUTO: Task 01's facade when present, else the fixture stub
+    },
+    {
+        "name": "landing_plain",
+        "map": "res://data/maps/landing_plain.json",
+        "definitions": "res://data/buildings",
+        "snapshot": "res://tests/world/fixtures/landing_plain_demo_snapshot.json",
+        "backend": 1,  # STUB: authored content has no Task 01 scenario yet
+    },
+]
+
+@onready var bridge: Node = $Integration
+@onready var terrain: Node3D = $Terrain
+@onready var camera_rig: Node3D = $CameraRig
+@onready var buildings: Node3D = $Buildings
+@onready var utilities: Node3D = $Utilities
+@onready var sites: Node3D = $Sites
+@onready var routes: Node3D = $Routes
+@onready var placement: Node3D = $Placement
+@onready var lander: Node3D = $LandingShip
+@onready var overlay: Label = $DevOverlay/Panel/Label
+@onready var overlay_layer: CanvasLayer = $DevOverlay
+
+var world_index: int = 0
+var selected_site: String = ""
+var selected_building: String = ""
+
+var _hover_cell: Array = []
+var _hover_site: String = ""
+var _hover_route: Dictionary = {}
+var _preview: Dictionary = {}
+var _last_message: String = ""
+var _events: Array = []
+
+
+func _ready() -> void:
+    if not bridge.is_ready():
+        overlay.text = "World failed to boot. See the output log."
+        return
+    bridge.snapshot_changed.connect(_on_snapshot)
+    bridge.command_resolved.connect(_on_command_resolved)
+    bridge.game_event.connect(_on_game_event)
+    placement.setup(bridge.world_service, camera_rig, terrain, Callable(bridge, "get_snapshot"))
+    placement.placement_submitted.connect(_on_placement_submitted)
+    placement.preview_changed.connect(_on_preview)
+    placement.hover_cell_changed.connect(_on_hover_cell)
+    placement.mode_changed.connect(func(_active: bool, _id: String) -> void: _refresh_overlay())
+    _bind_world()
+
+
+func load_world(index: int) -> Dictionary:
+    ## Switches map, definitions and fixture snapshot. Everything rendered is rebuilt from the
+    ## new snapshot; nothing carries over.
+    if index < 0 or index >= WORLDS.size():
+        return {"ok": false, "code": "invalid_value", "reason": "No such world preset."}
+    var preset: Dictionary = WORLDS[index]
+    var result: Dictionary = bridge.load_world(preset.map, preset.definitions, preset.snapshot, int(preset.backend))
+    if not result.ok:
+        _last_message = "World load failed: %s (%s)" % [result.reason, result.code]
+        _refresh_overlay()
+        return result
+    world_index = index
+    placement.cancel_placement()
+    placement.setup(bridge.world_service, camera_rig, terrain, Callable(bridge, "get_snapshot"))
+    _bind_world()
+    world_loaded.emit(preset.name)
+    return result
+
+
+func begin_placement(definition_id: String) -> bool:
+    return placement.begin_placement(definition_id)
+
+
+func _bind_world() -> void:
+    var map_data: RefCounted = bridge.map_data
+    terrain.build(map_data)
+    camera_rig.set_map_bounds(map_data.size_cells(), map_data.base_airlock_cell)
+    buildings.reset()
+    buildings.setup(bridge.world_service, terrain)
+    utilities.reset()
+    utilities.setup(bridge.world_service, terrain)
+    sites.reset()
+    sites.setup(terrain)
+    routes.reset()
+    selected_site = ""
+    selected_building = ""
+    _hover_site = ""
+    _hover_route = {}
+    _events.clear()
+    _place_lander(map_data)
+    _on_snapshot(bridge.get_snapshot())
+
+
+func _on_snapshot(snapshot: Dictionary) -> void:
+    buildings.apply_snapshot(snapshot)
+    utilities.apply_snapshot(snapshot)
+    sites.apply_snapshot(snapshot)
+    routes.apply_snapshot(snapshot)
+    placement.refresh_from_snapshot()
+    if selected_site != "":
+        _preview_site_route(selected_site)
+    _refresh_overlay()
+
+
+func _on_hover_cell(cell: Array) -> void:
+    _hover_cell = cell
+    var site_id: String = sites.site_at_cell(cell) if not placement.active else ""
+    if site_id != _hover_site:
+        _hover_site = site_id
+        if selected_site == "":
+            if site_id != "":
+                _preview_site_route(site_id)
+            else:
+                routes.clear_preview()
+                _hover_route = {}
+    _refresh_overlay()
+
+
+func _preview_site_route(site_id: String) -> void:
+    var cell: Array = sites.site_cell(site_id)
+    if cell.is_empty():
+        routes.clear_preview()
+        return
+    _hover_route = bridge.query_route(bridge.map_data.base_airlock_cell, cell)
+    routes.show_preview(_hover_route, cell, terrain.surface_height(cell[0] + 0.5, cell[1] + 0.5))
+
+
+func _on_preview(result: Dictionary, _request: Dictionary) -> void:
+    _preview = result
+    _refresh_overlay()
+
+
+func _on_placement_submitted(payload: Dictionary) -> void:
+    var response: Dictionary = bridge.submit_place_building(payload)
+    if not response.accepted:
+        _last_message = "Rejected: %s (%s)" % [response.reason, response.code]
+    else:
+        _last_message = "Submitted %s" % response.command_id
+    _refresh_overlay()
+
+
+func _on_command_resolved(command_id: String, success: bool, reason: String) -> void:
+    _last_message = "%s -> %s%s" % [command_id, "ok" if success else "failed", "" if reason.is_empty() else (": " + reason)]
+    _refresh_overlay()
+
+
+func _on_game_event(event: Dictionary) -> void:
+    _events.append("%s %s %s" % [str(event.get("id", "")), str(event.get("type", "")), ", ".join(event.get("entity_ids", []))])
+    if _events.size() > 5:
+        _events.pop_front()
+    _refresh_overlay()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+    if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not placement.active:
+        _select_at(_hover_cell)
+        return
+    if not (event is InputEventKey and event.pressed and not event.echo):
+        return
+    var key := event as InputEventKey
+    var ids: Array = bridge.definitions.ids()
+    if key.keycode >= KEY_1 and key.keycode <= KEY_9:
+        var index := key.keycode - KEY_1
+        if index < ids.size():
+            placement.begin_placement(ids[index])
+            get_viewport().set_input_as_handled()
+    elif key.keycode == KEY_G:
+        terrain.set_grid_visible(not terrain.is_grid_visible())
+    elif key.keycode == KEY_F1:
+        overlay_layer.visible = not overlay_layer.visible
+    elif key.keycode == KEY_F2:
+        load_world(0)
+    elif key.keycode == KEY_F3:
+        load_world(1)
+    elif key.keycode == KEY_SPACE:
+        var scale := int(bridge.get_snapshot().get("clock", {}).get("time_scale", 1))
+        bridge.set_time_scale(0 if scale != 0 else 1)
+    elif key.keycode == KEY_EQUAL or key.keycode == KEY_KP_ADD:
+        bridge.set_time_scale(_next_scale(1))
+    elif key.keycode == KEY_MINUS or key.keycode == KEY_KP_SUBTRACT:
+        bridge.set_time_scale(_next_scale(-1))
+    elif key.keycode == KEY_K or key.keycode == KEY_L:
+        var building_id: String = buildings.building_at_cell(_hover_cell) if not _hover_cell.is_empty() else ""
+        if building_id != "":
+            var patch := {"blocking_codes": ["no_power"], "power_requested_kw": 1.0, "power_served_kw": 0.0} if key.keycode == KEY_K else {"blocking_codes": [], "power_served_kw": 1.0}
+            var result: Dictionary = bridge.dev_patch_building(building_id, patch)
+            _last_message = "dev patch %s: %s" % [building_id, result.code]
+            _refresh_overlay()
+
+
+func _select_at(cell: Array) -> void:
+    if cell.is_empty():
+        return
+    var site_id: String = sites.site_at_cell(cell)
+    var building_id: String = buildings.building_at_cell(cell)
+    selected_site = site_id
+    selected_building = building_id
+    if site_id != "":
+        _preview_site_route(site_id)
+        site_selected.emit(site_id, _hover_route.duplicate(true))
+        _last_message = "Selected %s" % site_id
+    elif building_id != "":
+        routes.clear_preview()
+        building_selected.emit(building_id)
+        _last_message = "Selected %s" % building_id
+    else:
+        routes.clear_preview()
+        _hover_route = {}
+    _refresh_overlay()
+
+
+func _next_scale(direction: int) -> int:
+    var scales := [0, 1, 5, 20]
+    var current := int(bridge.get_snapshot().get("clock", {}).get("time_scale", 1))
+    var index := clampi(scales.find(current) + direction, 0, scales.size() - 1)
+    return scales[index]
+
+
+func _place_lander(map_data: RefCounted) -> void:
+    ## The pre-landed habitat/lander sits one cell behind (-X of) the airlock cell. Visual only;
+    ## on authored maps its cells are marked impassable in the map data.
+    var airlock: Array = map_data.base_airlock_cell
+    var x := float(airlock[0]) - 1.5
+    var z := float(airlock[1]) + 0.5
+    lander.position = Vector3(x, terrain.surface_height(x, z), z)
+
+
+func _refresh_overlay() -> void:
+    if not overlay_layer.visible:
+        return
+    var snapshot: Dictionary = bridge.get_snapshot()
+    var clock: Dictionary = snapshot.get("clock", {})
+    var lines: PackedStringArray = []
+    lines.append("MARS OUTPOST  world harness   world: %s   backend: %s (%s)" % [WORLDS[world_index].name, bridge.backend_kind, bridge.backend_detail])
+    lines.append("tick %d  elapsed %.0fs  x%d  revision %d  map %s" % [int(clock.get("tick_index", 0)), float(clock.get("elapsed_s", 0.0)), int(clock.get("time_scale", 1)), int(snapshot.get("revision", 0)), str(snapshot.get("map", {}).get("id", "?"))])
+    lines.append("buildings %d  sites %d  expeditions %d  crew %d" % [snapshot.get("buildings", {}).size(), snapshot.get("sites", {}).size(), snapshot.get("expeditions", {}).size(), snapshot.get("crew", {}).size()])
+    var cut_off: Array = utilities.unreachable_buildings()
+    if not cut_off.is_empty():
+        lines.append("WARNING no reachable entrance: " + ", ".join(cut_off))
+    lines.append("")
+    if not _hover_cell.is_empty():
+        var hover := "cell [%d, %d]" % [_hover_cell[0], _hover_cell[1]]
+        var building_id: String = buildings.building_at_cell(_hover_cell)
+        if building_id != "":
+            hover += "  " + buildings.node_for(building_id).status_summary()
+        var site_id: String = sites.site_at_cell(_hover_cell)
+        if site_id != "":
+            hover += "  " + sites.describe(site_id)
+        lines.append(hover)
+    var route_site := selected_site if selected_site != "" else _hover_site
+    if route_site != "" and not _hover_route.is_empty():
+        if _hover_route.reachable:
+            lines.append("route airlock -> %s: %.0f m  (%s)" % [route_site, _hover_route.distance_m, _hover_route.route_id])
+        else:
+            lines.append("route airlock -> %s: UNREACHABLE (%s: %s)" % [route_site, _hover_route.code, _hover_route.reason])
+    if placement.active:
+        var state := "valid" if _preview.get("valid", false) else "blocked: %s" % _preview.get("reason", "")
+        lines.append("placing %s  rot %d  -> %s" % [placement.definition_id, placement.rotation_quarters, state])
+    else:
+        var options: PackedStringArray = []
+        var ids: Array = bridge.definitions.ids()
+        for index in mini(ids.size(), 9):
+            options.append("%d %s" % [index + 1, ids[index]])
+        lines.append("place: " + "   ".join(options))
+    lines.append("")
+    lines.append("WASD/arrows or middle-drag pan  right-drag or Q/E orbit  wheel zoom  Home reset  click site/module to select")
+    lines.append("R rotate  Esc cancel  G grid  Space pause  +/- speed  F1 hide  F2/F3 world  K/L dev no_power on/off")
+    if _last_message != "":
+        lines.append("")
+        lines.append(_last_message)
+    for line in _events:
+        lines.append("  event " + line)
+    overlay.text = "\n".join(lines)

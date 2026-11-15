@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "water_electrolyzer_mk1",
+  "display_name": "Oxygen Generator",
+  "scene_path": "res://scenes/buildings/water_electrolyzer_mk1.tscn",
+  "footprint_cells": [[0, 0]],
+  "entrance_cells": [[0, 1]],
+  "build_cost": {"alloy": 3, "electronics": 3},
+  "construction_work_s": 50.0,
+  "power_generation_kw": 0.0,
+  "power_demand_kw": 1.5,
+  "power_priority": 100,
+  "process_priority": 100,
+  "process": {
+    "inputs_per_s": {"potable_water_kg": 0.0045},
+    "outputs_per_s": {"oxygen_kg": 0.004, "hydrogen_kg": 0.0005}
+  },
+  "storage_capacity": {},
+  "battery_charge_limit_kw": 0.0,
+  "battery_discharge_limit_kw": 0.0,
+  "battery_charge_efficiency": 1.0,
+  "battery_discharge_efficiency": 1.0,
+  "maintenance_work_s_per_s": 0.0,
+  "unlocks_required": [],
+  "metadata": {
+    "status": "authored_blockout",
+    "balance_status": "placeholder_pending_science_md",
+    "balance_note": "Rates follow water electrolysis stoichiometry (36 kg water -> 32 kg oxygen + 4 kg hydrogen) but the absolute throughput and power are placeholders pending SCIENCE.md. Footprint and entrance geometry are authoritative.",
+    "category": "life_support",
+    "description": "Splits water into breathable oxygen and hydrogen. Without power or water it makes nothing.",
+    "visual": {"shape": "tank", "color": "#58b368", "height_m": 2.0}
+  }
+}

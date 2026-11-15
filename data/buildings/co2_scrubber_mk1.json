@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "co2_scrubber_mk1",
+  "display_name": "CO2 Scrubber",
+  "scene_path": "res://scenes/buildings/co2_scrubber_mk1.tscn",
+  "footprint_cells": [[0, 0]],
+  "entrance_cells": [[1, 0]],
+  "build_cost": {"alloy": 2, "electronics": 2},
+  "construction_work_s": 30.0,
+  "power_generation_kw": 0.0,
+  "power_demand_kw": 0.6,
+  "power_priority": 95,
+  "process_priority": 95,
+  "process": {
+    "inputs_per_s": {"co2_kg": 0.002},
+    "outputs_per_s": {}
+  },
+  "storage_capacity": {},
+  "battery_charge_limit_kw": 0.0,
+  "battery_discharge_limit_kw": 0.0,
+  "battery_charge_efficiency": 1.0,
+  "battery_discharge_efficiency": 1.0,
+  "maintenance_work_s_per_s": 0.0,
+  "unlocks_required": [],
+  "metadata": {
+    "status": "authored_blockout",
+    "balance_status": "placeholder_pending_science_md",
+    "balance_note": "Removal rate and power are placeholders pending SCIENCE.md (NASA OCHMO CO2 figures). Footprint and entrance geometry are authoritative.",
+    "category": "life_support",
+    "description": "Pulls carbon dioxide out of the cabin air. A full oxygen tank does not make high CO2 safe.",
+    "visual": {"shape": "box", "color": "#9aa5b1", "height_m": 1.8}
+  }
+}

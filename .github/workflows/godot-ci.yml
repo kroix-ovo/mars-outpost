@@ -1,0 +1,132 @@
+name: Godot CI
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2
+  GODOT_RELEASE: 4.7.2-stable
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: godot-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-export:
+    name: Headless tests and exports
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot and export templates
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_RELEASE }}-linux-x86_64-v2
+
+      - name: Download Godot ${{ env.GODOT_VERSION }} and export templates
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p ~/godot ~/.local/share/godot/export_templates
+          base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_RELEASE}"
+          curl -fsSL -o /tmp/godot.zip "${base}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_RELEASE}_linux.x86_64 ~/godot/godot
+          chmod +x ~/godot/godot
+          curl -fsSL -o /tmp/templates.tpz "${base}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          unzip -q /tmp/templates.tpz -d /tmp/templates
+          # Godot resolves templates from <major>.<minor>.<patch>.<status>, e.g. 4.7.2.stable.
+          mv /tmp/templates/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+
+      - name: Report engine version
+        run: ~/godot/godot --headless --version
+
+      - name: Verify export templates
+        run: |
+          dir=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          ls "$dir" | head -n 40
+          test -f "$dir/version.txt" && cat "$dir/version.txt"
+          test -f "$dir/web_nothreads_release.zip"
+          test -f "$dir/windows_release_x86_64.exe"
+          test -f "$dir/linux_release.x86_64"
+
+      - name: Import project
+        run: ~/godot/godot --headless --path . --import || true
+
+      - name: World service tests
+        run: ~/godot/godot --headless --path . --script tests/world/run_world.gd 2>&1 | tee world_test.log; grep -q "WORLD_PASS" world_test.log
+
+      - name: Simulation tests (when present)
+        if: hashFiles('tests/simulation/run_a1.gd') != ''
+        run: ~/godot/godot --headless --path . --script tests/simulation/run_a1.gd 2>&1 | tee sim_test.log; grep -q "A1_PASS" sim_test.log
+
+      - name: World-simulation integration (skips until Task 01 lands)
+        run: ~/godot/godot --headless --path . --script tests/world/run_integration.gd 2>&1 | tee integration.log; grep -Eq "INTEGRATION_PASS|INTEGRATION_SKIP" integration.log
+
+      - name: Boot main scene headless
+        run: ~/godot/godot --headless --path . --quit-after 30 2>&1 | tee boot.log; ! grep -E "SCRIPT ERROR|Parse Error" boot.log
+
+      - name: Export Web
+        run: |
+          mkdir -p exports/web
+          ~/godot/godot --headless --path . --export-release "Web" exports/web/index.html
+          test -f exports/web/index.html
+
+      - name: Export Windows
+        run: |
+          mkdir -p exports/windows
+          ~/godot/godot --headless --path . --export-release "Windows Desktop" exports/windows/MarsOutpost.exe
+          test -f exports/windows/MarsOutpost.exe
+
+      - name: Export Linux
+        run: |
+          mkdir -p exports/linux
+          ~/godot/godot --headless --path . --export-release "Linux" exports/linux/MarsOutpost.x86_64
+          test -f exports/linux/MarsOutpost.x86_64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mars-outpost-web
+          path: exports/web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mars-outpost-windows
+          path: exports/windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mars-outpost-linux
+          path: exports/linux
+
+      - name: Prepare GitHub Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          # coi-serviceworker is not needed because the Web preset disables thread support.
+          touch exports/web/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        with:
+          path: exports/web
+
+  deploy-pages:
+    name: Deploy web build to GitHub Pages
+    needs: test-and-export
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
