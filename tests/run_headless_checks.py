@@ -23,6 +23,7 @@ def main():
         jobs.append(("tests/crew_ui/run_a3_compatibility.gd", "A3_CREW_PASS", []))
         jobs.append(("tests/crew_ui/run_tutorial_mission.gd", "TUTORIAL_PASS", []))
         jobs.append(("tests/frontend/run_frontend.gd", "FRONTEND_PASS", []))
+        jobs.append(("tests/world/run_camera_controls.gd", "CAMERA_CONTROLS_PASS", []))
     if args.benchmark:
         jobs.append(("tests/simulation/run_a1.gd", "A1_PASS", ["--", "--benchmark"]))
     commands = [(name, marker, ["--script", name] + extra) for name, marker, extra in jobs if (project / name).exists()]

@@ -217,7 +217,7 @@ func _ui() -> void:
 	root.add_child(hud)
 	check("O₂ 120.00 kg" in hud._vitals.text and hud._crew.item_count == 6, "HUD renders authoritative stock and roster")
 	hud.select_crew(CREW)
-	check("Fixture Crew A" in hud._crew_text.text and "Engineering 80%" in hud._crew_text.text, "HUD inspects selected astronaut")
+	check("Astronaut A" in hud._crew.get_item_text(0) and "Engineering: 80%" in hud._crew_text.text, "HUD inspects selected astronaut")
 	check("Outbound: 10 s" in hud._eva_forecast.text and not hud._launch.disabled, "HUD displays live accepted forecast")
 	hud._launch.pressed.emit()
 	f.process_pending_commands()

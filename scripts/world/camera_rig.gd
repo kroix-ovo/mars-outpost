@@ -6,11 +6,13 @@ extends Node3D
 ## from yaw/pitch/distance. All input is handled in _unhandled_input so Control nodes (Task 03
 ## HUD) consume their clicks first and never fight the camera.
 ##
-## Controls: WASD / arrow keys or middle-mouse drag to pan, right-mouse drag or Q/E to orbit,
-## mouse wheel to zoom, Home to reset. Edge panning is off by default (kid-friendly).
+## Controls: WASD / arrow keys or edge scrolling to pan, middle-mouse drag or Q/E to orbit,
+## mouse wheel or Z/X to zoom, Home/End to tilt, F to reset. Edge scrolling follows Cities: Skylines 1; HUD panels suppress it.
 
 signal focus_changed(focus_m: Vector3)
 
+@export var edge_pan_enabled: bool = true
+@export var edge_margin_px: float = 16.0
 @export var pan_speed_m_per_s: float = 18.0
 @export var orbit_speed_deg_per_px: float = 0.25
 @export var pitch_min_deg: float = 25.0
@@ -33,7 +35,6 @@ var _target_pitch: float = 55.0
 var _target_distance: float = 28.0
 var _home_focus: Vector3 = Vector3.ZERO
 var _orbiting: bool = false
-var _panning: bool = false
 var hud_width: float = 0.0
 var _home_distance: float = 24.0
 
@@ -89,16 +90,20 @@ func focus_on(point_m: Vector3) -> void:
     _target_focus = Vector3(point_m.x, 0.0, point_m.z)
 
 
+func _input(event: InputEvent) -> void:
+    # A release over a HUD panel must still end a drag that began over the world.
+    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_MIDDLE and not event.pressed:
+        _orbiting = false
+
+
 func _unhandled_input(event: InputEvent) -> void:
     if not input_enabled:
         return
     if event is InputEventMouseButton:
         var button := event as InputEventMouseButton
         match button.button_index:
-            MOUSE_BUTTON_RIGHT:
-                _orbiting = button.pressed
             MOUSE_BUTTON_MIDDLE:
-                _panning = button.pressed
+                _orbiting = button.pressed
             MOUSE_BUTTON_WHEEL_UP:
                 if button.pressed and not _over_gui():
                     _target_distance = clampf(_target_distance * (1.0 - zoom_step), distance_min_m, distance_max_m)
@@ -110,11 +115,8 @@ func _unhandled_input(event: InputEvent) -> void:
         if _orbiting:
             _target_yaw -= motion.relative.x * orbit_speed_deg_per_px
             _target_pitch = clampf(_target_pitch + motion.relative.y * orbit_speed_deg_per_px, pitch_min_deg, pitch_max_deg)
-        elif _panning:
-            var scale := _target_distance * 0.0016
-            _pan(Vector2(-motion.relative.x, -motion.relative.y) * scale)
     elif event is InputEventKey and event.pressed and not event.echo:
-        if event.keycode == KEY_HOME:
+        if event.keycode == KEY_F:
             reset_view()
 
 
@@ -136,6 +138,18 @@ func _process(delta: float) -> void:
             move.x += 1.0
         if move != Vector2.ZERO:
             _pan(move.normalized() * pan_speed_m_per_s * delta * (_target_distance / 28.0))
+        if edge_pan_enabled and DisplayServer.get_name() != "headless" and get_window().has_focus() and not _orbiting and not _over_gui():
+            var mouse := get_viewport().get_mouse_position()
+            var viewport_size := get_viewport().get_visible_rect().size
+            _edge_pan(mouse, viewport_size, delta)
+        if Input.is_key_pressed(KEY_HOME):
+            _target_pitch = clampf(_target_pitch + 50.0 * delta, pitch_min_deg, pitch_max_deg)
+        if Input.is_key_pressed(KEY_END):
+            _target_pitch = clampf(_target_pitch - 50.0 * delta, pitch_min_deg, pitch_max_deg)
+        if Input.is_key_pressed(KEY_Z):
+            _target_distance = maxf(distance_min_m, _target_distance * exp(-delta))
+        if Input.is_key_pressed(KEY_X):
+            _target_distance = minf(distance_max_m, _target_distance * exp(delta))
         if Input.is_key_pressed(KEY_Q):
             _target_yaw += 90.0 * delta
         if Input.is_key_pressed(KEY_E):
@@ -146,6 +160,18 @@ func _process(delta: float) -> void:
     pitch_deg = lerpf(pitch_deg, _target_pitch, t)
     distance_m = lerpf(distance_m, _target_distance, t)
     _apply_camera()
+
+
+func _edge_pan(mouse: Vector2, viewport_size: Vector2, delta: float) -> void:
+    if not Rect2(Vector2.ZERO, viewport_size).has_point(mouse):
+        return
+    var movement := Vector2.ZERO
+    if mouse.x < edge_margin_px: movement.x = -1.0
+    elif mouse.x > viewport_size.x - edge_margin_px: movement.x = 1.0
+    if mouse.y < edge_margin_px: movement.y = -1.0
+    elif mouse.y > viewport_size.y - edge_margin_px: movement.y = 1.0
+    if movement != Vector2.ZERO:
+        _pan(movement.normalized() * pan_speed_m_per_s * delta * (_target_distance / 28.0))
 
 
 func _pan(screen_move: Vector2) -> void:

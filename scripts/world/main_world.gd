@@ -304,6 +304,15 @@ func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseButton and event.pressed:
         # Clicking the world returns keyboard focus to the camera and time controls.
         get_viewport().gui_release_focus()
+    if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+        if placement.active:
+            placement.cancel_placement()
+        selected_site = ""
+        selected_building = ""
+        buildings.set_highlight("", "")
+        routes.clear_preview()
+        get_viewport().set_input_as_handled()
+        return
     if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not placement.active:
         _select_at(_hover_cell)
         return
@@ -311,7 +320,10 @@ func _unhandled_input(event: InputEvent) -> void:
         return
     var key := event as InputEventKey
     var ids: Array = bridge.definitions.ids()
-    if key.keycode >= KEY_1 and key.keycode <= KEY_9:
+    if key.keycode in [KEY_1, KEY_2, KEY_3]:
+        bridge.set_time_scale({KEY_1: 1, KEY_2: 5, KEY_3: 20}[key.keycode])
+        get_viewport().set_input_as_handled()
+    elif key.keycode >= KEY_4 and key.keycode <= KEY_9:
         var index := key.keycode - KEY_1
         if index < ids.size():
             placement.begin_placement(ids[index])
@@ -434,7 +446,7 @@ func _refresh_overlay() -> void:
             options.append("%d %s" % [index + 1, ids[index]])
         lines.append("place: " + "   ".join(options))
     lines.append("")
-    lines.append("WASD/arrows or middle-drag pan  right-drag or Q/E orbit  wheel zoom  Home reset  click site/module to select")
+    lines.append("WASD/arrows or edges pan  middle-drag rotate/tilt  Q/E orbit  wheel/Z/X zoom  Home/End tilt  F reset  click site/module to select")
     lines.append("R rotate  Esc cancel  G grid  Space pause  +/- speed  select module + T toggle  F1 hide  F2/F3 restart")
     if _last_message != "":
         lines.append("")

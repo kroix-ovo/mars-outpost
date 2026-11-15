@@ -38,6 +38,7 @@ func apply_snapshot(snapshot: Dictionary, force_snap: bool = false) -> void:
 	# of painting six names over one another; the roster still selects each one.
 	var groups := {}
 	for id in ids:
+		if not _avatars[id].visible: continue
 		var key: String = str(snapshot.crew[id].position_m)
 		if not groups.has(key): groups[key] = []
 		groups[key].append(id)

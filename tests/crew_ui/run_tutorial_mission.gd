@@ -162,7 +162,7 @@ func _run() -> void:
 	check(not orient.context.is_empty(), "habitat shown as quiet context")
 	await press("orient")
 	check(step_id() == "open_eva", "two crew already selected skips straight to opening EVA")
-	check(hud._tour_flash.visible and "Your habitat" in hud._tour_flash.text, "completed step is acknowledged")
+	check(hud._tour_step.index > 1 and not hud._tour_flash.visible, "progress advances without duplicating completed lessons")
 
 	# --- Collapse and skip/resume ---
 	hud._toggle_drawer()
@@ -176,6 +176,7 @@ func _run() -> void:
 	hud._tour_resume.pressed.emit()
 	await settle()
 	check(step_id() == "open_eva", "resume continues where the player left off")
+	check(not hud._status.text.begins_with("Tutorial hidden"), "resume clears stale hidden message")
 
 	# --- Failed tick and explicit restart ---
 	hud.on_simulation_failed({"reason": "synthetic test failure"})
@@ -250,6 +251,8 @@ func _run() -> void:
 	check(newest_trip().status == "completed" and not newest_trip().cargo.is_empty() or amount("alloy") >= 10.0, "two-astronaut salvage delivered")
 	check(amount("alloy") >= 10.0 and amount("electronics") >= 2.0, "salvage pays for storage")
 	check(step_id() == "home", "crew home step shown")
+	for cid in newest_trip().crew_ids:
+		check(not main._crew_view._avatars[cid].visible, "returned astronaut is inside, not standing at the airlock")
 	await press("home")
 
 	# --- Build: blocked placement, placement, cancellation refund ---

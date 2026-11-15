@@ -66,7 +66,7 @@ static func primary(button: Button, size: int = 22) -> void:
 static func label(text: String, size: int = 18, color: Color = INK) -> Label:
 	var node := Label.new()
 	node.text = text
-	node.add_theme_font_size_override("font_size", size)
+	node.add_theme_font_size_override("font_size", maxi(size, 20))
 	node.add_theme_color_override("font_color", color)
 	return node
 

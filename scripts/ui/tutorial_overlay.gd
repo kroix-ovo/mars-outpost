@@ -30,12 +30,11 @@ func _draw() -> void:
 	var pulse := 0.55 + 0.45 * sin(Time.get_ticks_msec() * 0.006)
 	var color := Color(AMBER, 0.55 + 0.45 * pulse)
 	for rect in targets.get("rects", []):
-		var r: Rect2 = rect.grow(4.0 + 2.0 * pulse)
-		draw_rect(r, Color(AMBER, 0.10 * pulse), true)
-		draw_rect(r, color, false, 3.0)
-		# Pointer triangle above the target.
-		var tip := Vector2(r.get_center().x, r.position.y - 4.0)
-		draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-9, -13), tip + Vector2(9, -13)]), color)
+		var r: Rect2 = rect.grow(-1.0)
+		if r.size.x <= 0.0 or r.size.y <= 0.0:
+			continue
+		# Keep the highlight inside its control: external arrows overlapped labels and rows.
+		draw_rect(r, color, false, 2.0)
 	# Context (what the step talks about): a quiet ring or outline with no pointer.
 	for item in targets.get("context", []):
 		if item is Rect2:

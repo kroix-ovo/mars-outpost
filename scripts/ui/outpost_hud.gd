@@ -18,9 +18,9 @@ const CYAN := Color("#5cc8e8")
 const DANGER := Color("#ec6a52")
 const OK_GREEN := Color("#7fcf7a")
 const PANEL := Color(0.075, 0.085, 0.10, 0.92)
-const DRAWER_WIDTH := 384.0
-const CREW_WIDTH := 252.0
-const TOP_HEIGHT := 46.0
+const DRAWER_WIDTH := 320.0
+const CREW_WIDTH := 232.0
+const TOP_HEIGHT := 40.0
 
 signal reference_requested
 signal training_requested
@@ -58,6 +58,9 @@ var _tour_move: Label
 var _tour_action: Label
 var _tour_why: Label
 var _tour_buttons: HBoxContainer
+var _tour_more: CheckButton
+var _status_seen := ""
+var _status_until := 0
 var _tour_skip: Button
 var _tour_primary: Button
 var _tour_overlay: Control
@@ -185,6 +188,16 @@ func _ready() -> void:
 
 # ---------------------------------------------------------------- layout
 
+func _process(_delta: float) -> void:
+	if _status == null:
+		return
+	if _tour.active and _status.text.begins_with("Tutorial hidden"):
+		_status.text = "Tutorial resumed."
+	if _status.text != _status_seen:
+		_status_seen = _status.text
+		_status_until = Time.get_ticks_msec() + 4500
+	_toast.visible = not _status.text.is_empty() and Time.get_ticks_msec() < _status_until
+
 func _build_top_bar() -> void:
 	_top = _panel(self)
 	_top.name = "StatusStrip"
@@ -261,7 +274,7 @@ func _build_crew_card() -> void:
 	var crew_title := _label(head, "CREW", 13)
 	crew_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	crew_title.add_theme_color_override("font_color", AMBER)
-	_crew_hint = _label(body, "Ctrl/Shift: select several", 16)
+	_crew_hint = _label(body, "Ctrl/Shift adds crew", 16)
 	_crew_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_crew_hint.add_theme_color_override("font_color", DIM)
 	_crew_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -400,6 +413,7 @@ func _build_drawer() -> void:
 	_tour_guide_buttons = _row(onboarding, 6)
 	_tour_resume = _button(_tour_guide_buttons, "Resume tutorial", func():
 		_tour.active = true
+		_status.text = "Tutorial resumed."
 		_tour_refresh())
 	var restart := _button(_tour_guide_buttons, "Restart tutorial", func():
 		_tour.restart()
@@ -407,7 +421,7 @@ func _build_drawer() -> void:
 	restart.tooltip_text = "Starts the tutorial again from a fresh training colony."
 	_section(onboarding, "Controls")
 	_hint(onboarding, "Pause to plan; commands also resolve while paused. Resume at 1×, 5× or 20×. F2 starts training with synthetic values; F3 starts the reference life-support scenario. F1 shows diagnostics. Campaign saves and agriculture are pending.")
-	_hint(onboarding, "Camera: WASD or middle-drag pans, right-drag or Q/E orbits, wheel zooms, Home recentres. Click modules, sites or astronauts to inspect them.")
+	_hint(onboarding, "Camera: edge scrolling or WASD pans; middle-drag rotates/tilts; Q/E rotates; Home/End tilts; wheel or Z/X zooms; F recentres. Right-click cancels; 1/2/3 sets speed. Click modules, sites or astronauts to inspect them.")
 
 func _build_toast() -> void:
 	_toast = _panel(self)
@@ -430,7 +444,7 @@ func _apply_layout() -> void:
 	# Keep the essentials readable at 720p; full accounting remains in Systems.
 	for key in ["co2", "food"]:
 		_chips[key].label.get_parent().visible = width >= 1450.0
-	var drawer_width := DRAWER_WIDTH if width >= 1400 else 352.0
+	var drawer_width := DRAWER_WIDTH
 	_drawer.offset_left = -8 - (drawer_width if _drawer_open else 46.0)
 	_drawer_body.visible = _drawer_open
 	_drawer.get_child(0).get_node("PersistenceControls").visible = _drawer_open
@@ -623,6 +637,9 @@ func _resource_tooltip(id: String) -> String:
 		text += "\nEmpty in about %s at this rate" % _duration(int(r.forecast_empty_s))
 	return text
 
+func _crew_name(value: String) -> String:
+	return value.replace("Fixture Crew ", "Astronaut ")
+
 func _refresh_roster() -> void:
 	var selected := _selected_crew()
 	var ids := _keys(_state.crew)
@@ -635,7 +652,7 @@ func _refresh_roster() -> void:
 		var id: String = ids[i]
 		var member: Dictionary = _state.crew[id]
 		_crew.set_item_metadata(i, id)
-		_crew.set_item_text(i, "%s  ·  %s" % [member.display_name, member.status.capitalize()])
+		_crew.set_item_text(i, "%s  ·  %s" % [_crew_name(member.display_name), "Inside" if member.status == "idle" and member.location_kind == "base" else member.status.capitalize()])
 		_crew.set_item_custom_fg_color(i, INK if member.status == "idle" else (DANGER if member.status in ["dead", "incapacitated"] else CYAN))
 		if id in selected:
 			_crew.select(i, false)
@@ -650,15 +667,19 @@ func _refresh_selection() -> void:
 		var c: Dictionary = _state.crew[id]
 		var skills: Array[String] = []
 		for skill in _keys(c.skills):
-			skills.append("%s %d%%" % [skill.capitalize(), roundi(c.skills[skill] * 100)])
-		details.append("%s: health %d%% · fatigue %d%% · stress %d%%\n%s" %
-			[c.display_name, roundi(c.health * 100), roundi(c.fatigue * 100), roundi(c.stress * 100),
-				"  /  ".join(skills)])
+			skills.append("%s: %d%%" % [skill.capitalize(), roundi(c.skills[skill] * 100)])
+		var ranked: Array = c.skills.keys()
+		ranked.sort_custom(func(a: String, b: String): return float(c.skills[a]) > float(c.skills[b]))
+		var rows: Array[String] = ["Health %d%% · Fatigue %d%%" % [roundi(c.health * 100), roundi(c.fatigue * 100)], "Stress %d%%" % roundi(c.stress * 100)]
+		for skill in ranked.slice(0, 2):
+			rows.append("%s: %d%%" % [str(skill).capitalize(), roundi(c.skills[skill] * 100)])
+		details.append("\n".join(rows))
+		_crew_text.tooltip_text = "\n".join(skills)
 	var chosen := _selected_crew()
 	if chosen.size() > 1:
 		var names: Array[String] = []
 		for id in chosen:
-			names.append(_state.crew[id].display_name)
+			names.append(_crew_name(_state.crew[id].display_name))
 		details = ["%d selected: %s" % [chosen.size(), ", ".join(names)]]
 	_crew_text.text = "Select an astronaut to inspect their skills." if details.is_empty() else "\n".join(details)
 	_fit_crew_card.call_deferred()
@@ -927,18 +948,13 @@ func _reset_session() -> void:
 	_seq = 0
 
 func _refresh_guide() -> void:
-	## Guide tab: the tutorial checklist for the current colony plus resume/restart controls.
 	if _tutorial_text == null:
 		return
-	var lines: Array[String] = []
-	if _tour_step.is_empty():
-		lines.append("Tutorial finished. Restart it any time." if _tour.finished else "The tutorial is paused. Resume it, or restart it from a fresh training colony.")
+	if _tour.active:
+		_tutorial_text.text = "Follow the highlighted control and the current lesson. Details expands the explanation. Skip tutorial enters free play; Resume returns to your current step."
 	else:
-		lines.append("%s · step %d of %d" % [_tour_step.phase_title, _tour_step.index + 1, _tour_step.total])
-		for item in _tour_step.checklist:
-			lines.append(("✓  " if item.done else ("▸  " if item.current else "○  ")) + str(item.title))
-	_tutorial_text.text = "\n".join(lines)
-	_tour_resume.visible = _tour_enabled and not _tour.active and not _tour.finished
+		_tutorial_text.text = "Tutorial complete. You can play freely or restart from a fresh training colony." if _tour.finished else "Tutorial hidden. Resume where you left off, or restart from a fresh training colony."
+	_tour_resume.visible = not _tour.active and not _tour.finished
 
 # ---------------------------------------------------------------- tutorial mission
 
@@ -990,19 +1006,24 @@ func _build_tutorial() -> void:
 	_tour_progress.add_theme_color_override("font_color", DIM)
 	_tour_flash = _label(body, "", 16)
 	_tour_flash.add_theme_color_override("font_color", OK_GREEN)
-	_tour_title = _label(body, "", 22)
+	_tour_title = _label(body, "", 19)
 	_tour_title.add_theme_color_override("font_color", AMBER)
 	_tour_body = _label(body, "", 17)
 	_tour_recovery = _label(body, "", 17)
 	_tour_recovery.add_theme_color_override("font_color", Color("#ffb08a"))
 	_tour_move = _label(body, "YOUR MOVE", 13)
 	_tour_move.add_theme_color_override("font_color", AMBER)
-	_tour_action = _label(body, "", 18)
+	_tour_action = _label(body, "", 17)
 	_tour_action.add_theme_color_override("font_color", Color.WHITE)
 	_tour_why = _label(body, "", 15)
 	_tour_why.add_theme_color_override("font_color", DIM)
 	var row := _row(body, 8)
 	_tour_buttons = _row(row, 8)
+	_tour_more = CheckButton.new()
+	_tour_more.text = "Details"
+	_tour_more.focus_mode = Control.FOCUS_NONE
+	row.add_child(_tour_more)
+	_tour_more.toggled.connect(func(_on: bool): _tour_refresh())
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
@@ -1026,7 +1047,7 @@ func _tour_ctx() -> Dictionary:
 			break
 	var names := {}
 	for id in _state.get("crew", {}):
-		names[id] = _state.crew[id].display_name
+		names[id] = _crew_name(_state.crew[id].display_name)
 	var catalog_names := {}
 	for id in _catalog:
 		catalog_names[id] = _catalog[id].get("display_name", id)
@@ -1077,6 +1098,7 @@ func _tour_refresh() -> void:
 		return
 	if _tour_step.id != _tour_step_id:
 		_tour_step_id = _tour_step.id
+		_tour_more.set_pressed_no_signal(false)
 		_scroll_target_into_view.call_deferred()
 	var step := _tour_step
 	_tour_card.visible = true
@@ -1084,9 +1106,12 @@ func _tour_refresh() -> void:
 	_tour_progress.text = "%s · step %d of %d" % [step.phase_title, step.index + 1, step.total]
 	var flashing: bool = Time.get_ticks_msec() < _tour.flash_until_ms
 	_tour_flash.text = _tour.flash if flashing else ""
-	_tour_flash.visible = flashing
+	_tour_flash.visible = false # Keep acknowledgement out of the action card; progress records it.
 	_tour_title.text = step.title
 	_tour_body.text = step.body
+	_tour_more.visible = not step.centered
+	var explanation: bool = step.centered or step.id in ["orient", "ref_read"] or _tour_more.button_pressed
+	_tour_body.visible = explanation
 	var recovery: String = step.recovery
 	if recovery.is_empty() and _tour_failure.get("step", "") == step.id:
 		recovery = "That did not work: %s" % _tour_failure.text
@@ -1096,7 +1121,7 @@ func _tour_refresh() -> void:
 	_tour_recovery.visible = not recovery.is_empty()
 	_tour_action.text = step.action
 	_tour_why.text = ("Why: " + step.why) if not str(step.why).is_empty() else ""
-	_tour_why.visible = not _tour_why.text.is_empty()
+	_tour_why.visible = explanation and _tour_more.button_pressed and not _tour_why.text.is_empty()
 	for child in _tour_buttons.get_children():
 		child.queue_free()
 	_tour_primary = null
@@ -1125,7 +1150,7 @@ func _place_tour_card() -> void:
 	var width := size.x if size.x > 0 else 1280.0
 	var card_w := 0.0
 	if step.centered:
-		card_w = minf(600.0, width - 80.0)
+		card_w = minf(560.0, width - 80.0)
 		_tour_card.set_anchors_preset(Control.PRESET_CENTER)
 		_tour_card.grow_horizontal = Control.GROW_DIRECTION_BOTH
 		_tour_card.grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -1139,7 +1164,7 @@ func _place_tour_card() -> void:
 		var points: Array = _tour_targets().points
 		# Steps that point into the world use a wide, short card so the target stays clear.
 		var world_step := not points.is_empty()
-		card_w = clampf(right - left, 300.0, 640.0 if world_step else 480.0)
+		card_w = clampf(right - left, 300.0, 460.0)
 		_tour_why.visible = _tour_why.visible and not world_step
 		# Bottom of the world area by default; at the top when the target is in the lower half.
 		var at_top := false
@@ -1231,7 +1256,7 @@ func _tour_targets() -> Dictionary:
 			for i in _crew.item_count:
 				if _crew.get_item_metadata(i) == target.id:
 					var r := _crew.get_item_rect(i)
-					result.rects.append(Rect2(_crew.get_global_rect().position + r.position, r.size))
+					result.rects.append(Rect2(_crew.get_global_rect().position + r.position, r.size).intersection(_visible_rect(_crew)))
 		"tab":
 			var bar := _tabs.get_tab_bar()
 			for i in _tabs.get_tab_count():
@@ -1466,7 +1491,8 @@ func _make_theme() -> Theme:
 	t.set_color("font_selected_color", "TabContainer", AMBER)
 	t.set_color("font_unselected_color", "TabContainer", DIM)
 	t.set_color("font_hovered_color", "TabContainer", INK)
-	t.set_font_size("font_size", "TabContainer", 16)
+	t.set_font_size("font_size", "TabContainer", 14)
+	t.set_font_size("font_size", "TabBar", 14)
 	t.set_stylebox("panel", "ItemList", _box(Color(0, 0, 0, 0.18), 4, 4, 4))
 	t.set_stylebox("selected", "ItemList", _box(Color(AMBER, 0.28), 3, 4, 2))
 	t.set_stylebox("selected_focus", "ItemList", _box(Color(AMBER, 0.28), 3, 4, 2))
@@ -1498,7 +1524,7 @@ static func _box(color: Color, radius: int, margin_h: float, margin_v: float, bo
 	return box
 
 static func _tab(color: Color, accent: Color) -> StyleBoxFlat:
-	var box := _box(color, 4, 10, 5)
+	var box := _box(color, 4, 8, 5)
 	box.border_color = accent
 	box.border_width_bottom = 2
 	return box

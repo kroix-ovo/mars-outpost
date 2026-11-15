@@ -44,7 +44,8 @@ func apply_record(record: Dictionary, snap: bool = false) -> void:
 	if _figure != null and key != _look_key:
 		_look_key = key
 		_figure.apply_look(CrewLooks.look_for(str(record.get("definition_id", crew_id)), record.display_name))
-	visible = record.status != "dead"
+	# Idle crew have returned inside the habitat.
+	visible = record.status != "dead" and not (record.status == "idle" and record.get("location_kind") == "base" and record.get("task_id") == null and record.get("expedition_id") == null)
 
 func set_selected(value: bool) -> void:
 	if _ring != null:

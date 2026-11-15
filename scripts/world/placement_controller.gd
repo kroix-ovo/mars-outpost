@@ -96,7 +96,10 @@ func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseMotion:
         _update_hover(event.position)
     elif event is InputEventMouseButton and event.pressed:
-        if event.button_index == MOUSE_BUTTON_LEFT and active:
+        if event.button_index == MOUSE_BUTTON_RIGHT and active:
+            cancel_placement()
+            get_viewport().set_input_as_handled()
+        elif event.button_index == MOUSE_BUTTON_LEFT and active:
             _update_hover(event.position)
             if last_result.get("valid", false):
                 placement_submitted.emit({"definition_id": definition_id, "cell": hover_cell.duplicate(), "rotation_quarters": rotation_quarters})

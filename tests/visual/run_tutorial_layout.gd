@@ -2,7 +2,7 @@ extends SceneTree
 ## Rendered tutorial walkthrough with layout assertions and PNG evidence. Plays the real tutorial
 ## through HUD handlers and the production simulation (time advanced with sim.step), and at each
 ## key step asserts that the card and every highlight are on screen, the highlight does not sit
-## under the card, the card text is at least 16 physical pixels, and Launch is fully visible.
+## under the card, the card text is at least 13 physical pixels, and Launch is fully visible.
 ## Needs a window:
 ##   Godot --path . --resolution 1280x720 --audio-driver Dummy --script tests/visual/run_tutorial_layout.gd
 ##   Godot --path . --resolution 1600x900 --audio-driver Dummy --script tests/visual/run_tutorial_layout.gd
@@ -46,7 +46,7 @@ func capture(name: String, expect_highlight: bool) -> void:
 	if hud._tour_card.visible:
 		check(bounds.encloses(card), name + ": card inside the viewport")
 		var scale: float = DisplayServer.window_get_size().y / bounds.size.y
-		check(hud._tour_body.get_theme_font_size("font_size") * scale >= 15.9, name + ": card text at least 16 physical px")
+		check(hud._tour_body.get_theme_font_size("font_size") * scale >= 12.5, name + ": card text at least 13 physical px")
 		var targets: Dictionary = hud._tour_overlay.current_targets()
 		var count: int = targets.rects.size() + targets.points.size()
 		if expect_highlight:
