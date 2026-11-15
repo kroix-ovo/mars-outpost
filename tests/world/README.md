@@ -23,6 +23,16 @@ What `run_world.gd` covers:
 - **Bridge flow (contract section 13).** Through `SimulationBridge` and the development stub: preview, a blocked `place_building` that fails at resolution without creating anything, a valid one that creates a constructing building and task, re-validation seeing the new footprint, duplicate command ids returning the cached result, explicit `module_unavailable` for EVA, commissioning after simulated work with a `building_commissioned` event, and a paused clock. Resource balances are byte-identical before and after.
 - **Landing plain demo.** The authored world loads through `load_world`; every demo site and module entrance is reachable from the airlock, the utility network has one line per module and no cut-off module, the landing apron refuses placement with the terrain reason, and a failed world switch keeps the previous world.
 
+## Integration with Task 01's simulation
+
+```powershell
+& 'C:\Users\Pierre\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe' --headless --path . --script tests/world/run_integration.gd
+```
+
+Prints `INTEGRATION_SKIP` (exit 0) while `scripts/simulation/simulation.gd` is absent from the branch, so CI runs it unconditionally. With Task 01's `OutpostSimulation` present it must print `INTEGRATION_PASS checks=N`. It checks that the bridge boots on the simulation with matching map identity, that every starting building entrance and site is reachable, that previews change nothing, that `place_building` returns the contract envelope and (while Task 01 still answers `module_unavailable`) leaves balances and buildings untouched, that `set_time_scale` and `set_building_enabled` resolve into the snapshot, that real time ticks the clock and republishes snapshots, that dev patches are refused, that pause stops the clock, and that the main scene selects the simulation automatically, draws one node per building, switches to the stub for the authored world and back.
+
+Last verified on 2026-11-15 against `origin/feat/simulation-a2` (A1 14,289 checks, A2 41,144 checks and the world suite all pass side by side; integration 44 checks). Once Task 01 implements `place_building`, the accepted branch of the probe applies: exactly one constructing building appears and the footprint becomes occupied.
+
 ## Booting the world scene headless
 
 Catches script errors in the scene graph without a window:

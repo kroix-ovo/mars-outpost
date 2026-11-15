@@ -72,6 +72,9 @@ jobs:
         if: hashFiles('tests/simulation/run_a1.gd') != ''
         run: ~/godot/godot --headless --path . --script tests/simulation/run_a1.gd 2>&1 | tee sim_test.log; grep -q "A1_PASS" sim_test.log
 
+      - name: World-simulation integration (skips until Task 01 lands)
+        run: ~/godot/godot --headless --path . --script tests/world/run_integration.gd 2>&1 | tee integration.log; grep -Eq "INTEGRATION_PASS|INTEGRATION_SKIP" integration.log
+
       - name: Boot main scene headless
         run: ~/godot/godot --headless --path . --quit-after 30 2>&1 | tee boot.log; ! grep -E "SCRIPT ERROR|Parse Error" boot.log
 
