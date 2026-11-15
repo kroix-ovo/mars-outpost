@@ -1,0 +1,85 @@
+CHECK tests/world/run_world.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+WORLD_PASS checks=679
+CHECK tests/simulation/run_a1.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+A1_BENCH commands=0 tick_ms=1.4420 resolve_ms=0.006 submit_ms=0.005
+A1_BENCH commands=250 tick_ms=1.3600 resolve_ms=22.727 submit_ms=4.232
+A1_BENCH commands=2000 tick_ms=1.4316 resolve_ms=184.138 submit_ms=30.549
+A1_PASS checks=14298
+CHECK tests/simulation/run_a2.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+A2_BENCH retained_commands=0 retained_effects=0 tick_ms=0.5574 command_ms=0.086452
+A2_BENCH retained_commands=20000 retained_effects=20000 tick_ms=0.5231 command_ms=0.117692
+A2_PASS checks=41144
+CHECK tests/simulation/run_a3.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+A3_PASS checks=6718
+CHECK tests/world/run_integration.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+INTEGRATION_PASS checks=54
+CHECK tests/world/run_bridge_regressions.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+BRIDGE_PASS checks=25
+CHECK tests/crew_ui/run_crew_ui.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Task 03: 85/85 checks passed.
+CHECK tests/crew_ui/run_a3_compatibility.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+BLOCKED_ROUTE_REPRO placement_valid=true proposed_position=[5.5, 0.0, 8.5] cell=[5, 8]
+WORKLOAD_RATE_REPRO forecast_per_s=0.001 actual_A3_per_s=0.001
+A3_CREW_RESULT checks=80 failures=0
+A3_CREW_PASS
+CHECK tests/crew_ui/run_tutorial_mission.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+TUTORIAL_RESULT checks=111 failures=0
+TUTORIAL_PASS
+CHECK tests/frontend/run_frontend.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+FRONTEND_PASS checks=229
+CHECK tests/world/run_camera_controls.gd
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+CAMERA_CONTROLS_RESULT checks=12 failures=0
+CAMERA_CONTROLS_PASS
+CHECK main scene (title)
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+CHECK colony scene
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+HEADLESS_PASS
+BEFORE: headless main-thread update timings, same reference colony
+PACING_PROFILE delta=0.01666666666667 mean_update_ms=100.872916666667 max_update_ms=111.648 simulated_seconds=240
+PACING_PROFILE delta=0.14285714285714 mean_update_ms=341.939416666667 max_update_ms=371.885 simulated_seconds=1440
+PACING_VIEW world mean_ms=0.57216666666667
+PACING_VIEW hud mean_ms=47.7128333333333
+AFTER: Windows rendered 3840x2130, 180 frames per band
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 621.24 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 3080 Laptop GPU
+
+PACING_PROFILE delta=0.01666666666667 mean_update_ms=12.4737555555556 max_update_ms=14.927 simulated_seconds=657
+PACING_FRAMES mean_ms=16.6128888888889 display=Windows
+PACING_PROFILE delta=0.14285714285714 mean_update_ms=12.4704444444444 max_update_ms=17.345 simulated_seconds=646
+PACING_FRAMES mean_ms=16.5144611111111 display=Windows
+PACING_VIEW world mean_ms=0.58258333333333
+PACING_VIEW hud mean_ms=1.61316666666667
+PACING_BACKEND ticks=120 total_ms=294.032
+tasks-layout-720.log
+TUTORIAL_CAPTURE C:/Users/Symok/Documents/Nasa_Space_Apps_Time/docs/evidence/tutorial/1280x720/21_shift_failed.png step=shift_failed
+TUTORIAL_LAYOUT_RESULT checks=136 failures=0
+TUTORIAL_LAYOUT_PASS
+tasks-layout-900.log
+TUTORIAL_CAPTURE C:/Users/Symok/Documents/Nasa_Space_Apps_Time/docs/evidence/tutorial/1600x900/21_shift_failed.png step=shift_failed
+TUTORIAL_LAYOUT_RESULT checks=136 failures=0
+TUTORIAL_LAYOUT_PASS

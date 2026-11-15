@@ -61,6 +61,33 @@ func mark_systems_seen() -> void:
 	_systems_seen = true
 
 
+func independent_ready(ctx: Dictionary) -> bool:
+	if ctx.training or finished:
+		return false
+	for id in _starting_repairs():
+		if ctx.snapshot.tasks.get(id, {}).get("status") != "completed":
+			return false
+	return true
+
+
+func task_summary(ctx: Dictionary) -> Dictionary:
+	## Visible even when guidance is hidden; reading tasks never resumes a tutorial.
+	if finished:
+		var step := _independent_shift(ctx)
+		return {"title": step.phase_title, "action": step.action, "checklist": step.checklist}
+	var steps := _training_steps(ctx) if ctx.training else _reference_steps(ctx)
+	var current := steps.size() - 1
+	for i in steps.size():
+		if not steps[i].done:
+			current = i
+			break
+	var rows: Array = []
+	for i in steps.size():
+		rows.append({"title": steps[i].title, "done": i < current or steps[i].done, "current": i == current})
+	return {"title": "Mission 1 · Training" if ctx.training else "Mission 1 · Colony repairs",
+		"action": "Next: " + str(steps[current].title) + ". " + str(steps[current].action), "checklist": rows}
+
+
 func needs_baseline(snapshot: Dictionary) -> bool:
 	return str(snapshot.get("campaign_id", "")) != _campaign
 
@@ -515,7 +542,11 @@ func _independent_shift(ctx: Dictionary) -> Dictionary:
 	step.total = 1
 	step.phase = "independent"
 	step.phase_title = "Mission 2 · Independent shift"
-	step.checklist = [{"title": title, "done": _shift_result == "complete", "current": not terminal}]
+	var won := _shift_result == "complete"
+	step.checklist = [{"title": "Complete six game hours", "done": remaining == 0, "current": not terminal},
+		{"title": "Keep all astronauts alive", "done": won or alive, "current": false}]
+	for entry in [["oxygen_kg", "Finish with oxygen remaining"], ["potable_water_kg", "Finish with potable water remaining"], ["energy_kwh", "Finish with battery charge remaining"]]:
+		step.checklist.append({"title": entry[1], "done": won or float(s.resources.get(entry[0], {}).get("amount", 0.0)) > 0.0, "current": false})
 	return step
 
 

@@ -57,6 +57,7 @@ func _initialize() -> void:
     bridge.set_time_scale(1)
     var start_tick: int = bridge.get_snapshot().clock.tick_index
     bridge._process(1.0)
+    bridge._backend.advance(0.0) # Drain retained work without adding wall time.
     _check(bridge.get_snapshot().clock.tick_index == start_tick + 60, "normal play advances a game minute per real second")
     bridge.set_time_scale(0)
     start_tick = bridge.get_snapshot().clock.tick_index
@@ -64,11 +65,23 @@ func _initialize() -> void:
     _check(bridge.get_snapshot().clock.tick_index == start_tick, "pause does not bank accelerated time")
     bridge.set_time_scale(5)
     bridge._process(0.1)
-    _check(bridge.get_snapshot().clock.tick_index == start_tick + 30, "fast mode advances time faster than normal")
+    bridge._backend.advance(0.0)
+    _check(bridge.get_snapshot().clock.tick_index == start_tick + 12, "fast mode advances time faster than normal")
     bridge.set_time_scale(20)
     start_tick = bridge.get_snapshot().clock.tick_index
     bridge._process(0.05)
-    _check(bridge.get_snapshot().clock.tick_index == start_tick + 60, "fastest mode advances time faster than fast")
+    bridge._backend.advance(0.0)
+    _check(bridge.get_snapshot().clock.tick_index == start_tick + 12, "fastest mode advances time faster than fast")
+    var budgeted = Simulation.new()
+    var unrestricted = Simulation.new()
+    var timing_config = JSON.parse_string(FileAccess.get_file_as_string(bridge.simulation_config_path))
+    _check(budgeted.initialize(timing_config, bridge.world_service, null).ok and unrestricted.initialize(timing_config, bridge.world_service, null).ok, "timing comparison initializes matching states")
+    var timing_original = budgeted.get_snapshot()
+    _check(not budgeted.advance_budgeted(20.0, -1).ok and budgeted.get_snapshot() == timing_original, "invalid frame budget changes nothing")
+    _check(budgeted.advance_budgeted(20.0, 1).ok and budgeted.get_snapshot().clock.tick_index == 1, "tiny budget yields after one complete tick")
+    budgeted.advance(0.0)
+    unrestricted.advance(20.0)
+    _check(budgeted.get_snapshot() == unrestricted.get_snapshot(), "draining retained time matches unrestricted accounting exactly")
     var failing = FailedTickSimulation.new()
     var config = JSON.parse_string(FileAccess.get_file_as_string(bridge.simulation_config_path))
     _check(failing.initialize(config, bridge.world_service, null).ok, "failure backend initialized")

@@ -219,9 +219,21 @@ func _run() -> void:
 	await settle()
 	check(step_id() == "debrief", "debrief reached")
 	await capture("18_debrief", false)
+	hud._tour.skip()
+	hud._tasks_button.pressed.emit()
+	await settle()
+	check(not hud._mission_start.disabled, "Tasks offers mission 2 once repairs are complete")
+	await capture("23_mission_ready", false)
+	hud._tour.active = true
+	hud._tour_refresh()
 	hud.tutorial_press("debrief")
 	await capture("19_independent_shift", false)
 	check(hud._tour_card.visible and step_id() == "shift_running", "next objective remains visible after training")
+	hud._tasks_button.pressed.emit()
+	await settle()
+	check(bounds_for(hud._tasks_button), "Tasks button remains visible beside the crew heading")
+	check("Mission 2" in hud._mission_tasks.text and "COLONY JOBS" in hud._mission_tasks.text, "tasks panel shows mission progress and jobs")
+	await capture("22_mission_tasks", false)
 	# Detached presentation snapshots test result layouts without a six-hour run.
 	var result_snapshot: Dictionary = sim.get_snapshot().duplicate(true)
 	result_snapshot.clock.elapsed_s += hud._tour.SHIFT_SECONDS
@@ -239,3 +251,6 @@ func _run() -> void:
 	if failures.is_empty():
 		print("TUTORIAL_LAYOUT_PASS")
 	quit(0 if failures.is_empty() else 1)
+
+func bounds_for(control: Control) -> bool:
+	return control.is_visible_in_tree() and root.get_visible_rect().encloses(control.get_global_rect())
