@@ -54,6 +54,21 @@ func _initialize() -> void:
     placement.setup(bridge.world_service, null, null, Callable(bridge, "get_snapshot"))
     _check(placement.get_child_count() == 2, "world reload reuses cursor/ghost instead of leaking nodes")
     placement.free()
+    bridge.set_time_scale(1)
+    var start_tick: int = bridge.get_snapshot().clock.tick_index
+    bridge._process(1.0)
+    _check(bridge.get_snapshot().clock.tick_index == start_tick + 60, "normal play advances a game minute per real second")
+    bridge.set_time_scale(0)
+    start_tick = bridge.get_snapshot().clock.tick_index
+    bridge._process(1.0)
+    _check(bridge.get_snapshot().clock.tick_index == start_tick, "pause does not bank accelerated time")
+    bridge.set_time_scale(5)
+    bridge._process(0.1)
+    _check(bridge.get_snapshot().clock.tick_index == start_tick + 30, "fast mode advances time faster than normal")
+    bridge.set_time_scale(20)
+    start_tick = bridge.get_snapshot().clock.tick_index
+    bridge._process(0.05)
+    _check(bridge.get_snapshot().clock.tick_index == start_tick + 60, "fastest mode advances time faster than fast")
     var failing = FailedTickSimulation.new()
     var config = JSON.parse_string(FileAccess.get_file_as_string(bridge.simulation_config_path))
     _check(failing.initialize(config, bridge.world_service, null).ok, "failure backend initialized")

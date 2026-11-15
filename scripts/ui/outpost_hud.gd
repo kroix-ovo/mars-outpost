@@ -215,7 +215,7 @@ func _build_top_bar() -> void:
 	_hud_title.mouse_filter = Control.MOUSE_FILTER_PASS
 	_separator(row)
 	var time := _row(row, 2)
-	for entry in [[0, "pause", "Pause (Space)"], [1, "1×", "Normal speed"], [5, "5×", "Fast"], [20, "20×", "Fastest"]]:
+	for entry in [[0, "pause", "Pause (Space)"], [1, ">", "Play (1)"], [5, ">>", "Fast (2)"], [20, ">>>", "Fastest (3)"]]:
 		var button: Button
 		if entry[1] == "pause":
 			button = _button(time, "", func(): _time(0))
@@ -421,7 +421,7 @@ func _build_drawer() -> void:
 		training_requested.emit())
 	restart.tooltip_text = "Starts the tutorial again from a fresh training colony."
 	_section(onboarding, "Controls")
-	_hint(onboarding, "Pause to plan; commands also resolve while paused. Resume at 1×, 5× or 20×. F2 starts training with synthetic values; F3 starts the reference life-support scenario. F1 shows diagnostics. Campaign saves and agriculture are pending.")
+	_hint(onboarding, "Pause to plan; commands also resolve while paused. Use > to play, >> for fast, or >>> for fastest. F2 starts training; F3 starts the reference colony. After repairs, complete your first independent shift. F1 shows diagnostics.")
 	_hint(onboarding, "Camera: edge scrolling or WASD pans; middle-drag rotates/tilts; Q/E rotates; Home/End tilts; wheel or Z/X zooms; F recentres. Right-click cancels; 1/2/3 sets speed. Click modules, sites or astronauts to inspect them.")
 
 func _build_toast() -> void:
@@ -564,7 +564,9 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 	if _simulation != null and _simulation.has_method("get_capabilities"):
 		_hud_title.text = "TRAINING · SYNTHETIC" if snapshot.campaign_id.begins_with("fixture_") else "REFERENCE COLONY"
 	var scale_value: int = int(snapshot.clock.time_scale)
-	_clock.text = "T+ %s  ·  %s" % [_duration(tick), "Paused" if scale_value == 0 else "%d×" % scale_value]
+	var elapsed := int(snapshot.clock.get("elapsed_s", tick))
+	_clock.text = "T+ %02d:%02d · %s" % [elapsed / 3600, (elapsed / 60) % 60, {0: "Paused", 1: ">", 5: ">>", 20: ">>>"}.get(scale_value, ">")]
+	_clock.tooltip_text = "Elapsed colony time (hours:minutes)"
 	for key in _speed_buttons:
 		_speed_buttons[key].set_pressed_no_signal(key == scale_value)
 	_refresh_roster()
@@ -952,7 +954,7 @@ func _refresh_guide() -> void:
 	if _tutorial_text == null:
 		return
 	if _tour.active:
-		_tutorial_text.text = "Follow the highlighted control and the current lesson. Details expands the explanation. Skip tutorial enters free play; Resume returns to your current step."
+		_tutorial_text.text = "Complete your first independent shift: keep the crew alive and finish with oxygen, water and battery reserves. Check Systems and respond to alerts." if _tour.finished else "Follow the highlighted control and the current lesson. Details expands the explanation. Skip tutorial enters free play; Resume returns to your current step."
 	else:
 		_tutorial_text.text = "Tutorial complete. You can play freely or restart from a fresh training colony." if _tour.finished else "Tutorial hidden. Resume where you left off, or restart from a fresh training colony."
 	_tour_resume.visible = not _tour.active and not _tour.finished
@@ -1104,7 +1106,7 @@ func _tour_refresh() -> void:
 	var step := _tour_step
 	_tour_card.visible = true
 	_tour_overlay.visible = true
-	_tour_progress.text = "%s · step %d of %d" % [step.phase_title, step.index + 1, step.total]
+	_tour_progress.text = step.phase_title if step.get("phase") == "independent" else "%s · step %d of %d" % [step.phase_title, step.index + 1, step.total]
 	var flashing: bool = Time.get_ticks_msec() < _tour.flash_until_ms
 	_tour_flash.text = _tour.flash if flashing else ""
 	_tour_flash.visible = false # Keep acknowledgement out of the action card; progress records it.
@@ -1141,7 +1143,7 @@ func _tour_refresh() -> void:
 			button.add_theme_stylebox_override("hover", _box(AMBER.lightened(0.15), 6, 18, 9, AMBER))
 		else:
 			button.add_theme_stylebox_override("normal", _box(Color(AMBER, 0.2), 4, 12, 6, AMBER))
-	_tour_skip.visible = not step.centered
+	_tour_skip.visible = not step.centered and step.get("phase") != "independent"
 	_place_tour_card()
 
 func _place_tour_card() -> void:

@@ -393,7 +393,41 @@ func _run() -> void:
 		var target: String = sim.get_snapshot().tasks[id].target_id
 		check(float(sim.get_snapshot().buildings[target].condition) >= 0.999, "repair restored " + target)
 	await press("debrief")
-	check(hud._tour_step.is_empty() and hud._tour.finished and not hud._tour_card.visible, "finishing leaves free play")
+	check(step_id() == "shift_running" and hud._tour.finished and hud._tour_card.visible, "training hands over to a visible independent mission")
+	check("6 h 00 min" in hud._tour_step.action and "Press >" in hud._tour_step.action, "next mission gives a deadline and first action")
+	for entry in [[1, ">"], [5, ">>"], [20, ">>>"]]:
+		check(hud._speed_buttons[entry[0]].text == entry[1], "speed control uses arrows")
+	check("×" not in hud._clock.text and ":" in hud._clock.text, "clock shows colony hours and minutes without a multiplier")
+	# Isolated presentation snapshots exercise deadline/failure boundaries without
+	# simulating six hours or modifying the live colony.
+	var mission = preload("res://scripts/ui/tutorial_mission.gd").new()
+	mission.acknowledge("debrief")
+	var sample: Dictionary = sim.get_snapshot().duplicate(true)
+	for rid in ["oxygen_kg", "potable_water_kg", "energy_kwh"]:
+		sample.resources[rid].amount = 1.0
+	var ctx := {"snapshot": sample}
+	var before := sample.duplicate(true)
+	check(mission.evaluate(ctx).id == "shift_running" and sample == before, "mission evaluation is read-only")
+	sample.clock.elapsed_s += mission.SHIFT_SECONDS - 1
+	check(mission.evaluate(ctx).id == "shift_running", "mission does not finish before its deadline")
+	sample.clock.elapsed_s += 1
+	check(mission.evaluate(ctx).id == "shift_complete", "six hours with living crew and reserves completes the mission")
+	sample.resources.oxygen_kg.amount = 0.0
+	check(mission.evaluate(ctx).id == "shift_complete", "completed mission remains completed")
+	mission.restart()
+	mission.acknowledge("debrief")
+	mission.evaluate(ctx)
+	sample.clock.elapsed_s += mission.SHIFT_SECONDS
+	check(mission.evaluate(ctx).id == "shift_failed", "empty reserves at the deadline fail the mission")
+	sample.resources.oxygen_kg.amount = 1.0
+	check(mission.evaluate(ctx).id == "shift_failed", "failure remains visible instead of silently recovering")
+	mission.restart()
+	mission.acknowledge("debrief")
+	mission.evaluate(ctx)
+	sample.crew[sample.crew.keys()[0]].health = 0.0
+	check(mission.evaluate(ctx).id == "shift_failed", "losing an astronaut fails the mission")
+	await press("free_play")
+	check(hud._tour_step.is_empty() and not hud._tour_card.visible, "free play explicitly dismisses the mission")
 
 	main.free()
 	for failure in failures:

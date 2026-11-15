@@ -16,6 +16,9 @@ const TERMINAL := ["completed", "cancelled", "failed"]
 
 var active := true
 var finished := false
+var _shift_start := -1
+var _shift_result := ""
+const SHIFT_SECONDS := 6 * 3600
 var acks: Dictionary = {}
 var _campaign := ""
 var _baseline: Dictionary = {}
@@ -30,6 +33,8 @@ var flash_until_ms := 0
 func restart() -> void:
 	active = true
 	finished = false
+	_shift_start = -1
+	_shift_result = ""
 	acks.clear()
 	_campaign = ""
 	_baseline = {}
@@ -47,6 +52,8 @@ func acknowledge(step_id: String) -> void:
 	acks[step_id] = true
 	if step_id == "debrief":
 		finished = true
+		active = true
+	if step_id == "free_play":
 		active = false
 
 
@@ -82,6 +89,8 @@ func set_baseline(snapshot: Dictionary) -> void:
 func evaluate(ctx: Dictionary) -> Dictionary:
 	if not active:
 		return {}
+	if finished:
+		return _independent_shift(ctx)
 	var steps: Array = _training_steps(ctx) if ctx.training else _reference_steps(ctx)
 	var phase := "training" if ctx.training else "reference"
 	var index := steps.size() - 1
@@ -181,12 +190,12 @@ func _training_steps(ctx: Dictionary) -> Array:
 	steps.append(launch)
 	steps.append(_step("resume", "Start the clock",
 		"The clock is paused, so the crew is waiting at the airlock.",
-		"Press 1× to start time. 5× and 20× make it faster; Space pauses again.",
+		"Press > to start time. >> is fast and >>> is fastest; Space pauses again.",
 		"Commands work while paused, so pausing is the safe way to plan.",
 		{"kind": "speed", "id": "1"}, eva_done or (w.trip_active and int(s.clock.time_scale) > 0), false, []))
 	var watch := _step("watch_trip", "Watch the spacewalk",
 		_trip_phase_text(w.trip_status),
-		"Wait for them to come home. Press 20× if you want it to go faster.",
+		"Wait for them to come home. Press >>> if you want it to go faster.",
 		"The trip has three parts: walk out, collect salvage, walk back.",
 		{"kind": "world", "id": "trip", "label": "Spacewalk", "secondary": "trip_text"}, eva_done, false, [])
 	steps.append(watch)
@@ -250,7 +259,7 @@ func _training_steps(ctx: Dictionary) -> Array:
 	var progress: float = w.storage_progress
 	steps.append(_step("run_build", "Let them build",
 		"The builder walks to the module's door, then construction progress fills up.",
-		"Press 5× to speed up time." if int(s.clock.time_scale) == 0 else "Construction %d%%. Keep watching; 20× is fastest." % roundi(progress * 100.0),
+		"Press >> to speed up time." if int(s.clock.time_scale) == 0 else "Construction %d%%. Keep watching; >>> is fastest." % roundi(progress * 100.0),
 		"Modules only work once construction reaches 100%.",
 		{"kind": "speed", "id": "5"} if int(s.clock.time_scale) == 0 else {"kind": "world", "id": "storage", "label": "Construction"},
 		w.storage_commissioned, false, []))
@@ -436,16 +445,16 @@ func _reference_steps(ctx: Dictionary) -> Array:
 		var running := int(s.clock.time_scale) > 0
 		var repair := _step(key + "run", "Let the repair finish" + tag,
 			"Repair %.0f of %.0f work-seconds done." % [float(t.get("completed_work_s", 0.0)), float(t.get("required_work_s", 0.0))],
-			"Press 5× to run time." if not running else "Watch the condition rise to 100%.",
+			"Press >> to run time." if not running else "Watch the condition rise to 100%.",
 			"Completed repairs restore the module's output.",
 			{"kind": "speed", "id": "5"} if not running else {"kind": "world", "id": "building", "building": target.get("id", ""), "label": "Repair"},
 			done, false, [])
 		steps.append(repair)
 	steps.append(_step("debrief", "Mission debrief",
 		_debrief(ctx, repairs.size(), all_done),
-		"Press Finish to play freely. You can restart this tutorial from the Guide tab.",
+		"Press Begin independent shift. Your next goal is to manage six game hours without step-by-step guidance.",
 		"",
-		{}, acks.has("debrief"), true, [{"id": "debrief", "label": "Finish tutorial"}]))
+		{}, acks.has("debrief"), true, [{"id": "debrief", "label": "Begin independent shift"}]))
 	return steps
 
 
@@ -465,8 +474,49 @@ func _debrief(ctx: Dictionary, repairs: int, all_done: bool) -> String:
 	lines.append("You learned the whole colony loop: watch supplies, plan a safe spacewalk, turn salvage into a new module, staff jobs, and repair damaged equipment.")
 	if all_done and repairs > 0:
 		lines.append("All %d starting repair%s finished." % [repairs, "" if repairs == 1 else "s"])
-	lines.append("Next: keep oxygen, water and battery charge healthy, react to alerts, and use 20× only when nothing needs attention.")
+	lines.append("Next mission: finish a six-hour independent shift with every astronaut alive and oxygen, water and battery reserves remaining. Use > to play, >> to speed up, or >>> when nothing needs attention.")
 	return "\n".join(lines)
+
+
+func _independent_shift(ctx: Dictionary) -> Dictionary:
+	var s: Dictionary = ctx.snapshot
+	var now := int(s.clock.elapsed_s)
+	if _shift_start < 0:
+		_shift_start = now
+	var remaining := maxi(0, SHIFT_SECONDS - (now - _shift_start))
+	var alive := true
+	for crew in s.crew.values():
+		alive = alive and float(crew.health) > 0.0
+	var stocked := true
+	for id in ["oxygen_kg", "potable_water_kg", "energy_kwh"]:
+		stocked = stocked and float(s.resources.get(id, {}).get("amount", 0.0)) > 0.0
+	if _shift_result.is_empty():
+		if not alive:
+			_shift_result = "failed"
+		elif remaining == 0:
+			_shift_result = "complete" if stocked else "failed"
+	var terminal := not _shift_result.is_empty()
+	var title := "Your first independent shift"
+	var minutes_left := ceili(float(remaining) / 60.0)
+	var action := "Time left: %d h %02d min. Keep everyone alive and finish with oxygen, water and battery reserves." % [minutes_left / 60, minutes_left % 60]
+	if int(s.clock.time_scale) == 0:
+		action += " Press > to start the clock."
+	if terminal:
+		title = "Independent shift complete!" if _shift_result == "complete" else "Independent shift failed"
+		action = "Everyone survived with oxygen, water and battery reserves. Continue building your colony." if _shift_result == "complete" else "The shift ended without enough reserves or a crew member was lost. Restart the reference colony to try again."
+	var step := _step("shift_" + (_shift_result if terminal else "running"), title,
+		"Manage the colony for six game hours. Finish with every astronaut alive and oxygen, water and battery reserves remaining. Check Systems, keep life support enabled and respond to alerts.",
+		action, "", {}, false, terminal,
+		[{"id": "free_play", "label": "Continue free play"}, {"id": "restart_reference", "label": "Restart colony"}] if terminal else [])
+	if not str(ctx.get("sim_failed", "")).is_empty():
+		step.recovery = "The simulation stopped. Restart the colony to continue."
+		step.buttons = [{"id": "restart_reference", "label": "Restart colony"}]
+	step.index = 0
+	step.total = 1
+	step.phase = "independent"
+	step.phase_title = "Mission 2 · Independent shift"
+	step.checklist = [{"title": title, "done": _shift_result == "complete", "current": not terminal}]
+	return step
 
 
 # ---------------------------------------------------------------- helpers
