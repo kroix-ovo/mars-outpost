@@ -1,6 +1,6 @@
 class_name OutpostSimulation
 extends RefCounted
-## A1/A2 headless foundation with atomic electrical dispatch and accounting.
+## A1-A3 headless runtime: atomic power, life support and crew-demand accounting.
 ## Missing gameplay handlers fail explicitly; this is not a playable colony yet.
 
 const Schema = preload("res://scripts/simulation/command_schemas.gd")
@@ -8,6 +8,8 @@ const State = preload("res://scripts/simulation/game_state.gd")
 const Definitions = preload("res://scripts/simulation/definitions.gd")
 const Ledger = preload("res://scripts/simulation/resource_ledger.gd")
 const Power = preload("res://scripts/systems/power_system.gd")
+const LifeSupport = preload("res://scripts/systems/life_support_system.gd")
+const CrewDemand = preload("res://scripts/systems/crew_demand_system.gd")
 const CONTROLS = ["set_time_scale", "set_building_enabled"]
 const MAX_TICKS_PER_ADVANCE = 120
 
@@ -66,7 +68,7 @@ func submit_command(command: Dictionary) -> Dictionary:
             return _rejected(id, "command_id_conflict", "command_id reused with different content")
         return _accepted(id, prior, true)
     if normalized.type not in CONTROLS:
-        return _rejected(id, "module_unavailable", "This gameplay handler is not implemented in A2: " + normalized.type)
+        return _rejected(id, "module_unavailable", "This gameplay handler is not implemented in A3: " + normalized.type)
     if _next_receive_sequence >= Schema.MAX_EXACT_INTEGER or _state.counters.event + _pending.size() >= Schema.MAX_EXACT_INTEGER:
         return _rejected(id, "invalid_state", "Command sequence or event counter exhausted.")
     var entry = {"normalized": normalized.duplicate(true), "receive_sequence": _next_receive_sequence,
@@ -202,7 +204,13 @@ func _tick() -> Dictionary:
     # Phase 3: electrical dispatch. All balance writes go through the ledger.
     var power = _dispatch_power(candidate, ledger)
     if not power.ok: return _fail("internal_error", power.reason)
-    # Phases 4-7: processes, crew demand/progress and hazards remain unavailable.
+    # Phase 4: one common fraction for each life-support process.
+    var processes = _run_life_support(candidate, ledger)
+    if not processes.ok: return _fail("internal_error", processes.reason)
+    # Phase 5: Task 01 alone deducts base/suit crew demand.
+    var demand = _run_crew_demand(candidate, ledger)
+    if not demand.ok: return _fail("internal_error", demand.reason)
+    # Phases 6/7: labor/EVA/medical outcomes and environmental hazards await peers/A5.
     # Phase 8: finalize actual committed rates, diagnostics and invariants.
     for rid in candidate.records.resources:
         var balance: Dictionary = candidate.records.resources[rid]
@@ -211,17 +219,55 @@ func _tick() -> Dictionary:
         if not Schema.number(balance.net_rate_per_s) or (balance.forecast_empty_s != null and not Schema.number(balance.forecast_empty_s)):
             return _fail("internal_error", "Resource diagnostic overflow: " + rid)
     _finalize_power_alerts(candidate)
+    _finalize_life_support_alerts(candidate)
     valid = ledger.validate()
     if not valid.ok: return _fail("internal_error", valid.reason)
+    var events: Array = []
+    var crew_ids = candidate.crew_demand.unmet_needs.keys()
+    crew_ids.sort()
+    for id in crew_ids:
+        var entered: Array = []
+        for code in candidate.crew_demand.unmet_needs[id]:
+            if code not in _state.crew_demand.unmet_needs.get(id, []): entered.append(code)
+        if entered.is_empty(): continue
+        if candidate.counters.event >= Schema.MAX_EXACT_INTEGER: return _fail("internal_error", "Event counter exhausted.")
+        events.append({"id": candidate.allocate("event"), "type": "resource_shortage", "tick_index": candidate.records.clock.tick_index,
+            "entity_ids": [id], "data": {"unmet_needs": entered}})
     candidate.records.clock.tick_index += 1
     candidate.records.clock.elapsed_s = float(candidate.records.clock.tick_index)
     candidate.records.revision += 1
     _state = candidate
     _committed_effects.merge(ledger.staged)
+    for event in events: game_event.emit(event.duplicate(true))
     return _ok()
 
 func _dispatch_power(candidate: RefCounted, ledger: RefCounted) -> Dictionary:
     return Power.new().dispatch(candidate, _content, ledger)
+
+func _run_life_support(candidate: RefCounted, ledger: RefCounted) -> Dictionary:
+    return LifeSupport.new().run(candidate, _content, ledger)
+
+func _run_crew_demand(candidate: RefCounted, ledger: RefCounted) -> Dictionary:
+    return CrewDemand.new().run(candidate, _content, ledger)
+
+func _finalize_life_support_alerts(candidate: RefCounted) -> void:
+    var prior: Dictionary = {}
+    var wanted: Dictionary = {}
+    for alert in candidate.records.alerts:
+        prior[alert.id] = alert
+        if alert.code not in ["low_oxygen", "co2_high", "storage_full"]: wanted[alert.id] = alert
+    var r: Dictionary = candidate.records.resources
+    if r.oxygen_kg.amount - r.oxygen_kg.reserved <= 0 or (r.oxygen_kg.forecast_empty_s != null and r.oxygen_kg.forecast_empty_s <= _content.science.alerts.low_oxygen_forecast_s):
+        wanted.low_oxygen = _power_alert("low_oxygen", "low_oxygen", "Accessible oxygen is depleted or forecast to run low.", [], candidate.records.clock.tick_index, prior)
+    if r.co2_kg.amount >= _content.science.alerts.co2_high_kg:
+        wanted.co2_high = _power_alert("co2_high", "co2_high", "Modeled cabin CO2 exceeds the configured engineering warning threshold.", [], candidate.records.clock.tick_index, prior)
+    if candidate.crew_demand.wastewater_overflow_kg > 0:
+        var key = "storage_full:wastewater_kg"
+        wanted[key] = _power_alert(key, "storage_full", "Wastewater storage overflow caused explicit unrecoverable loss.", [], candidate.records.clock.tick_index, prior)
+    candidate.records.alerts = []
+    var ids = wanted.keys()
+    ids.sort()
+    for id in ids: candidate.records.alerts.append(wanted[id])
 
 func _finalize_power_alerts(candidate: RefCounted) -> void:
     var prior: Dictionary = {}

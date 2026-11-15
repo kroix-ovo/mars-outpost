@@ -167,7 +167,7 @@ func _resolve(path: String, trusted: bool) -> Dictionary:
     if p.size() == 2 and p[0] == "loss" and rid in ["oxygen_kg", "energy_kwh"]:
         return {"ok": true, "resource": rid, "external": true, "source": false}
     if p.size() == 3 and p[0] in ["source", "sink"] and trusted:
-        var names = ["generation", "production", "environment", "conversion"] if p[0] == "source" else ["load", "battery_loss", "curtailment", "conversion", "environment"]
+        var names = ["generation", "production", "environment", "conversion", "metabolism"] if p[0] == "source" else ["load", "battery_loss", "curtailment", "conversion", "environment", "metabolism", "process_removal", "recycler_loss", "capacity_overflow"]
         if p[1] not in names: return _fail("invalid_value", "Unknown source/sink classification.")
         return {"ok": true, "resource": rid, "external": true, "source": p[0] == "source"}
     if p.size() == 2 and p[0] == "base" and state.records.resources.has(rid):
@@ -303,6 +303,18 @@ func validate() -> Dictionary:
 
 static func _close(a: float, b: float) -> bool:
     return absf(a - b) <= EPS * maxf(1.0, maxf(absf(a), absf(b)))
+
+func classify_idle_power(idle_kwh: float) -> Dictionary:
+    # Reclassification of the already allocated electrical sink, not another
+    # energy transaction or battery debit. Called once by phase 4 per candidate.
+    if not Schema.number(idle_kwh) or idle_kwh < 0 or state.power_flows.has("sink/idle_power_loss/energy_kwh"):
+        return _fail("invalid_state", "Invalid or repeated load classification.")
+    var allocated: float = state.power_flows.get("sink/load/energy_kwh", 0.0)
+    if idle_kwh > allocated and not _close(idle_kwh, allocated): return _fail("invalid_state", "Idle loss exceeds allocation.")
+    var idle = minf(idle_kwh, allocated)
+    state.power_flows["sink/idle_power_loss/energy_kwh"] = idle
+    state.power_flows["sink/load/energy_kwh"] = allocated - idle
+    return _ok()
 
 static func _ok() -> Dictionary:
     return {"ok": true, "code": "ok", "reason": ""}

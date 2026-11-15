@@ -18,7 +18,7 @@ The aim is to advance the game as far as possible. The initial research report's
 
 ## Current status
 
-The integrated Godot 4.7.2 prototype combines Task 02's 3D world, building scenes, camera and route/placement previews with Task 01's A1/A2 authoritative clock, control commands, atomic ledger and electrical dispatch. Both the fixture map and authored `landing_plain` map run real generation/load/battery math. Values are synthetic placeholders, and this is not a complete playable colony: construction, life support, crew/EVA and save/load remain pending. See the [integration findings](docs/WORLD_SIMULATION_INTEGRATION.md), [world verification](tests/world/README.md) and [simulation verification](tests/simulation/README.md).
+The integrated Godot 4.7.2 prototype combines Task 02's 3D world with Task 01's A1–A3 clock, commands, atomic ledger, electrical dispatch, oxygen/water/CO2 processes and crew demand. The fixture map uses synthetic rates; the authored `landing_plain` map uses documented NASA reference crew rates and explicit game equipment/atmosphere assumptions. Construction, crew jobs/EVA, agriculture, medical/environmental outcomes and save/load remain pending. See [A3 research and solution](docs/A3_RESEARCH_AND_SOLUTION.md), [SCIENCE.md](SCIENCE.md), [world verification](tests/world/README.md) and [simulation verification](tests/simulation/README.md).
 
 ## Stack
 
@@ -67,7 +67,7 @@ Empty directories contain `.gitkeep` files so Git preserves the scaffold. Reposi
 
 ## Getting started
 
-Clone `https://github.com/kroix-ovo/mars-outpost.git`, then import `project.godot` in Godot 4.7.2 and press Play. The main scene is `scenes/world/main.tscn`. `F2` restarts the fixture colony; `F3` restarts the authored Mars colony. `Space` pauses, `+`/`-` change speed, WASD pans and the wheel zooms. The overlay reports live power and battery energy and labels unimplemented features. A valid placement preview currently leads to an explicit `module_unavailable` rejection on the real backend.
+Clone `https://github.com/kroix-ovo/mars-outpost.git`, then import `project.godot` in Godot 4.7.2 and press Play. The main scene is `scenes/world/main.tscn`. `F2` restarts the synthetic fixture colony; `F3` restarts the authored/reference Mars colony. `Space` pauses, `+`/`-` change speed, WASD pans and the wheel zooms. Click a module and press `T` to toggle it through the simulation command boundary. The overlay reports live power, batteries, oxygen/water/CO2/food, rates, forecasts and warnings. A valid construction preview still leads to an explicit `module_unavailable` rejection.
 
 Run all headless checks with Python 3 and the installed console executable:
 

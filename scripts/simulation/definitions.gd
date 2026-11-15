@@ -2,6 +2,8 @@ class_name OutpostDefinitions
 extends RefCounted
 ## Hash-verified fixture loading. Production content formats await Tasks 02/03.
 const Schema = preload("res://scripts/simulation/command_schemas.gd")
+const LifeSupport = preload("res://scripts/systems/life_support_system.gd")
+const CrewDemand = preload("res://scripts/systems/crew_demand_system.gd")
 var _files: Dictionary = {}
 var _error: Dictionary = {}
 
@@ -48,8 +50,12 @@ func load_config(config: Dictionary) -> Dictionary:
         return _fail("invalid_schema", "Incomplete scenario definition.")
     if not scenario.get("metadata") is Dictionary or not science.get("metadata") is Dictionary:
         return _fail("invalid_schema", "Scenario/science metadata must be objects.")
-    if scenario.metadata.get("status") != "synthetic_test_fixture" or science.metadata.get("status") != "synthetic_test_fixture":
-        return _fail("module_unavailable", "A1 supports explicitly synthetic fixture content only.")
+    if scenario.metadata.get("status") != "synthetic_test_fixture" or science.metadata.get("status") not in ["synthetic_test_fixture", "source_backed_reference_model"]:
+        return _fail("module_unavailable", "Use an explicitly synthetic scenario and documented synthetic/reference science profile.")
+    var science_checked = CrewDemand.validate_science(science)
+    if not science_checked.ok: return science_checked
+    if science.metadata.status == "source_backed_reference_model" and (not science.metadata.get("science_record_ids") is Array or science.metadata.science_record_ids.is_empty()):
+        return _fail("invalid_schema", "Reference profile requires SCIENCE.md provenance IDs.")
     if not scenario.scheduled_events.is_empty(): return _fail("module_unavailable", "Scheduled event execution belongs to A5.")
     var registry = _file(scenario.resource_registry_path)
     var crew_file = _file(scenario.crew_definition_path)
@@ -88,6 +94,8 @@ func load_config(config: Dictionary) -> Dictionary:
         if not item is Dictionary or not _keys(item, {"definition_id": TYPE_STRING, "cell": TYPE_ARRAY, "enabled": TYPE_BOOL}) or not Schema.cell(item.cell) or not _inside(item.cell, map_file.size_cells) or not Schema.whole(item.get("rotation_quarters"), 0, 3) or not _fraction(item.get("condition")) or not buildings.has(item.definition_id):
             return _fail("invalid_value", "Invalid initial building.")
         var definition: Dictionary = buildings[item.definition_id]
+        var process_checked = LifeSupport.validate_process(definition)
+        if not process_checked.ok: return process_checked
         for offset in definition.footprint_cells:
             var x = int(offset[0])
             var z = int(offset[1])

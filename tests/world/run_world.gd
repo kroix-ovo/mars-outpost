@@ -315,7 +315,7 @@ func _authored_content() -> void:
     for id in defs.ids():
         var definition: Dictionary = defs.get_definition(id)
         _check(definition.id == id, "authored id matches registry key " + id)
-        _check(definition.metadata.get("balance_status") == "placeholder_pending_science_md", "authored definition labelled as placeholder balance: " + id)
+        _check(definition.metadata.get("balance_status") in ["placeholder_pending_science_md", "documented_game_abstraction"], "authored definition labelled with balance provenance: " + id)
     var map_result: Dictionary = MapData.load_file("res://data/maps/landing_plain.json")
     _check(map_result.ok, "landing_plain map load: " + map_result.reason)
     if not map_result.ok or not loaded.ok:

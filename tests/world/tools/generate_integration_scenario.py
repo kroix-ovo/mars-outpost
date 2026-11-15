@@ -1,7 +1,7 @@
 """Build synthetic authored-map inputs, separate from the reference oracle.
 
-Run from any directory with --check to verify manifest freshness. No science
-values are adopted. Construction records are excluded until runtime jobs exist.
+Run from any directory with --check to verify manifest freshness. The A3 profile
+combines reference crew physiology with documented game equipment assumptions.
 """
 import argparse
 import hashlib
@@ -27,8 +27,8 @@ def outputs():
     definitions = sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "data/buildings").glob("*.json"))
     scenario.update(
         id="synthetic_landing_plain_integration",
-        description="Task 02 authored blockout + real A2 power; all balance/science values are synthetic placeholders.",
-        metadata={"status": "synthetic_test_fixture", "warning": "No adopted science. Seven commissioned modules only; construction and crew behavior remain unavailable."},
+        description="Authored integration prototype with A3 reference crew demand and documented game equipment sizing.",
+        metadata={"status": "synthetic_test_fixture", "warning": "Reference physiology plus game assumptions, not a flight-certified habitat. Construction and crew/EVA lifecycle remain unavailable."},
         building_definition_paths=["res://" + p for p in definitions],
         map_path="res://data/maps/landing_plain.json",
         starting_buildings=[],
@@ -51,11 +51,11 @@ def outputs():
     scenario_path = FIX + "landing_plain_scenario.json"
     scenario_bytes = encoded(scenario)
     config = read(SIM + "init/salvage_6crew.json")
-    config.update(campaign_id="synthetic_landing_plain_power", map_id="landing_plain", map_revision=1,
-                  scenario_path="res://" + scenario_path)
+    config.update(campaign_id="reference_landing_plain_life_support", map_id="landing_plain", map_revision=1,
+                  scenario_path="res://" + scenario_path, science_config_path="res://data/science/a3_reference_science.json")
     paths = definitions + ["data/maps/landing_plain.json", scenario["resource_registry_path"][6:],
                            scenario["crew_definition_path"][6:], scenario["task_template_path"][6:],
-                           config["science_config_path"][6:]]
+                           config["science_config_path"][6:], "data/science/a3_reference_inputs.json"]
     config["definition_manifest"] = {"res://" + p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in sorted(paths)}
     config["definition_manifest"]["res://" + scenario_path] = hashlib.sha256(scenario_bytes).hexdigest()
     return {scenario_path: scenario_bytes, FIX + "landing_plain_init.json": encoded(config)}
