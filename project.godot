@@ -13,6 +13,9 @@ config_version=5
 config/name="Mars Outpost Survival"
 config/description="Junior astronaut mission trainer: run a Martian outpost and balance power, water, oxygen, food and crew time."
 config/version="0.1.0"
+config/icon="res://assets/branding/mars_outpost_icon.png"
+boot_splash/image="res://assets/branding/mars_outpost_icon.png"
+boot_splash/bg_color=Color(0.04, 0.07, 0.12, 1)
 run/main_scene="res://scenes/frontend/front_end.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 

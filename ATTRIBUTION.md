@@ -41,7 +41,7 @@ Date accessed: 2026-11-15
 
 ## Russo One display font
 
-- Creator: Jovanny Lemonad; copyright 2011–2012, reserved font name Russo.
+- Creator: Jovanny Lemonad; copyright 2011â€“2012, reserved font name Russo.
 - Source: https://github.com/google/fonts/tree/main/ofl/russoone
 - Local files: `assets/fonts/russo_one/RussoOne-Regular.ttf` and `OFL.txt`.
 - License: SIL Open Font License 1.1; included alongside the unmodified font.
@@ -69,3 +69,7 @@ Date accessed:
 ```
 
 Check the terms for each individual asset, including third-party material hosted by NASA. This independent project does not imply NASA endorsement.
+
+## Application artwork
+
+Our astronaut application icon and startup splash were generated with OpenAI imagegen and approved by the project owner. We use the same artwork for the Windows executable and Godot application icon. The generated original is `assets/branding/mars_outpost_art.png`; icon files are resized/encoded derivatives.

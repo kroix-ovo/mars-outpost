@@ -4,6 +4,10 @@ We started Mars Outpost for NASA Space Apps because we wanted space survival to 
 
 Our game puts us in charge of a small outpost on Mars. We build a farm, give our crew jobs, watch our reserves and deal with equipment failures and environmental events. We built it in Godot 4.7.2 with a 3D world and a simulation underneath it that accounts for resources as time moves forward.
 
+## Play our Windows build
+
+[Download our Windows game](https://github.com/kroix-ovo/mars-outpost/raw/refs/heads/main/packages/windows/MarsOutpost-Windows.zip), extract the ZIP, and open `MarsOutpost.exe` in the extracted folder. We included the game, launch instructions and credits together; no Godot installation is needed. Our [package folder](packages/windows/README.md) has the build details. This is an unsigned Windows x86-64 build.
+
 ## Getting our first camp running
 
 We began with the systems that keep the crew alive: oxygen generation, carbon dioxide removal, water recovery, solar power and batteries. We kept those calculations separate from the world and interface so a button changes the simulation through a command, rather than changing a number on the screen.
