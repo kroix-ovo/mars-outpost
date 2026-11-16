@@ -49,7 +49,7 @@ static func build_captions(commander_name: String) -> Array:
 		{"at": 12.6, "title": "FIRST STEPS", "text": "Commander %s steps onto Mars, followed by a crew of six." % commander_name},
 		{"at": 19.0, "title": "THE FIRST OUTPOST", "text": "Together you will build the first human outpost on Mars."},
 		{"at": 24.4, "title": "SURVIVAL", "text": "Air, water and power all have to be made, stored and repaired here. Help from Earth is months away."},
-		{"at": DURATION, "title": "TRAINING FIRST", "text": "Before the outpost goes live, mission control runs one training shift. You will learn the controls there, one step at a time."},
+		{"at": DURATION, "title": "BUILD YOUR CAMP", "text": "Your first mission: build a farm, give your crew a job, and keep the outpost running. Follow the next-step card to get started."},
 	]
 
 

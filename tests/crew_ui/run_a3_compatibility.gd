@@ -286,5 +286,5 @@ func _reference_repairs() -> void:
         if sim.get_snapshot().tasks[task_id].status == "completed": break
     snapshot = sim.get_snapshot()
     check(snapshot.tasks[task_id].status == "completed" and snapshot.buildings[target].condition == 1.0 and snapshot.crew.crew_000001.task_id == null, "repair restores condition and releases crew")
-    check(not sim.supports_building("greenhouse_mk1"), "unsupported agriculture stays unavailable")
+    check(sim.supports_building("greenhouse_mk1") and not sim.get_capabilities().agriculture, "greenhouse production is available; full agriculture stays unavailable")
     bridge.free()

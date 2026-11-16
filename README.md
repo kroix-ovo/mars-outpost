@@ -18,7 +18,9 @@ The aim is to advance the game as far as possible. The initial research report's
 
 ## Current status
 
-The integrated Godot 4.7.2 prototype combines the 3D world, A1–A3 simulation, and PR #6's crew, EVA and mission-control HUD. Construction, cancellation/refunds, crew assignments, repairs, salvage trips and recall use the real transactional simulation and resource ledger. Training uses synthetic rates; the authored `landing_plain` map uses NASA reference crew rates, the named roster and explicit game assumptions. Reference-profile EVA stays disabled until suit inputs are researched. Agriculture, medical/environmental outcomes and campaign saves remain pending. See [integration notes and verification](docs/COHESIVE_GAME_INTEGRATION.md), [A3 research and solution](docs/A3_RESEARCH_AND_SOLUTION.md) and [SCIENCE.md](SCIENCE.md).
+The Godot 4.7.2 submission prototype opens from the normal title screen into a guided Level 1 camp mission: place a greenhouse, assign construction and botany specialists, produce food, and handle an equipment failure. Two interactive repair challenges use engineering skill and enforce a one-day retry lock after failure. Dust storms reduce solar output; solar radiation events offer shelter at the cost of crew work. The dark HUD shows essential resources, contextual actions, crew portraits and playback controls.
+
+The authored landing_plain map uses NASA reference crew rates and explicit gameplay assumptions. Reference-profile EVA and live-mission Save/Load remain unavailable. Furnished interiors, full daily routines, treatment, upgrades and supply deliveries remain future work. The separate v3 campaign save/scheduler foundation is tested but is not the live mission. See the [submission review](docs/overhaul/reviews/TAKEOVER_SUBMISSION_REVIEW.md), [science provenance](SCIENCE.md), [overhaul plan](docs/overhaul/README.md), and [slide screenshots](docs/evidence/submission_slides/README.md).
 
 ## Stack
 

@@ -81,6 +81,13 @@ func _ready() -> void:
         _refresh_overlay())
     _crew_view = preload("res://scripts/crew/crew_view.gd").new()
     $CrewRoot.add_child(_crew_view)
+    var weather := preload("res://scripts/world/dust_weather_view.gd").new()
+    weather.bridge = bridge
+    add_child(weather)
+    bridge.snapshot_changed.connect(func(_snapshot: Dictionary):
+        if bridge._backend.has_method("get_radiation_state"):
+            var radiation: Dictionary = bridge._backend.get_radiation_state()
+            _crew_view.visible = not (radiation.sheltering and radiation.status in ["warning", "active"]))
     _hud = preload("res://scenes/ui/outpost_hud.tscn").instantiate()
     $UIRoot.add_child(_hud)
     _hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -101,6 +108,7 @@ func _ready() -> void:
     _hud.placement_requested.connect(func(definition_id: String, quarters: int) -> void:
         placement.rotation_quarters = quarters
         placement.begin_placement(definition_id))
+    _hud.placement_cancel_requested.connect(placement.cancel_placement)
     building_selected.connect(_hud.select_building)
     site_selected.connect(func(site_id: String, _route: Dictionary) -> void: _hud.select_site(site_id))
     get_viewport().physics_object_picking = true
@@ -120,6 +128,8 @@ func _apply_front_end_session() -> void:
         _hud.enable_tutorial(false)
     if Session.world_index != world_index:
         load_world(Session.world_index)
+    if not Session.tutorial and not Session.load_save_on_start:
+        bridge.set_time_scale(0) # Let a new player read the first camp action safely.
     if Session.load_save_on_start:
         Session.load_save_on_start = false
         _hud.load_saved_game()

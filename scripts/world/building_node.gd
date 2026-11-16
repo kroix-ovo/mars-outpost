@@ -400,4 +400,32 @@ func _build_highlight(anchor: Vector3, height: float) -> void:
     _label.no_depth_test = true
     _label.render_priority = 2
     add_child(_label)
+    # Always-visible camp sign: which part of the camp this module belongs to. Read from
+    # the real definition, so the sign always matches the footprint and the job target.
+    var wing := wing_name(definition_id)
+    if not wing.is_empty():
+        var sign := Label3D.new()
+        sign.name = "WingSign"
+        sign.text = wing
+        sign.position = Vector3(centre.x, height + 0.25, centre.z)
+        sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+        sign.fixed_size = true
+        sign.pixel_size = 0.001
+        sign.font_size = 15
+        sign.modulate = Color(0.78, 0.92, 1.0)
+        sign.outline_size = 7
+        sign.outline_modulate = Color(0.05, 0.05, 0.06, 0.9)
+        sign.no_depth_test = true
+        add_child(sign)
     set_highlight(_highlight_mode)
+
+
+static func wing_name(id: String) -> String:
+    if id.begins_with("greenhouse"): return "FARM"
+    if id.begins_with("solar"): return "SOLAR"
+    if id.begins_with("battery"): return "BATTERY"
+    if id.begins_with("water_electrolyzer"): return "OXYGEN"
+    if id.begins_with("water_recycler"): return "WATER RECYCLER"
+    if id.begins_with("co2"): return "AIR FILTER"
+    if id.begins_with("storage"): return "STORAGE"
+    return ""

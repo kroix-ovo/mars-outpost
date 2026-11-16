@@ -11,14 +11,17 @@ const CrewLooks = preload("res://scripts/crew/crew_looks.gd")
 const TutorialOverlay = preload("res://scripts/ui/tutorial_overlay.gd")
 const SaveSlot = preload("res://scripts/ui/outpost_save_slot.gd")
 const Icon = preload("res://scripts/ui/hud_icon.gd")
+const RepairPanel = preload("res://scripts/ui/repair_challenge_panel.gd")
+const HudShell = preload("res://scripts/ui/colony_hud_shell.gd")
+var _skin: RefCounted
 const TERMINAL := ["completed", "cancelled", "failed"]
-const INK := Color("#e4dfd5")
-const DIM := Color("#9a958c")
-const AMBER := Color("#e8962a")
-const CYAN := Color("#5cc8e8")
+const INK := Color("#e8f1f5")
+const DIM := Color("#a8becb")
+const AMBER := Color("#64d8ba")
+const CYAN := Color("#76cce5")
 const DANGER := Color("#ec6a52")
 const OK_GREEN := Color("#7fcf7a")
-const PANEL := Color(0.075, 0.085, 0.10, 0.92)
+const PANEL := Color("#182a36")
 const DRAWER_WIDTH := 320.0
 const CREW_WIDTH := 232.0
 const TOP_HEIGHT := 40.0
@@ -32,6 +35,7 @@ signal layout_changed(left_px: float, right_px: float)
 signal crew_selection_changed(crew_ids: Array)
 ## Asks the world to show the placement ghost for this definition.
 signal placement_requested(definition_id: String, rotation_quarters: int)
+signal placement_cancel_requested
 
 var _simulation: RefCounted
 var _adapter: RefCounted
@@ -101,6 +105,20 @@ var _oxygen_info: Label
 var _buildings: OptionButton
 var _building_text: Label
 var _toggle_building: Button
+var _inspect_section: VBoxContainer
+var _placement_section: VBoxContainer
+var _drill_button: Button
+var _repair_button: Button
+var _repair_text: Label
+var _repair_panel: Control
+var _camp_level_one := false
+var _camp_card: PanelContainer
+var _camp_text: Label
+var _storm_row: HBoxContainer
+var _storm_save: Button
+var _storm_keep: Button
+var _storm_practice: Button
+var _incident_sent := false
 var _catalog_menu: OptionButton
 var _x: SpinBox
 var _z: SpinBox
@@ -185,8 +203,14 @@ func _ready() -> void:
 	_build_drawer()
 	_build_toast()
 	_build_tutorial()
+	_build_camp_card()
+	_repair_panel = RepairPanel.new()
+	_repair_panel.name = "RepairChallenge"
+	add_child(_repair_panel)
 	_audio = AudioStreamPlayer.new()
 	add_child(_audio)
+	_skin = HudShell.new(self)
+	_skin.install()
 	resized.connect(_apply_layout)
 	_apply_layout()
 	if _simulation != null:
@@ -206,6 +230,9 @@ func _process(_delta: float) -> void:
 		_status_seen = _status.text
 		_status_until = Time.get_ticks_msec() + 4500
 	_toast.visible = not _status.text.is_empty() and Time.get_ticks_msec() < _status_until
+	if _status.text.begins_with("Set Time Scale") or _status.text.begins_with("Queued: Set Time Scale"):
+		_toast.visible = false
+	if _skin != null: _skin.refresh()
 
 func _build_top_bar() -> void:
 	_top = _panel(self)
@@ -366,25 +393,33 @@ func _build_drawer() -> void:
 	_hint(jobs, "Pick astronauts in the crew roster, then assign them. Repairs restore damaged modules; construction finishes placed modules.")
 
 	var build := _page("Build")
-	_section(build, "Selected module")
-	_buildings = _option(build)
+	_inspect_section = _column(build, 8)
+	_section(_inspect_section, "Selected equipment")
+	_buildings = _option(_inspect_section)
 	_buildings.item_selected.connect(func(_i: int): _refresh_selection())
-	_building_text = _label(build, "", 13)
-	_toggle_building = _button(build, "Toggle module", _toggle)
-	_section(build, "Place a module")
-	_catalog_menu = _option(build)
+	_building_text = _label(_inspect_section, "", 13)
+	_toggle_building = _button(_inspect_section, "Toggle module", _toggle)
+	var repair_row := _row(_inspect_section, 6)
+	_drill_button = _button(repair_row, "Fault drill", _fault_drill)
+	_drill_button.tooltip_text = "Training drill: this module develops a real fault. Its repair is a hands-on challenge."
+	_repair_button = _button(repair_row, "Start repair", _start_repair)
+	_repair_button.tooltip_text = "The selected astronaut (or your best free engineer) attempts the repair. A failed attempt locks this component for one mission day."
+	_repair_text = _label(_inspect_section, "", 13)
+	_placement_section = _column(build, 8)
+	_section(_placement_section, "Choose what to build")
+	_catalog_menu = _option(_placement_section)
 	_catalog_menu.item_selected.connect(func(_i: int): _preview_build())
-	_place_on_map = _button(build, "Choose a cell on the map", func():
+	_place_on_map = _button(_placement_section, "Choose a cell on the map", func():
 		placement_requested.emit(_selected(_catalog_menu), int(_rotation.value)))
 	_place_on_map.tooltip_text = "Shows the module outline under the cursor. Click to place, R rotates, Esc cancels."
-	var coords := _row(build, 6)
+	var coords := _row(_placement_section, 6)
 	_x = _number(coords, "Cell X", 0, 100000, 1, 0)
 	_z = _number(coords, "Cell Z", 0, 100000, 1, 0)
 	_rotation = _number(coords, "Turns", 0, 3, 1, 0)
 	for field in [_x, _z, _rotation]:
 		field.value_changed.connect(func(_v: float): _preview_build())
-	_build_preview = _label(build, "", 13)
-	_place = _button(build, "Place at these coordinates", func(): _send("place_building", _placement()))
+	_build_preview = _label(_placement_section, "", 13)
+	_place = _button(_placement_section, "Place at these coordinates", func(): _send("place_building", _placement()))
 
 	var eva := _page("EVA")
 	_section(eva, "Plan a salvage trip")
@@ -483,6 +518,7 @@ func _apply_layout() -> void:
 	_fit_drawer.call_deferred()
 	layout_changed.emit(8.0 + CREW_WIDTH, 8.0 + (drawer_width if _drawer_open else 46.0))
 	_tour_refresh.call_deferred()
+	if _skin != null: _skin.layout()
 
 func _fit_crew_card() -> void:
 	if _crew_body == null or not is_inside_tree():
@@ -511,6 +547,7 @@ func _toggle_drawer() -> void:
 	_apply_layout()
 
 func _open_tab(title: String) -> void:
+	if _skin != null: _crew_card.visible = false
 	if not _drawer_open:
 		_toggle_drawer()
 	for i in _tabs.get_tab_count():
@@ -523,6 +560,10 @@ func _open_tab(title: String) -> void:
 func select_crew(id: String) -> void:
 	if _crew == null:
 		return
+	if _skin != null:
+		_crew_card.visible = true
+		_drawer_open = false
+		_apply_layout()
 	for index in range(_crew.item_count):
 		if _crew.get_item_metadata(index) == id:
 			_crew.select(index)
@@ -533,6 +574,9 @@ func select_building(id: String) -> void:
 	## World selection of a module: inspect it in the Build drawer.
 	if _buildings == null or id.is_empty():
 		return
+	if _skin != null:
+		_inspect_section.visible = true
+		_placement_section.visible = false
 	for i in _buildings.item_count:
 		if _buildings.get_item_metadata(i) == id:
 			_buildings.select(i)
@@ -696,6 +740,10 @@ func _refresh_selection() -> void:
 		var ranked: Array = c.skills.keys()
 		ranked.sort_custom(func(a: String, b: String): return float(c.skills[a]) > float(c.skills[b]))
 		var rows: Array[String] = ["Health %d%% · Fatigue %d%%" % [roundi(c.health * 100), roundi(c.fatigue * 100)], "Stress %d%%" % roundi(c.stress * 100)]
+		var injury: Dictionary = repair_state().get("injuries", {}).get(c.id, {})
+		if not injury.is_empty():
+			var left: int = maxi(0, int(injury.recover_tick) - int(_state.clock.tick_index))
+			rows.append("INJURED (electrical shock): off duty, recovering for %d d %02d h" % [left / 86400, (left % 86400) / 3600])
 		for skill in ranked.slice(0, 2):
 			rows.append("%s: %d%%" % [str(skill).capitalize(), roundi(c.skills[skill] * 100)])
 		details.append("\n".join(rows))
@@ -720,6 +768,8 @@ func _refresh_selection() -> void:
 	_building_text.text = "No modules to inspect." if building.is_empty() else "%s · condition %d%% · construction %d%%\n%.2f / %.2f kW served%s" % [
 		building.lifecycle.capitalize(), roundi(building.condition * 100), roundi(building.construction_progress * 100),
 		building.power_served_kw, building.power_requested_kw, _blockers(building)]
+	_refresh_repair(building)
+	_refresh_camp_card()
 	var trip: Dictionary = _state.expeditions.get(_selected(_trips), {})
 	var expedition_job: Dictionary = _state.tasks.get(trip.get("task_id"), {})
 	_recall.disabled = trip.is_empty() or trip.get("status") in ["returning", "completed", "failed"]
@@ -920,6 +970,235 @@ func _toggle() -> void:
 	var id := _selected(_buildings)
 	_send("set_building_enabled", {"building_id": id, "enabled": not _state.buildings[id].enabled})
 
+func _build_camp_card() -> void:
+	_camp_card = _panel(self)
+	_camp_card.name = "CampObjective"
+	_camp_card.anchor_left = 0.5
+	_camp_card.anchor_right = 0.5
+	_camp_card.offset_left = -330
+	_camp_card.offset_right = 330
+	_camp_card.offset_top = 58
+	_camp_card.add_theme_stylebox_override("panel", _box(Color(0.06, 0.07, 0.085, 0.94), 8, 12, 8, Color(CYAN, 0.8)))
+	var body := _column(_camp_card, 6)
+	_camp_text = _label(body, "", 14)
+	_storm_row = _row(body, 8)
+	_storm_save = _button(_storm_row, "Save power for breathing", func(): _choose_storm("save_power"))
+	_storm_save.tooltip_text = "The farm is switched off during the storm. This costs food production."
+	_storm_keep = _button(_storm_row, "Keep the farm running", func(): _choose_storm("keep_farm"))
+	_storm_keep.tooltip_text = "Nothing is switched off. Batteries must cover the missing solar power."
+	_storm_practice = _button(body, "Storm practice (optional)", func(): _send("start_storm_practice", {}))
+	_storm_practice.tooltip_text = "Starts the same real dust storm now instead of waiting for a random one."
+	_camp_card.visible = false
+
+func _enable_storms() -> void:
+	if _simulation != null and _simulation.has_method("enable_dust_storms"): _simulation.enable_dust_storms()
+	if _simulation != null and _simulation.has_method("enable_radiation"): _simulation.enable_radiation()
+
+func _choose_storm(response: String) -> void:
+	var was_forecast: bool = storm_state().status == "forecast"
+	_send("set_storm_response", {"response": response})
+	if was_forecast: _time(1)
+
+func storm_state() -> Dictionary:
+	if _simulation == null or not _simulation.has_method("get_storm_state"): return {"enabled": false, "status": "idle"}
+	return _simulation.get_storm_state()
+
+func camp_objective() -> Dictionary:
+	## The next step of the camp mission, read from committed state. Never acknowledgement-only.
+	var farm: Dictionary = {}
+	for building in _state.get("buildings", {}).values():
+		if "greenhouse" in str(building.definition_id): farm = building
+	var view := repair_state()
+	var open_fault: Dictionary = {}
+	var locked_fault: Dictionary = {}
+	for fault in view.faults.values():
+		if fault.status == "open": open_fault = fault
+		elif fault.status == "locked": locked_fault = fault
+	var paused: bool = int(_state.get("clock", {}).get("time_scale", 0)) == 0
+	var run_hint := " Press > to run time." if paused else ""
+	if farm.is_empty():
+		var resources: Dictionary = _state.get("resources", {})
+		if float(resources.get("alloy", {}).get("amount", 0.0)) < 8.0 or float(resources.get("electronics", {}).get("amount", 0.0)) < 3.0:
+			return {"step": 1, "text": "Build the farm wing: you need 8 Alloy and 3 Electronics. Cancel another construction job in Jobs to get its materials back."}
+		return {"step": 1, "text": "Build the farm wing. Open the Build tab, choose Greenhouse, press “Choose a cell on the map” and click free ground beside the camp. If a spot is refused, pick open ground away from other modules."}
+	if farm.lifecycle == "constructing":
+		var job: Dictionary = _state.get("tasks", {}).get(farm.construction_task_id, {})
+		if job.get("assigned_crew_ids", []).is_empty():
+			return {"step": 2, "text": "Assign a construction crew. Open the Jobs tab, choose the Greenhouse job, press Suggest crew, then Assign selected."}
+		return {"step": 3, "text": "Your builder is walking to the site and building it (%d%%)." % roundi(float(farm.construction_progress) * 100.0) + run_hint}
+	var tend: Dictionary = {}
+	for task in _state.get("tasks", {}).values():
+		if task.kind == "farm" and task.status not in TERMINAL: tend = task
+	if view.faults.is_empty() and not tend.is_empty() and tend.assigned_crew_ids.is_empty() and float(farm.operating_fraction) > 0.0 and not _incident_sent:
+		return {"step": 4, "text": "The farm is growing. Give it a specialist: open Jobs, choose the Farm job, press Suggest crew (it picks your best botanist), then Assign selected. Tending brings in a harvest."}
+	if view.faults.is_empty():
+		if float(farm.operating_fraction) <= 0.0:
+			return {"step": 4, "text": "The farm is built. It needs electricity, water and CO2 to grow food: check the Systems tab." + run_hint}
+		return {"step": 4, "text": "The farm is growing food from water and CO2. One greenhouse adds to your stored food; it cannot feed the whole crew alone." + run_hint}
+	if view.session != null: return {"step": 5, "text": "Repair in progress."}
+	if not open_fault.is_empty():
+		var target: Dictionary = _state.buildings.get(open_fault.building_id, {})
+		var name: String = str(_catalog.get(target.get("definition_id", ""), {}).get("display_name", "module"))
+		return {"step": 5, "text": "Incident: the %s has a fault. Choose a repair astronaut in the CREW list (engineers get an easier repair), select the %s in the Build tab, then press Start repair." % [name, name]}
+	if not locked_fault.is_empty() and int(locked_fault.locked_until_tick) > int(view.tick_index):
+		var safety := camp_stability()
+		if not safety.ok:
+			return {"step": 5, "text": "Setup complete, but the emergency is NOT resolved: %s. The failed repair is locked for one mission day. Free up power (disable the farm in Build), then retry the repair when the lock ends." % "; ".join(safety.reasons)}
+		return {"step": 6, "text": "The repair failed, so that module is offline and locked for one mission day. Life support is still fully powered and oxygen covers the lock, so Camp Level 1 is reached. Retry the repair when the lock ends."}
+	return {"step": 6, "text": "Camp Level 1 established. Your farm is growing food and the fault is handled. Watch for dust storms."}
+
+func _refresh_camp_card() -> void:
+	if _camp_card == null or _state.is_empty(): return
+	var camp_colony: bool = _catalog.has("greenhouse_mk1") and _simulation != null and _simulation.has_method("get_repair_state")
+	_camp_card.visible = camp_colony and not _repair_panel.is_open()
+	if not camp_colony: return
+	var objective := camp_objective()
+	var view := repair_state()
+	# The first incident happens once, at a committed milestone: the farm is producing.
+	var producing := false
+	for building in _state.buildings.values():
+		if "greenhouse" in str(building.definition_id) and building.lifecycle == "commissioned" and float(building.operating_fraction) > 0.0: producing = true
+	var tended := false
+	for task in _state.tasks.values():
+		if task.kind == "farm" and (task.status == "completed" or not task.assigned_crew_ids.is_empty()): tended = true
+	if producing and tended and view.faults.is_empty() and not _incident_sent:
+		_incident_sent = true
+		for id in _keys(_state.buildings):
+			if "battery" in str(_state.buildings[id].definition_id) and _state.buildings[id].lifecycle == "commissioned":
+				_send("trigger_fault_drill", {"building_id": id})
+				select_building(id)
+				break
+	elif view.faults.is_empty() and not producing: _incident_sent = false
+	var lines: Array[String] = ["CAMP MISSION · step %d of 6\n%s" % [int(objective.step), str(objective.text)]]
+	for crew_id in view.get("injuries", {}):
+		lines.append("%s is injured and off duty, so repairs fall to your next-best engineer." % _crew_name(str(_state.crew[crew_id].display_name)))
+	var storm := storm_state()
+	# The simulation is mid-update inside this callback, so enabling waits one idle frame.
+	if camp_progress().level_one and not storm.enabled: _enable_storms.call_deferred()
+	var now: int = int(_state.clock.tick_index)
+	var facts := "Solar %.1f kW · Battery %d%% · Oxygen %.0f kg" % [float(_state.power.generated_kw),
+		roundi(100.0 * float(_state.power.battery_stored_kwh) / maxf(0.001, float(_state.power.battery_capacity_kwh))), float(_state.resources.oxygen_kg.amount)]
+	_storm_row.visible = storm.status in ["forecast", "active"]
+	_storm_practice.visible = storm.enabled and storm.status in ["idle", "cooldown"]
+	if storm.status == "forecast":
+		var lead: int = maxi(0, int(storm.arrival_tick) - now)
+		lines.append("DUST STORM WARNING · arrives in %d min\nA dust storm is approaching. Your solar panels will make less electricity (about a quarter). Less sunlight means less solar electricity; batteries help for a while. Keep the farm growing, or save power for breathing equipment? Then press > to continue.\n%s" % [ceili(lead / 60.0), facts])
+	elif storm.status == "active":
+		var left: int = maxi(0, int(storm.end_tick) - now)
+		var drain: float = -float(_state.resources.energy_kwh.net_rate_per_s) * 3600.0
+		var estimate := "Battery lasts about %.1f h at this rate." % (float(_state.power.battery_stored_kwh) / drain) if drain > 0.0001 else "Battery is not draining right now."
+		lines.append("DUST STORM ACTIVE · %d h %02d min left · solar panels at 25%% (game setting)\nChoice: %s. %s\n%s" % [left / 3600, (left % 3600) / 60,
+			"saving power, the farm is off and grows no food" if storm.response == "save_power" else "the farm keeps running on batteries", estimate, facts])
+	elif storm.status == "cooldown" and int(storm.count) > 0 and now - (int(storm.cooldown_until_tick) - 43200) < 1800:
+		lines.append("The dust storm has cleared. Solar power and normal priorities are back.")
+	if storm.status in ["forecast", "active"]:
+		_storm_save.disabled = storm.response == "save_power"
+		_storm_keep.disabled = storm.response == "keep_farm"
+	_camp_text.text = "\n".join(lines)
+
+func camp_progress() -> Dictionary:
+	## Level 1 is read from committed simulation state only. Nothing here grants progress.
+	var farm_built := false
+	var farm_running := false
+	for building in _state.get("buildings", {}).values():
+		if "greenhouse" in str(building.definition_id) and building.lifecycle == "commissioned":
+			farm_built = true
+			if float(building.operating_fraction) > 0.0: farm_running = true
+	var view := repair_state()
+	var drilled: bool = not view.faults.is_empty()
+	var repaired := false
+	var locked := false
+	for fault in view.faults.values():
+		if fault.status == "resolved": repaired = true
+		elif fault.status == "locked": locked = true
+	# A failed, locked repair only counts when the camp is demonstrably safe without it.
+	var stable := camp_stability()
+	var handled: bool = drilled and view.session == null and ((repaired and not locked) or (locked and stable.ok))
+	var rows: Array = [
+		{"title": "Build a greenhouse (Build tab) and assign a builder (Jobs tab)", "done": farm_built},
+		{"title": "Run time until the farm produces food", "done": farm_running},
+		{"title": "An equipment fault is reported (it happens once the farm is staffed)", "done": drilled},
+		{"title": "Repair it hands-on, or stabilize the colony under the lockout", "done": handled}]
+	var hint := "Level 1 needs a producing farm and one handled fault."
+	if farm_running and handled:
+		hint = "Level 1 reached. The fault was repaired." if repaired and not locked else "Level 1 reached on backup equipment: life support is fully powered and oxygen covers the lockout. Retry the locked repair after one mission day."
+	elif farm_built and locked and not stable.ok:
+		hint = "Setup complete, emergency unresolved: " + "; ".join(stable.reasons) + "."
+	return {"level_one": farm_running and handled, "rows": rows, "hint": hint, "stable": stable.ok, "emergency": farm_built and locked and not stable.ok}
+
+func camp_stability() -> Dictionary:
+	## Declared safety test for running on backup equipment during a one-day repair lock:
+	## no oxygen/CO2/power-shortfall alert, every life-support module fully powered, and
+	## oxygen not forecast to run out within the 24-hour lock.
+	var reasons: Array[String] = []
+	for alert in _state.get("alerts", []):
+		if alert.code == "low_oxygen": reasons.append("oxygen is running low")
+		elif alert.code == "co2_high": reasons.append("CO2 is too high")
+	for building in _state.get("buildings", {}).values():
+		var id := str(building.definition_id)
+		if not (id.begins_with("water") or id.begins_with("co2")) or building.lifecycle != "commissioned" or not building.enabled: continue
+		if float(building.power_served_kw) + 1e-9 < float(building.power_requested_kw):
+			reasons.append("life support is not getting full power")
+			break
+	var oxygen: Dictionary = _state.get("resources", {}).get("oxygen_kg", {})
+	if oxygen.get("forecast_empty_s") != null and float(oxygen.forecast_empty_s) < 86400.0:
+		reasons.append("oxygen will not last through the one-day lock")
+	if float(oxygen.get("amount", 0.0)) <= 0.0: reasons.append("no oxygen reserve")
+	return {"ok": reasons.is_empty(), "reasons": reasons}
+
+func repair_state() -> Dictionary:
+	if _simulation == null or not _simulation.has_method("get_repair_state"): return {"faults": {}, "session": null, "tick_index": 0}
+	return _simulation.get_repair_state()
+
+func _refresh_repair(building: Dictionary) -> void:
+	if _repair_text == null: return
+	var view := repair_state()
+	var fault: Dictionary = view.faults.get(building.get("id", ""), {})
+	var unresolved := false
+	for other in view.faults.values():
+		if other.status != "resolved": unresolved = true
+	var supported: bool = _simulation != null and _simulation.has_method("get_repair_state")
+	_drill_button.disabled = not supported or building.is_empty() or building.get("lifecycle") != "commissioned" or unresolved
+	_repair_button.disabled = not supported or fault.is_empty() or fault.status == "resolved" or view.session != null
+	if fault.is_empty(): _repair_text.text = "No fault on this module."
+	elif fault.status == "open": _repair_text.text = "FAULT: needs a hands-on repair (%s)." % ("rewire the circuit" if fault.kind == "circuit" else "calibrate the tracker")
+	elif fault.status == "locked":
+		var wait: int = maxi(0, int(fault.locked_until_tick) - int(view.tick_index))
+		_repair_text.text = "Repair LOCKED after a failed attempt. Retry in %d h %02d min. No astronaut can bypass this." % [wait / 3600, (wait % 3600) / 60] if wait > 0 else "Lockout over: the repair can be retried."
+	else: _repair_text.text = "Fault repaired (%d attempt%s)." % [int(fault.attempts), "" if int(fault.attempts) == 1 else "s"]
+
+func _fault_drill() -> void:
+	var id := _selected(_buildings)
+	if not id.is_empty(): _send("trigger_fault_drill", {"building_id": id})
+
+func repair_operator() -> String:
+	## The selected idle astronaut, else the free astronaut with the best engineering skill.
+	for id in _selected_crew():
+		if _state.crew.get(id, {}).get("status") == "idle": return id
+	var best := ""
+	for id in _keys(_state.get("crew", {})):
+		var member: Dictionary = _state.crew[id]
+		if member.status != "idle" or member.location_kind != "base": continue
+		if best.is_empty() or float(member.skills.get("engineering", 0.0)) > float(_state.crew[best].skills.get("engineering", 0.0)): best = id
+	return best
+
+func _start_repair() -> void:
+	var id := _selected(_buildings)
+	var crew_id := repair_operator()
+	if id.is_empty() or crew_id.is_empty():
+		_status.text = "No free astronaut is available for the repair."
+		return
+	_send("start_repair_challenge", {"building_id": id, "crew_id": crew_id})
+	_simulation.process_pending_commands()
+
+func _repair_send(type: String, payload: Dictionary) -> void:
+	# Challenge inputs go straight to the simulation and resolve at once; they never
+	# carry a result, only what the player pressed.
+	if _simulation == null: return
+	_seq += 1
+	_simulation.submit_command({"contract_version": "2.0.0", "command_id": "%s:%06d" % [_session, _seq], "type": type, "payload": payload})
+	_simulation.process_pending_commands()
+
 func _time(scale_value: int) -> void:
 	_send("set_time_scale", {"time_scale": scale_value})
 
@@ -951,6 +1230,19 @@ func _on_event(event: Dictionary) -> void:
 		# Commands from the world (map placement) are not tracked as pending HUD commands.
 		_status.text = str(event.data.reason)
 		_tour_note_failure(str(event.data.reason))
+	elif event.type == "repair_started":
+		var target: Dictionary = _state.get("buildings", {}).get(event.data.building_id, {})
+		var member: Dictionary = _state.get("crew", {}).get(event.data.crew_id, {})
+		_repair_panel.open(_simulation, _repair_send, event.data.building_id,
+			str(_catalog.get(target.get("definition_id", ""), {}).get("display_name", "module")), _crew_name(str(member.get("display_name", "Astronaut"))))
+		move_child(_repair_panel, get_child_count() - 1)
+	elif event.type in ["fault_started", "repair_succeeded", "repair_failed"]:
+		_status.text = {"fault_started": "Fault reported. Open Build, select the module and press Start repair.",
+			"repair_succeeded": "Repair complete: the module is back to full condition.",
+			"repair_failed": "Repair failed: the module is offline and locked for one mission day."}[event.type]
+		if event.type == "repair_failed" and repair_state().get("injuries", {}).has(event.entity_ids[1]):
+			_status.text += " The operator was injured and is off duty."
+		_play("confirm" if event.type == "repair_succeeded" else "warning")
 	elif event.type in ["building_commissioned", "eva_returned", "task_completed"]:
 		_status.text = _explain(event.type)
 		_play("confirm")
@@ -1004,6 +1296,16 @@ func _refresh_guide() -> void:
 		lines.insert(1, "Mission 2 is ready. Press Start mission 2." if ready else "Mission 2 unlocks after the starting repairs are complete. Open colony jobs to assign crew.")
 	for row in summary.checklist:
 		lines.append(("✓ " if row.done else "→ " if row.current else "□ ") + str(row.title))
+	var camp := camp_progress()
+	var camp_lines: Array[String] = ["CAMP LEVEL 1 · ESTABLISHED" if camp.level_one else ("CAMP · SETUP COMPLETE, EMERGENCY UNRESOLVED" if camp.emergency else "CAMP · REACH LEVEL 1")]
+	for row in camp.rows: camp_lines.append(("✓ " if row.done else "□ ") + str(row.title))
+	camp_lines.append(str(camp.hint) + "\n")
+	lines = camp_lines + lines
+	if camp.level_one and not _camp_level_one:
+		_camp_level_one = true
+		_status.text = "Camp Level 1 established: the farm is producing and the fault was handled."
+		_play("confirm")
+	elif not camp.level_one: _camp_level_one = false
 	lines.append("\nCOLONY JOBS")
 	var jobs := _task_options()
 	for label in jobs.values(): lines.append("• " + str(label))

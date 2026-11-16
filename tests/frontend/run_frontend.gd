@@ -198,7 +198,7 @@ func _intro() -> void:
 		last = float(caption.at)
 	check(intro.captions[3].text.contains("Kai Moana"), "intro names the commander")
 	check(intro.captions[4].text.contains("first human outpost on Mars"), "intro says they are the first outpost")
-	check(intro.captions[-1].text.contains("training"), "intro leads into the training mission")
+	check(intro.captions[-1].title == "BUILD YOUR CAMP" and intro.captions[-1].text.contains("build a farm"), "intro leads into the actual camp mission")
 	intro.seek(0.0)
 	check(intro.lander.position.y > 20.0 and intro.get_node("Lander/Plume").visible, "lander starts high with engines burning")
 	for figure in intro.figures:
@@ -260,7 +260,7 @@ func _front_end() -> void:
 	front.settings.play_intro = false
 	front.begin_button.pressed.emit()
 	await frames()
-	check(front.started == {"world": 0, "tutorial": true, "load_save": false}, "intro off: Begin landing goes straight to training")
+	check(front.started == {"world": 1, "tutorial": false, "load_save": false}, "intro off: Begin landing goes straight to the camp mission")
 	check(Session.active and Session.commander.name == "Kai Moana", "commander handed over")
 	check(front.music == null, "music hands off to fade out")
 	front.queue_free()

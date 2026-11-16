@@ -2,6 +2,7 @@ class_name OutpostPowerSystem
 extends RefCounted
 ## Phase 3, fixed dt = one second. No scene access or independent balance writes.
 const Schema = preload("res://scripts/simulation/command_schemas.gd")
+const Storm = preload("res://scripts/systems/dust_storm.gd")
 
 func dispatch(state: RefCounted, content: Dictionary, ledger: RefCounted) -> Dictionary:
     var buildings: Dictionary = state.records.buildings
@@ -50,10 +51,15 @@ func dispatch(state: RefCounted, content: Dictionary, ledger: RefCounted) -> Dic
             b.blocking_codes.sort()
             continue
         if d.power_generation_kw > 0:
-            generation += d.power_generation_kw * b.condition * modifier
-            b.operating_fraction = b.condition * minf(1.0, modifier)
+            # Solar-only storm factor; the global event modifier keeps its meaning.
+            var storm_factor: float = Storm.solar_factor(state, b.definition_id)
+            generation += d.power_generation_kw * b.condition * modifier * storm_factor
+            b.operating_fraction = b.condition * minf(1.0, modifier) * storm_factor
+            if storm_factor < 1.0: b.blocking_codes.append("dust_storm")
             for event_id in modifier_ids: b.blocking_codes.append("event_modifier:" + event_id)
-        if d.power_demand_kw > 0: consumers.append(id)
+        if d.power_demand_kw > 0:
+            if Storm.sheds(state, b.definition_id): b.blocking_codes.append("storm_load_shed")
+            else: consumers.append(id)
         if state.per_battery_energy.has(id):
             batteries.append(id)
             available[id] = minf(d.battery_discharge_limit_kw,

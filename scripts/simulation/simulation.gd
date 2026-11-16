@@ -11,6 +11,9 @@ const Power = preload("res://scripts/systems/power_system.gd")
 const LifeSupport = preload("res://scripts/systems/life_support_system.gd")
 const CrewDemand = preload("res://scripts/systems/crew_demand_system.gd")
 const CrewRuntime = preload("res://scripts/simulation/crew_runtime.gd")
+const Repair = preload("res://scripts/systems/repair_challenge.gd")
+const Storm = preload("res://scripts/systems/dust_storm.gd")
+const Radiation = preload("res://scripts/systems/radiation_event.gd")
 const CREW_COMMANDS = ["place_building", "assign_task", "cancel_task", "start_eva", "recall_eva"]
 const CONTROLS = ["set_time_scale", "set_building_enabled"]
 const MAX_TICKS_PER_ADVANCE = 120
@@ -63,7 +66,44 @@ func get_snapshot() -> Dictionary:
     return _state.snapshot()
 
 func get_capabilities() -> Dictionary:
-    return {"crew": _crew_adapter != null, "persistence": false, "agriculture": false}
+    # farm_production: a greenhouse converts water and CO2 into food and oxygen through the
+    # ledger. Crops, seeds and harvests (full agriculture) remain unimplemented.
+    return {"crew": _crew_adapter != null, "persistence": false, "agriculture": false,
+        "farm_production": true, "repair_challenges": _crew_adapter != null,
+        "radiation_events": _state != null and _state.radiation.enabled}
+
+func enable_dust_storms() -> Dictionary:
+    ## Opt-in for the live submission colony. Fixture and oracle runs never call this.
+    var guard = _guard()
+    if not guard.ok: return guard
+    _state.storm.enabled = true
+    return _ok()
+
+func get_storm_state() -> Dictionary:
+    if _state == null: return Storm.initial()
+    var view: Dictionary = _state.storm.duplicate(true)
+    view.tick_index = int(_state.records.clock.tick_index)
+    view.solar_factor = Storm.SOLAR_FACTOR
+    return view
+
+func enable_radiation() -> Dictionary:
+    var guard = _guard()
+    if not guard.ok: return guard
+    if not _state.radiation.enabled:
+        _state.radiation.enabled = true
+        _state.radiation.next_tick = int(_state.records.clock.tick_index) + 3600
+    return _ok()
+
+func get_radiation_state() -> Dictionary:
+    if _state == null: return Radiation.initial()
+    var view: Dictionary = _state.radiation.duplicate(true)
+    view.tick_index = int(_state.records.clock.tick_index)
+    return view
+
+func get_repair_state() -> Dictionary:
+    ## Faults, lockouts and the open challenge session, for presentation only.
+    if _state == null: return {"faults": {}, "session": null, "tick_index": 0}
+    return Repair.public_state(_state)
 
 func supports_building(id: String) -> bool:
     return _content.buildings.has(id) and LifeSupport.validate_process(_content.buildings[id]).ok
@@ -72,7 +112,7 @@ func submit_command(command: Dictionary) -> Dictionary:
     var id: Variant = command.get("command_id")
     if _state == null:
         return _rejected(id, "not_initialized", "Initialize the simulation first.")
-    var checked = Schema.validate(command)
+    var checked = _validate_command(command)
     if not checked.ok:
         return _rejected(id, checked.code, checked.reason)
     var normalized: Dictionary = checked.command
@@ -81,7 +121,7 @@ func submit_command(command: Dictionary) -> Dictionary:
         if Schema.canonical(prior.normalized) != Schema.canonical(normalized):
             return _rejected(id, "command_id_conflict", "command_id reused with different content")
         return _accepted(id, prior, true)
-    if normalized.type not in CONTROLS and (normalized.type not in CREW_COMMANDS or _crew_adapter == null or _world_service == null):
+    if not _command_supported(normalized):
         return _rejected(id, "module_unavailable", "This gameplay handler is not implemented in A3: " + normalized.type)
     if _next_receive_sequence >= Schema.MAX_EXACT_INTEGER or _state.counters.event + _pending.size() >= Schema.MAX_EXACT_INTEGER:
         return _rejected(id, "invalid_state", "Command sequence or event counter exhausted.")
@@ -124,7 +164,9 @@ func _advance(real_delta_s: float, max_work_usec: int) -> Dictionary:
     _state.accumulator_s += real_delta_s * _state.records.clock.time_scale
     var count = 0
     var work_started := Time.get_ticks_usec()
-    while _state.records.clock.time_scale > 0 and _state.accumulator_s >= 1.0 and count < MAX_TICKS_PER_ADVANCE:
+    # The colony clock is frozen while a repair challenge is open; no backlog builds up.
+    if Repair.active(_state): _state.accumulator_s -= real_delta_s * _state.records.clock.time_scale
+    while _state.records.clock.time_scale > 0 and _state.accumulator_s >= 1.0 and count < MAX_TICKS_PER_ADVANCE and not Repair.active(_state):
         if count > 0 and max_work_usec > 0 and Time.get_ticks_usec() - work_started >= max_work_usec:
             break
         if count > 0:
@@ -150,7 +192,7 @@ func step(delta_sim_seconds: float) -> Dictionary:
     _busy = true
     var changed = _boundary()
     var result = _ok()
-    if _state.records.clock.time_scale > 0:
+    if _state.records.clock.time_scale > 0 and not Repair.active(_state):
         result = _tick()
         changed = changed or result.ok
     if changed: state_changed.emit(get_snapshot())
@@ -176,35 +218,14 @@ func _boundary() -> bool:
         var entry: Dictionary = _journal[id]
         var command: Dictionary = entry.normalized
         var candidate = _state.clone()
-        var data: Dictionary = {}
-        var success = true
-        var code = "ok"
-        var reason = ""
-        var mutates = false
-        var domain_events: Array = []
-        var ledger = Ledger.new(candidate, _content, _committed_effects, candidate.records.clock.tick_index)
-        if command.type == "set_time_scale":
-            data = {"time_scale": command.payload.time_scale}
-            mutates = candidate.records.clock.time_scale != command.payload.time_scale
-            candidate.records.clock.time_scale = command.payload.time_scale
-        elif command.type == "set_building_enabled":
-            var building_id: String = command.payload.building_id
-            data = {"building_id": building_id}
-            if not candidate.records.buildings.has(building_id):
-                success = false
-                code = "unknown_entity"
-                reason = "unknown building"
-            else:
-                mutates = candidate.records.buildings[building_id].enabled != command.payload.enabled
-                candidate.records.buildings[building_id].enabled = command.payload.enabled
-        else:
-            var applied: Dictionary = CrewRuntime.new(candidate, _content, _world_service, _crew_adapter, ledger).command(command)
-            success = applied.ok
-            code = applied.code
-            reason = applied.reason
-            data = applied.get("data", {})
-            mutates = applied.get("mutates", false)
-            domain_events = applied.get("events", [])
+        var ledger = _new_ledger(candidate)
+        var applied: Dictionary = _apply_command(command, candidate, ledger)
+        var data: Dictionary = applied.data
+        var success: bool = applied.success
+        var code: String = applied.code
+        var reason: String = applied.reason
+        var mutates: bool = applied.mutates
+        var domain_events: Array = applied.events
         if mutates and candidate.records.revision >= Schema.MAX_EXACT_INTEGER:
             success = false
             code = "invalid_state"
@@ -240,14 +261,26 @@ func _boundary() -> bool:
     return changed
 
 func _tick() -> Dictionary:
+    var computed = _tick_candidate()
+    if not computed.ok: return computed
+    _commit_tick(computed)
+    return _ok()
+
+func _commit_tick(computed: Dictionary) -> void:
+    _state = computed.candidate
+    _committed_effects.merge(computed.ledger.staged)
+    for event in computed.events: game_event.emit(event.duplicate(true))
+
+func _tick_candidate() -> Dictionary:
+    ## Computes one detailed second on a working copy. Nothing is committed or emitted.
     if _state.records.clock.tick_index >= Schema.MAX_EXACT_INTEGER or _state.records.revision >= Schema.MAX_EXACT_INTEGER:
         return _fail("invalid_state", "Clock or revision counter exhausted.")
     var candidate = _state.clone()
-    var ledger = Ledger.new(candidate, _content, _committed_effects, candidate.records.clock.tick_index)
+    var ledger = _new_ledger(candidate)
     var valid = ledger.validate()
     if not valid.ok: return _fail("internal_error", valid.reason)
     var crew_runtime = CrewRuntime.new(candidate, _content, _world_service, _crew_adapter, ledger)
-    if _crew_adapter != null:
+    if _crew_adapter != null and not Radiation.sheltered(candidate):
         valid = crew_runtime.phase("intent")
         if not valid.ok: return _fail("internal_error", valid.reason)
     # Phase 3: electrical dispatch. All balance writes go through the ledger.
@@ -259,9 +292,11 @@ func _tick() -> Dictionary:
     # Phase 5: Task 01 alone deducts base/suit crew demand.
     var demand = _run_crew_demand(candidate, ledger)
     if not demand.ok: return _fail("internal_error", demand.reason)
-    if _crew_adapter != null:
+    if _crew_adapter != null and not Radiation.sheltered(candidate):
         valid = crew_runtime.phase("progress")
         if not valid.ok: return _fail("internal_error", valid.reason)
+    valid = _extra_tick_phases(candidate, ledger)
+    if not valid.ok: return _fail("internal_error", valid.reason)
     # Phase 8: finalize actual committed rates, diagnostics and invariants.
     for rid in candidate.records.resources:
         var balance: Dictionary = candidate.records.resources[rid]
@@ -292,10 +327,62 @@ func _tick() -> Dictionary:
     candidate.records.clock.tick_index += 1
     candidate.records.clock.elapsed_s = float(candidate.records.clock.tick_index)
     candidate.records.revision += 1
-    _state = candidate
-    _committed_effects.merge(ledger.staged)
-    for event in events: game_event.emit(event.duplicate(true))
+    return {"ok": true, "code": "ok", "reason": "", "candidate": candidate, "ledger": ledger, "events": events}
+
+func _extra_tick_phases(_candidate: RefCounted, _ledger: RefCounted) -> Dictionary:
+    ## Extension point after crew progress and before diagnostics.
+    Repair.recover(_candidate)
+    Radiation.tick(_candidate)
+    Storm.tick(_candidate)
     return _ok()
+
+func _new_ledger(candidate: RefCounted) -> RefCounted:
+    return Ledger.new(candidate, _content, _committed_effects, candidate.records.clock.tick_index)
+
+func _validate_command(command: Dictionary) -> Dictionary:
+    return Schema.validate(command)
+
+func _command_supported(normalized: Dictionary) -> bool:
+    if normalized.type == "set_radiation_shelter": return _crew_adapter != null
+    return normalized.type in CONTROLS or normalized.type in Storm.COMMANDS or (normalized.type in CREW_COMMANDS + Repair.COMMANDS and _crew_adapter != null and _world_service != null)
+
+func _apply_command(command: Dictionary, candidate: RefCounted, ledger: RefCounted) -> Dictionary:
+    ## Applies one validated command to a working copy. The caller commits or discards it.
+    var data: Dictionary = {}
+    var success = true
+    var code = "ok"
+    var reason = ""
+    var mutates = false
+    var domain_events: Array = []
+    if command.type == "set_time_scale":
+        data = {"time_scale": command.payload.time_scale}
+        mutates = candidate.records.clock.time_scale != command.payload.time_scale
+        candidate.records.clock.time_scale = command.payload.time_scale
+    elif command.type == "set_building_enabled":
+        var building_id: String = command.payload.building_id
+        data = {"building_id": building_id}
+        if not candidate.records.buildings.has(building_id):
+            success = false
+            code = "unknown_entity"
+            reason = "unknown building"
+        else:
+            mutates = candidate.records.buildings[building_id].enabled != command.payload.enabled
+            candidate.records.buildings[building_id].enabled = command.payload.enabled
+    elif command.type in Storm.COMMANDS:
+        return Storm.command(candidate, command)
+    elif command.type == "set_radiation_shelter":
+        return Radiation.command(candidate, command)
+    elif command.type in Repair.COMMANDS:
+        return Repair.command(candidate, _content, command)
+    else:
+        var applied: Dictionary = CrewRuntime.new(candidate, _content, _world_service, _crew_adapter, ledger).command(command)
+        success = applied.ok
+        code = applied.code
+        reason = applied.reason
+        data = applied.get("data", {})
+        mutates = applied.get("mutates", false)
+        domain_events = applied.get("events", [])
+    return {"success": success, "code": code, "reason": reason, "data": data, "mutates": mutates, "events": domain_events}
 
 func _dispatch_power(candidate: RefCounted, ledger: RefCounted) -> Dictionary:
     return Power.new().dispatch(candidate, _content, ledger)
@@ -311,8 +398,10 @@ func _finalize_life_support_alerts(candidate: RefCounted) -> void:
     var wanted: Dictionary = {}
     for alert in candidate.records.alerts:
         prior[alert.id] = alert
-        if alert.code not in ["low_oxygen", "co2_high", "storage_full"]: wanted[alert.id] = alert
+        if alert.code not in ["low_oxygen", "co2_high", "storage_full", "radiation_event"]: wanted[alert.id] = alert
     var r: Dictionary = candidate.records.resources
+    if candidate.radiation.enabled and candidate.radiation.status in ["warning", "active"]:
+        wanted.radiation_event = _power_alert("radiation_event", "radiation_event", "Solar radiation storm: shelter the crew to reduce health loss.", [], candidate.records.clock.tick_index, prior)
     if r.oxygen_kg.amount - r.oxygen_kg.reserved <= 0 or (r.oxygen_kg.forecast_empty_s != null and r.oxygen_kg.forecast_empty_s <= _content.science.alerts.low_oxygen_forecast_s):
         wanted.low_oxygen = _power_alert("low_oxygen", "low_oxygen", "Accessible oxygen is depleted or forecast to run low.", [], candidate.records.clock.tick_index, prior)
     if r.co2_kg.amount >= _content.science.alerts.co2_high_kg:

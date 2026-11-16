@@ -127,7 +127,7 @@ func begin_landing() -> void:
 	if settings.get("play_intro", true):
 		play_intro()
 	else:
-		start_game(0, true)
+		start_game(1, false)
 
 
 func play_intro() -> void:
@@ -160,7 +160,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		match page:
 			"settings", "load": _close_overlay()
 			"crew": open_new_game()
-			"intro": start_game(0, true)
+			"intro": start_game(1, false)
 			"customize": show_page("title")
 		get_viewport().set_input_as_handled()
 
@@ -491,12 +491,12 @@ func _refresh_load() -> void:
 	_load_list.add_child(who)
 	var training := Button.new()
 	training.name = "LoadTraining"
-	training.text = "Training shift  ·  guided tutorial"
+	training.text = "Legacy training shift  ·  synthetic tutorial"
 	training.pressed.connect(func(): start_game(0, true))
 	_load_list.add_child(training)
 	var reference := Button.new()
 	reference.name = "LoadReference"
-	reference.text = "Reference colony  ·  free play"
+	reference.text = "Camp mission  ·  build the farm, handle a fault, reach Level 1"
 	reference.pressed.connect(func(): start_game(1, false))
 	_load_list.add_child(reference)
 	var back := Button.new()
@@ -646,7 +646,7 @@ func _build_intro_page() -> void:
 	skip_button.offset_right = -24
 	skip_button.offset_top = 22
 	skip_button.offset_bottom = 70
-	skip_button.pressed.connect(func(): start_game(0, true))
+	skip_button.pressed.connect(func(): start_game(1, false))
 	intro_page.add_child(skip_button)
 	_caption_panel = PanelContainer.new()
 	_caption_panel.name = "Caption"
@@ -670,11 +670,11 @@ func _build_intro_page() -> void:
 	stack.add_child(_caption_text)
 	var start := Button.new()
 	start.name = "BeginTraining"
-	start.text = "Begin training mission  ›"
+	start.text = "Begin camp mission  ›"
 	UI.primary(start)
 	start.size_flags_horizontal = Control.SIZE_SHRINK_END
 	start.visible = false
-	start.pressed.connect(func(): start_game(0, true))
+	start.pressed.connect(func(): start_game(1, false))
 	stack.add_child(start)
 
 

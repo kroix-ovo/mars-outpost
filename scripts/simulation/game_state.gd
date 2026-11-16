@@ -13,6 +13,12 @@ var prepaid_build_costs: Dictionary = {}
 var power_flows: Dictionary = {}
 var life_support_flows: Dictionary = {}
 var crew_demand: Dictionary = {"requested": {}, "provided": {}, "unmet_needs": {}, "flows": {}, "wastewater_overflow_kg": 0.0}
+# Faults and the open repair challenge. Queried through the facade, not a snapshot key.
+# Opt-in dust storm (live submission colony only). Disabled means no draws and no effect.
+var storm: Dictionary = {"enabled": false, "status": "idle", "next_check_tick": null, "arrival_tick": null, "end_tick": null,
+    "cooldown_until_tick": null, "duration_s": null, "response": "keep_farm", "practice": false, "count": 0}
+var repairs: Dictionary = {"faults": {}, "session": null, "next_session": 1, "injuries": {}}
+var radiation: Dictionary = {"enabled":false,"status":"idle","sheltering":false,"next_tick":0,"start_tick":0,"end_tick":0}
 
 func allocate(kind: String) -> String:
     counters[kind] += 1
@@ -29,6 +35,9 @@ func clone() -> OutpostGameState:
     copy.power_flows = power_flows.duplicate(true)
     copy.life_support_flows = life_support_flows.duplicate(true)
     copy.crew_demand = crew_demand.duplicate(true)
+    copy.repairs = repairs.duplicate(true)
+    copy.storm = storm.duplicate(true)
+    copy.radiation = radiation.duplicate(true)
     copy.rng.seed = rng.seed
     copy.rng.state = rng.state
     return copy
