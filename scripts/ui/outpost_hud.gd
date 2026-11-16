@@ -85,6 +85,12 @@ var _vitals: Label
 var _alerts: Label
 var _status: Label
 var _tutorial_text: Label
+var _mission_tasks: Label
+var _mission_hint: Label
+var _mission_start: Button
+var _tasks_button: Button
+var _build_geometry_key := ""
+var _build_geometry_result: Dictionary = {}
 var _crew: ItemList
 var _crew_text: Label
 var _tasks: OptionButton
@@ -155,6 +161,8 @@ func bind(simulation: RefCounted, crew_adapter: RefCounted, world_service: RefCo
 	_catalog = building_catalog.duplicate(true)
 	_save_path = save_path
 	_state = {}
+	_build_geometry_key = ""
+	_build_geometry_result.clear()
 	_pending.clear()
 	_tour_reset = true
 	_sim_failed = ""
@@ -215,7 +223,7 @@ func _build_top_bar() -> void:
 	_hud_title.mouse_filter = Control.MOUSE_FILTER_PASS
 	_separator(row)
 	var time := _row(row, 2)
-	for entry in [[0, "pause", "Pause (Space)"], [1, "1×", "Normal speed"], [5, "5×", "Fast"], [20, "20×", "Fastest"]]:
+	for entry in [[0, "pause", "Pause (Space)"], [1, ">", "Play (1)"], [5, ">>", "Fast (2)"], [20, ">>>", "Fastest (3)"]]:
 		var button: Button
 		if entry[1] == "pause":
 			button = _button(time, "", func(): _time(0))
@@ -275,6 +283,16 @@ func _build_crew_card() -> void:
 	var crew_title := _label(head, "CREW", 13)
 	crew_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	crew_title.add_theme_color_override("font_color", AMBER)
+	var space := Control.new()
+	space.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(space)
+	_tasks_button = _button(head, "Tasks", func():
+		_open_tab("Guide")
+		_tour_refresh()
+		_refresh_guide())
+	_tasks_button.tooltip_text = "Mission objectives, progress and colony jobs"
+	_mission_hint = _label(body, "", 12)
+	_mission_hint.add_theme_color_override("font_color", AMBER)
 	_crew_hint = _label(body, "Ctrl/Shift adds crew", 16)
 	_crew_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_crew_hint.add_theme_color_override("font_color", DIM)
@@ -409,10 +427,14 @@ func _build_drawer() -> void:
 	_resources.visible = false
 
 	var onboarding := _page("Guide")
-	_section(onboarding, "Tutorial")
+	_section(onboarding, "Missions & tasks")
+	_mission_start = _button(onboarding, "Start mission 2", _start_independent)
 	_tutorial_text = _label(onboarding, "", 16)
+	_mission_tasks = _label(onboarding, "", 16)
+	_button(onboarding, "Open colony jobs", func(): _open_tab("Jobs"))
 	_tour_guide_buttons = _row(onboarding, 6)
 	_tour_resume = _button(_tour_guide_buttons, "Resume tutorial", func():
+		_tour_enabled = true
 		_tour.active = true
 		_status.text = "Tutorial resumed."
 		_tour_refresh())
@@ -421,7 +443,7 @@ func _build_drawer() -> void:
 		training_requested.emit())
 	restart.tooltip_text = "Starts the tutorial again from a fresh training colony."
 	_section(onboarding, "Controls")
-	_hint(onboarding, "Pause to plan; commands also resolve while paused. Resume at 1×, 5× or 20×. F2 starts training with synthetic values; F3 starts the reference life-support scenario. F1 shows diagnostics. Campaign saves and agriculture are pending.")
+	_hint(onboarding, "Pause to plan; commands also resolve while paused. Use > to play, >> for fast, or >>> for fastest. F2 starts training; F3 starts the reference colony. After repairs, complete your first independent shift. F1 shows diagnostics.")
 	_hint(onboarding, "Camera: edge scrolling or WASD pans; middle-drag rotates/tilts; Q/E rotates; Home/End tilts; wheel or Z/X zooms; F recentres. Right-click cancels; 1/2/3 sets speed. Click modules, sites or astronauts to inspect them.")
 
 func _build_toast() -> void:
@@ -564,7 +586,9 @@ func _on_snapshot(snapshot: Dictionary) -> void:
 	if _simulation != null and _simulation.has_method("get_capabilities"):
 		_hud_title.text = "TRAINING · SYNTHETIC" if snapshot.campaign_id.begins_with("fixture_") else "REFERENCE COLONY"
 	var scale_value: int = int(snapshot.clock.time_scale)
-	_clock.text = "T+ %s  ·  %s" % [_duration(tick), "Paused" if scale_value == 0 else "%d×" % scale_value]
+	var elapsed := int(snapshot.clock.get("elapsed_s", tick))
+	_clock.text = "T+ %02d:%02d · %s" % [elapsed / 3600, (elapsed / 60) % 60, {0: "Paused", 1: ">", 5: ">>", 20: ">>>"}.get(scale_value, ">")]
+	_clock.tooltip_text = "Elapsed colony time (hours:minutes)"
 	for key in _speed_buttons:
 		_speed_buttons[key].set_pressed_no_signal(key == scale_value)
 	_refresh_roster()
@@ -802,7 +826,18 @@ func _preview_build() -> void:
 	var definition: Dictionary = _catalog.get(request.definition_id, {})
 	var result := {"valid": false, "reason": "Placement preview is unavailable."}
 	if _world != null and _world.has_method("validate_placement") and not definition.is_empty() and not _state.is_empty():
-		result = _world.validate_placement(request, _state)
+		# Flood-fill placement checks depend on geometry, not changing resource
+		# balances or solar output. Affordability is still checked every refresh.
+		var geometry: Array = []
+		for id in _keys(_state.buildings):
+			var b: Dictionary = _state.buildings[id]
+			geometry.append([id, b.definition_id, b.cell, b.rotation_quarters, b.lifecycle])
+		var blocked: Variant = _world.blocked_cells(_state) if _world.has_method("blocked_cells") else []
+		var key := JSON.stringify([request, _state.map, geometry, _state.get("sites", {}), _state.get("expeditions", {}), blocked])
+		if key != _build_geometry_key:
+			_build_geometry_result = _world.validate_placement(request, _state).duplicate(true)
+			_build_geometry_key = key
+		result = _build_geometry_result.duplicate(true)
 	var supported := _supports(request.definition_id)
 	if result.valid:
 		if not supported:
@@ -952,10 +987,38 @@ func _refresh_guide() -> void:
 	if _tutorial_text == null:
 		return
 	if _tour.active:
-		_tutorial_text.text = "Follow the highlighted control and the current lesson. Details expands the explanation. Skip tutorial enters free play; Resume returns to your current step."
+		_tutorial_text.text = "Complete your first independent shift: keep the crew alive and finish with oxygen, water and battery reserves. Check Systems and respond to alerts." if _tour.finished else "Follow the highlighted control and the current lesson. Details expands the explanation. Skip tutorial enters free play; Resume returns to your current step."
 	else:
 		_tutorial_text.text = "Tutorial complete. You can play freely or restart from a fresh training colony." if _tour.finished else "Tutorial hidden. Resume where you left off, or restart from a fresh training colony."
 	_tour_resume.visible = not _tour.active and not _tour.finished
+	if _state.is_empty() or _mission_tasks == null:
+		return
+	var ctx := _tour_ctx()
+	var summary := _tour.task_summary(ctx)
+	var ready := _tour.independent_ready(ctx)
+	_mission_start.visible = not ctx.training and not _tour.finished
+	_mission_start.disabled = not ready
+	_mission_start.tooltip_text = "Ready: start your six-hour independent shift." if ready else "Finish the starting repair jobs in Jobs to unlock mission 2."
+	var lines: Array[String] = [summary.title, summary.action, ""]
+	if not ctx.training and not _tour.finished:
+		lines.insert(1, "Mission 2 is ready. Press Start mission 2." if ready else "Mission 2 unlocks after the starting repairs are complete. Open colony jobs to assign crew.")
+	for row in summary.checklist:
+		lines.append(("✓ " if row.done else "→ " if row.current else "□ ") + str(row.title))
+	lines.append("\nCOLONY JOBS")
+	var jobs := _task_options()
+	for label in jobs.values(): lines.append("• " + str(label))
+	if jobs.is_empty(): lines.append("No colony jobs queued.")
+	_mission_tasks.text = "\n".join(lines)
+	_tasks_button.text = "Tasks • Ready" if ready else "Tasks"
+	_mission_hint.text = "Mission 2 ready · open Tasks" if ready else str(summary.title)
+
+func _start_independent() -> void:
+	if not _tour.independent_ready(_tour_ctx()):
+		return
+	_tour_enabled = true
+	_tour.acknowledge("debrief")
+	_time(0)
+	_tour_refresh()
 
 # ---------------------------------------------------------------- tutorial mission
 
@@ -1078,17 +1141,19 @@ static func _short_number(value: float) -> String:
 func _tour_refresh() -> void:
 	if _tour_card == null or _state.is_empty() or _tabs == null:
 		return
-	if not _tour_enabled:
-		_tour_card.visible = false
-		_tour_overlay.visible = false
-		return
 	if _tour_reset:
 		# A colony (re)started: remember what it began with and start paused, as taught.
 		_tour_reset = false
 		_tour.set_baseline(_state)
 		_recommended_for = ""
-		if _tour.active and int(_state.clock.time_scale) != 0:
+		if _tour_enabled and _tour.active and int(_state.clock.time_scale) != 0:
 			_time(0)
+	if not _tour_enabled:
+		_tour_step = {}
+		_refresh_guide()
+		_tour_card.visible = false
+		_tour_overlay.visible = false
+		return
 	if _tabs.get_tab_title(_tabs.current_tab) == "Systems" and _drawer_open:
 		_tour.mark_systems_seen()
 	_tour_step = _tour.evaluate(_tour_ctx())
@@ -1104,7 +1169,7 @@ func _tour_refresh() -> void:
 	var step := _tour_step
 	_tour_card.visible = true
 	_tour_overlay.visible = true
-	_tour_progress.text = "%s · step %d of %d" % [step.phase_title, step.index + 1, step.total]
+	_tour_progress.text = step.phase_title if step.get("phase") == "independent" else "%s · step %d of %d" % [step.phase_title, step.index + 1, step.total]
 	var flashing: bool = Time.get_ticks_msec() < _tour.flash_until_ms
 	_tour_flash.text = _tour.flash if flashing else ""
 	_tour_flash.visible = false # Keep acknowledgement out of the action card; progress records it.
@@ -1141,7 +1206,7 @@ func _tour_refresh() -> void:
 			button.add_theme_stylebox_override("hover", _box(AMBER.lightened(0.15), 6, 18, 9, AMBER))
 		else:
 			button.add_theme_stylebox_override("normal", _box(Color(AMBER, 0.2), 4, 12, 6, AMBER))
-	_tour_skip.visible = not step.centered
+	_tour_skip.visible = not step.centered and step.get("phase") != "independent"
 	_place_tour_card()
 
 func _place_tour_card() -> void:

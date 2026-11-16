@@ -162,8 +162,12 @@ func _headless_bridge() -> void:
     bridge.snapshot_changed.connect(func(_s: Dictionary) -> void: counter[0] += 1)
     var tick_before := int(bridge.get_snapshot().clock.tick_index)
     bridge._process(2.0)
+    # Interactive advances yield between ticks. Drain retained time without
+    # inventing additional real seconds before checking the complete interval.
+    bridge._backend.advance(0.0)
+    bridge._backend.advance(0.0)
     var tick_after := int(bridge.get_snapshot().clock.tick_index)
-    _check(tick_after >= tick_before + 10, "2 s at scale 5 advances at least 10 ticks (%d -> %d)" % [tick_before, tick_after])
+    _check(tick_after == tick_before + 240, "2 real seconds in fast mode retain all 240 game seconds (%d -> %d)" % [tick_before, tick_after])
     _check(counter[0] >= 1, "snapshot_changed emitted while advancing")
     _check(bridge.get_snapshot().buildings.size() == snap.buildings.size() + (1 if placed else 0), "building set stable across ticks")
 

@@ -30,6 +30,12 @@ const Service := preload("res://scripts/world/world_service.gd")
 @export var command_prefix: String = "world_dev"
 @export var auto_advance: bool = true
 
+# Play pacing: one game minute per real second at normal speed. The backend
+# retains its deterministic one-second ticks and pause/normal/fast/fastest modes.
+const GAME_SECONDS_PER_REAL_SECOND := 60.0
+const PLAY_RATES := {0: 0.0, 1: 60.0, 5: 120.0, 20: 240.0}
+const FRAME_WORK_USEC := 8000
+
 var world_service: RefCounted
 var map_data: RefCounted
 var definitions: RefCounted
@@ -184,7 +190,13 @@ func dev_patch_building(building_id: String, patch: Dictionary) -> Dictionary:
 
 func _process(delta: float) -> void:
     if auto_advance and _backend != null and _backend.has_method("advance"):
-        var result: Dictionary = _backend.advance(delta)
+        var result: Dictionary
+        if _backend.has_method("advance_budgeted"):
+            var scale: int = snapshot.get("clock", {}).get("time_scale", 0)
+            var paced_delta := delta * float(PLAY_RATES.get(scale, 60.0)) / maxf(1.0, scale)
+            result = _backend.advance_budgeted(paced_delta, FRAME_WORK_USEC)
+        else:
+            result = _backend.advance(delta * GAME_SECONDS_PER_REAL_SECOND)
         if not result.get("ok", false):
             last_error = result.duplicate(true)
             auto_advance = false # Preserve failed-tick backlog; avoid retrying every frame.

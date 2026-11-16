@@ -103,6 +103,15 @@ func process_pending_commands() -> void:
     _busy = false
 
 func advance(real_delta_s: float) -> Dictionary:
+    return _advance(real_delta_s, 0)
+
+func advance_budgeted(real_delta_s: float, max_work_usec: int) -> Dictionary:
+    ## Interactive callers yield between committed ticks; accounting and queued
+    ## time are identical to advance(). Headless callers keep the original API.
+    if max_work_usec <= 0: return _fail("invalid_value", "Frame budget must be positive.")
+    return _advance(real_delta_s, max_work_usec)
+
+func _advance(real_delta_s: float, max_work_usec: int) -> Dictionary:
     var guard = _guard()
     if not guard.ok: return guard
     if not is_finite(real_delta_s) or real_delta_s < 0:
@@ -114,7 +123,10 @@ func advance(real_delta_s: float) -> Dictionary:
     var changed = _boundary()
     _state.accumulator_s += real_delta_s * _state.records.clock.time_scale
     var count = 0
+    var work_started := Time.get_ticks_usec()
     while _state.records.clock.time_scale > 0 and _state.accumulator_s >= 1.0 and count < MAX_TICKS_PER_ADVANCE:
+        if count > 0 and max_work_usec > 0 and Time.get_ticks_usec() - work_started >= max_work_usec:
+            break
         if count > 0:
             changed = _boundary() or changed
             if _state.records.clock.time_scale == 0: break

@@ -337,6 +337,13 @@ func _run() -> void:
 	check(main.world_index == 1 and hud._hud_title.text == "REFERENCE COLONY", "reference colony loaded")
 	check(int(sim.get_snapshot().clock.time_scale) == 0, "reference colony starts paused")
 	check(step_id() == "ref_welcome", "reference welcome")
+	hud.enable_tutorial(false)
+	hud._tasks_button.pressed.emit()
+	await settle()
+	check(hud._drawer_open and hud._tabs.get_tab_title(hud._tabs.current_tab) == "Guide", "Tasks is accessible with tutorial guidance disabled")
+	check(hud._mission_start.disabled and "COLONY JOBS" in hud._mission_tasks.text, "task list shows jobs and locks mission 2 until repairs finish")
+	hud.enable_tutorial(true)
+	await settle()
 	var starting_repairs := 0
 	for task in sim.get_snapshot().tasks.values():
 		if task.kind == "repair" and task.status != "completed": starting_repairs += 1
@@ -392,8 +399,69 @@ func _run() -> void:
 	for id in repairs:
 		var target: String = sim.get_snapshot().tasks[id].target_id
 		check(float(sim.get_snapshot().buildings[target].condition) >= 0.999, "repair restored " + target)
-	await press("debrief")
-	check(hud._tour_step.is_empty() and hud._tour.finished and not hud._tour_card.visible, "finishing leaves free play")
+	hud._tour.skip()
+	hud._tour_refresh()
+	hud._tasks_button.pressed.emit()
+	await settle()
+	check(not hud._mission_start.disabled and "Mission 2 ready" in hud._mission_hint.text, "finished repairs expose the next mission even when tutorial is hidden")
+	hud._mission_start.pressed.emit()
+	await settle()
+	check(step_id() == "shift_running" and hud._tour.finished and hud._tour_card.visible, "training hands over to a visible independent mission")
+	check("6 h 00 min" in hud._tour_step.action and "Press >" in hud._tour_step.action, "next mission gives a deadline and first action")
+	for entry in [[1, ">"], [5, ">>"], [20, ">>>"]]:
+		check(hud._speed_buttons[entry[0]].text == entry[1], "speed control uses arrows")
+	check("×" not in hud._clock.text and ":" in hud._clock.text, "clock shows colony hours and minutes without a multiplier")
+	# Placement geometry is cached, but affordability must use the latest balances.
+	var original_world = hud._world
+	var original_view: Dictionary = hud._state.duplicate(true)
+	var counter := PreviewCounter.new()
+	hud._world = counter
+	hud._build_geometry_key = ""
+	hud._preview_build()
+	hud._preview_build()
+	check(counter.calls == 1, "unchanged placement geometry is validated once")
+	var costs: Dictionary = hud._catalog[hud._selected(hud._catalog_menu)].build_cost
+	var resource: String = costs.keys()[0]
+	hud._state.resources[resource].amount = 0.0
+	hud._preview_build()
+	check(counter.calls == 1 and hud._place.disabled, "cached geometry still checks new resource balances")
+	counter.blocked = [[0, 0]]
+	hud._preview_build()
+	check(counter.calls == 2, "blocked-cell changes invalidate placement geometry")
+	hud._world = original_world
+	hud._state = original_view
+	hud._build_geometry_key = ""
+	hud._preview_build()
+	# Isolated presentation snapshots exercise deadline/failure boundaries without
+	# simulating six hours or modifying the live colony.
+	var mission = preload("res://scripts/ui/tutorial_mission.gd").new()
+	mission.acknowledge("debrief")
+	var sample: Dictionary = sim.get_snapshot().duplicate(true)
+	for rid in ["oxygen_kg", "potable_water_kg", "energy_kwh"]:
+		sample.resources[rid].amount = 1.0
+	var ctx := {"snapshot": sample}
+	var before := sample.duplicate(true)
+	check(mission.evaluate(ctx).id == "shift_running" and sample == before, "mission evaluation is read-only")
+	sample.clock.elapsed_s += mission.SHIFT_SECONDS - 1
+	check(mission.evaluate(ctx).id == "shift_running", "mission does not finish before its deadline")
+	sample.clock.elapsed_s += 1
+	check(mission.evaluate(ctx).id == "shift_complete", "six hours with living crew and reserves completes the mission")
+	sample.resources.oxygen_kg.amount = 0.0
+	check(mission.evaluate(ctx).id == "shift_complete", "completed mission remains completed")
+	mission.restart()
+	mission.acknowledge("debrief")
+	mission.evaluate(ctx)
+	sample.clock.elapsed_s += mission.SHIFT_SECONDS
+	check(mission.evaluate(ctx).id == "shift_failed", "empty reserves at the deadline fail the mission")
+	sample.resources.oxygen_kg.amount = 1.0
+	check(mission.evaluate(ctx).id == "shift_failed", "failure remains visible instead of silently recovering")
+	mission.restart()
+	mission.acknowledge("debrief")
+	mission.evaluate(ctx)
+	sample.crew[sample.crew.keys()[0]].health = 0.0
+	check(mission.evaluate(ctx).id == "shift_failed", "losing an astronaut fails the mission")
+	await press("free_play")
+	check(hud._tour_step.is_empty() and not hud._tour_card.visible, "free play explicitly dismisses the mission")
 
 	main.free()
 	for failure in failures:
@@ -402,3 +470,12 @@ func _run() -> void:
 	if failures.is_empty():
 		print("TUTORIAL_PASS")
 	quit(0 if failures.is_empty() else 1)
+
+class PreviewCounter extends RefCounted:
+	var calls := 0
+	var blocked: Array = []
+	func blocked_cells(_snapshot: Dictionary) -> Array:
+		return blocked
+	func validate_placement(_request: Dictionary, _snapshot: Dictionary) -> Dictionary:
+		calls += 1
+		return {"valid": true, "reason": ""}

@@ -219,12 +219,38 @@ func _run() -> void:
 	await settle()
 	check(step_id() == "debrief", "debrief reached")
 	await capture("18_debrief", false)
+	hud._tour.skip()
+	hud._tasks_button.pressed.emit()
+	await settle()
+	check(not hud._mission_start.disabled, "Tasks offers mission 2 once repairs are complete")
+	await capture("23_mission_ready", false)
+	hud._tour.active = true
+	hud._tour_refresh()
 	hud.tutorial_press("debrief")
-	await capture("19_free_play", false)
-	check(not hud._tour_card.visible, "free play hides the tutorial")
+	await capture("19_independent_shift", false)
+	check(hud._tour_card.visible and step_id() == "shift_running", "next objective remains visible after training")
+	hud._tasks_button.pressed.emit()
+	await settle()
+	check(bounds_for(hud._tasks_button), "Tasks button remains visible beside the crew heading")
+	check("Mission 2" in hud._mission_tasks.text and "COLONY JOBS" in hud._mission_tasks.text, "tasks panel shows mission progress and jobs")
+	await capture("22_mission_tasks", false)
+	# Detached presentation snapshots test result layouts without a six-hour run.
+	var result_snapshot: Dictionary = sim.get_snapshot().duplicate(true)
+	result_snapshot.clock.elapsed_s += hud._tour.SHIFT_SECONDS
+	hud._on_snapshot(result_snapshot)
+	await capture("20_shift_complete", false)
+	check(step_id() == "shift_complete" and hud._tour_primary.text == "Continue free play", "success offers a clear next action")
+	hud._tour._shift_result = ""
+	result_snapshot.crew[result_snapshot.crew.keys()[0]].health = 0.0
+	hud._on_snapshot(result_snapshot)
+	await capture("21_shift_failed", false)
+	check(step_id() == "shift_failed", "failure offers a restart")
 	for failure in failures:
 		print("TUTORIAL_LAYOUT_FAIL ", failure)
 	print("TUTORIAL_LAYOUT_RESULT checks=", checks, " failures=", failures.size())
 	if failures.is_empty():
 		print("TUTORIAL_LAYOUT_PASS")
 	quit(0 if failures.is_empty() else 1)
+
+func bounds_for(control: Control) -> bool:
+	return control.is_visible_in_tree() and root.get_visible_rect().encloses(control.get_global_rect())
