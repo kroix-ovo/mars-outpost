@@ -1,6 +1,6 @@
 class_name OutpostLifeSupportSystem
 extends RefCounted
-## Phase 4. Linear A3 chemistry only, no construction, crops or generic plugins.
+## I apply each process through the resource ledger. I keep input shortages and output limits visible so a machine cannot produce resources it did not have the inputs to make.
 const Schema = preload("res://scripts/simulation/command_schemas.gd")
 
 static func validate_process(definition: Dictionary) -> Dictionary:

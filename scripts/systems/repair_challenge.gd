@@ -1,8 +1,5 @@
 extends RefCounted
-## Simulation-owned corrective repair challenges. The UI only sends inputs; every
-## puzzle is generated from the simulation RNG and judged here. A failed attempt sets
-## the component to zero condition and locks its corrective repair for one mission day.
-## Game mechanic, not an engineering model.
+## I generate and judge the repair in the simulation. The interface sends attempts, not success flags. I attach failure lockouts to the component so changing astronauts cannot bypass the waiting period.
 const Schema = preload("res://scripts/simulation/command_schemas.gd")
 const COMMANDS = ["trigger_fault_drill", "start_repair_challenge", "repair_input"]
 const LOCKOUT_S := 86400

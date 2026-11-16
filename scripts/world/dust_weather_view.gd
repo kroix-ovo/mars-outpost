@@ -1,5 +1,5 @@
 extends CanvasLayer
-## Quiet visual feedback for the actual committed storm. No gameplay effects or RNG.
+## I draw dust from the committed storm state. The haze is visual feedback only: it does not roll weather, consume power or advance the event.
 var bridge: Node
 var canvas: Control
 var strength := 0.0

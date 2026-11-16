@@ -1,5 +1,5 @@
 extends Button
-## A real two-line crew row; names and roles never share a text run.
+## I give the name and specialty separate labels so long names cannot run into the role. The portrait and labels remain one selectable crew row.
 var portrait: TextureRect
 var astronaut_name: Label
 var specialty: Label

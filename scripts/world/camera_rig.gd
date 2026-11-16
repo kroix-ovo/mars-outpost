@@ -1,13 +1,6 @@
 class_name WorldCameraRig
 extends Node3D
-## Planet Coaster style orbit/pan/zoom camera for the top-down outpost view.
-##
-## The rig node sits at the focus point on the ground; the child Camera3D is placed each frame
-## from yaw/pitch/distance. All input is handled in _unhandled_input so Control nodes (Task 03
-## HUD) consume their clicks first and never fight the camera.
-##
-## Controls: WASD / arrow keys or edge scrolling to pan, middle-mouse drag or Q/E to orbit,
-## mouse wheel or Z/X to zoom, Home/End to tilt, F to reset. Edge scrolling follows Cities: Skylines 1; HUD panels suppress it.
+## I keep camera movement independent of colony time so I can inspect a paused camp. I let interface controls consume input before interpreting it as a camera action.
 
 signal focus_changed(focus_m: Vector3)
 

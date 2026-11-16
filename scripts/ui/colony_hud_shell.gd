@@ -1,5 +1,5 @@
 extends RefCounted
-## Presentation and shortcuts only. All actions use the existing HUD command path.
+## I keep this layer responsible for presentation and shortcuts. Each primary action still goes through the existing command path; hiding a panel must not change the colony.
 const Icon = preload("res://scripts/ui/hud_icon.gd")
 const PlaybackIcon = preload("res://scripts/ui/playback_icon.gd")
 const Figure = preload("res://scripts/crew/astronaut_figure.gd")

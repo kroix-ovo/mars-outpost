@@ -1,5 +1,5 @@
 extends Control
-## Crisp native playback geometry; never font glyphs or emoji.
+## I draw the playback shapes instead of relying on typed arrow characters. This keeps pause and the three speeds recognizable across fonts.
 var triangles := 1
 var ink := Color("#e8f1f5")
 

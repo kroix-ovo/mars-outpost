@@ -1,6 +1,5 @@
 extends RefCounted
-## Applies Task 03 proposals inside the facade's working-copy transaction.
-## The adapter never owns balances, IDs, construction progress or rewards.
+## I advance crew travel and labor against simulation time. I keep job progress here rather than in animation so changing the frame rate does not change the work done.
 const Schema = preload("res://scripts/simulation/command_schemas.gd")
 const LifeSupport = preload("res://scripts/systems/life_support_system.gd")
 const Jobs = preload("res://scripts/tasks/crew_jobs.gd")

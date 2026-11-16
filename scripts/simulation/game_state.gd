@@ -1,6 +1,6 @@
 class_name OutpostGameState
 extends RefCounted
-## Transactional gameplay state. The facade owns the retained command journal.
+## I keep persistent simulation records separate from the rendered scene. When I clone this state, I also copy event state so a trial run cannot alter the live colony.
 
 var records: Dictionary = {}
 var accumulator_s: float = 0.0

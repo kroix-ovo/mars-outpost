@@ -1,13 +1,5 @@
 extends Node3D
-## Main world scene controller (Task 02 owns this scene). Wires the simulation bridge to the
-## terrain, buildings, utility lines, sites, routes, camera and placement preview, and offers the
-## mount points Task 03 uses: $CrewRoot (Node3D) for crew scenes and $UIRoot (CanvasLayer) for
-## the HUD. Task 03 can also listen to site_selected / building_selected and call
-## begin_placement(definition_id) instead of using the developer keys.
-##
-## Developer overlay keys (until the Task 03 HUD lands):
-##   1-9 pick a building to place, R rotate, Esc cancel, G grid, F1 overlay, Space pause/resume,
-##   +/- time scale, F2/F3 switch world preset, K/L force no_power/clear on hovered building (stub).
+## I connect the world, crew view and HUD here. The scene reflects simulation state; I keep construction and survival rules in their simulation modules.
 
 signal site_selected(site_id: String, route: Dictionary)
 signal building_selected(building_id: String)

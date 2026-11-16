@@ -1,5 +1,5 @@
 extends RefCounted
-## Compressed educational risk model. Rates are game settings, not medical dosimetry.
+## I use a compressed health penalty to make the shelter decision visible in a short game. These coefficients are gameplay settings, not measured radiation doses. Shelter pauses labor elsewhere in the simulation.
 const DURATION_S := 7200
 const UNPROTECTED_HEALTH_LOSS := 0.20
 const SHELTER_FACTOR := 0.10

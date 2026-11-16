@@ -1,10 +1,5 @@
 extends Control
-## Mission control overlay. Read-only snapshot view: controls send v2 commands through the
-## supplied facade and never write simulation state.
-##
-## Layout: a compact resource/status strip along the top, a floating crew roster on the left,
-## a collapsible contextual drawer (Jobs / Build / EVA / Systems / Guide) on the right and a
-## status toast at the bottom left. Empty space passes mouse input to the world.
+## I translate the committed colony snapshot into controls and objectives here. I send player intent back as commands and leave the simulation to accept or reject it.
 
 const TutorialMission = preload("res://scripts/ui/tutorial_mission.gd")
 const CrewLooks = preload("res://scripts/crew/crew_looks.gd")

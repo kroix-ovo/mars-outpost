@@ -1,7 +1,5 @@
 extends Node
-## Game entry point: title screen (New Game, Load Game, Settings), astronaut customizer, crew
-## lineup and landing intro, then hands over to the colony scene with the tutorial waiting.
-## The title track loops for as long as the front end is open and fades out as the colony loads.
+## I keep the title, crew setup and mission handoff together here. The normal menu path should reach the same playable camp that I check in the submission tests.
 
 signal page_changed(page: String)
 

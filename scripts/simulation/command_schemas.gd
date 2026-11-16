@@ -1,6 +1,6 @@
 class_name OutpostCommandSchemas
 extends RefCounted
-## Pure public-envelope validation. Normalization makes 5 and JSON's 5.0 identical.
+## I validate command shapes before they reach the simulation. I keep rejection explicit so a missing or malformed value cannot silently become a gameplay action.
 
 const VERSION = "2.0.0"
 const MAX_EXACT_INTEGER = 9007199254740991

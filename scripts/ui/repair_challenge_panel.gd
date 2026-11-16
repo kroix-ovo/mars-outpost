@@ -1,7 +1,5 @@
 extends Control
-## Modal for the simulation-owned repair challenge. It draws the session the simulation
-## reports and sends inputs; it never decides success. Closing it mid-repair is only
-## possible through "Abandon repair", which the simulation records as a failure.
+## I display the simulation-owned puzzle and forward individual inputs. I only send challenge time while the focused panel is open; I do not infer a successful repair from the display.
 const SHAPES = ["DIAMOND", "CIRCLE", "TRIANGLE", "SQUARE", "STAR"]
 const INK := Color("#e4dfd5")
 const DIM := Color("#9a958c")

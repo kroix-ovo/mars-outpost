@@ -1,6 +1,6 @@
 class_name OutpostPowerSystem
 extends RefCounted
-## Phase 3, fixed dt = one second. No scene access or independent balance writes.
+## I allocate electrical supply before equipment processes run. I keep electrical priority separate from material-routing priority because those are different resource decisions.
 const Schema = preload("res://scripts/simulation/command_schemas.gd")
 const Storm = preload("res://scripts/systems/dust_storm.gd")
 

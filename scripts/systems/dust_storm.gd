@@ -1,7 +1,5 @@
 extends RefCounted
-## Opt-in dust storm for the live submission colony. All timing comes from the
-## simulation RNG inside the tick; nothing is rolled per frame. The 25% solar output,
-## check interval, lead time, duration and cooldown are game settings, not measurements.
+## I roll storms against simulation time and the seeded RNG. I modify solar generation and optional farm load without overwriting the player's own equipment settings.
 const COMMANDS = ["set_storm_response", "start_storm_practice"]
 const RESPONSES = ["keep_farm", "save_power"]
 const SOLAR_FACTOR := 0.25

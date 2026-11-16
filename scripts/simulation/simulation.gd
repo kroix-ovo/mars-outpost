@@ -1,7 +1,6 @@
 class_name OutpostSimulation
 extends RefCounted
-## Atomic power, life support, construction, crew and EVA runtime.
-## Agriculture and persistence remain explicit future capabilities.
+## I keep command validation, resource accounting and event updates here so the HUD cannot decide a gameplay outcome. A snapshot is a view of committed state, not a second simulation.
 
 const Schema = preload("res://scripts/simulation/command_schemas.gd")
 const State = preload("res://scripts/simulation/game_state.gd")

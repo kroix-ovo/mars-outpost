@@ -1,109 +1,65 @@
 # Mars Outpost
 
-A Mars colony-management game being developed for NASA Space Apps, centered on the engineering decisions needed to keep a crew alive and grow a surface outpost.
+We started Mars Outpost for NASA Space Apps because we wanted space survival to feel like a set of decisions we could actually make. It is easy to say astronauts need oxygen, water and food. We wanted to see what happens when those systems share a limited power supply, something breaks, and keeping one part running means giving up something somewhere else.
 
-## Project vision
+Our game puts us in charge of a small outpost on Mars. We build a farm, give our crew jobs, watch our reserves and deal with equipment failures and environmental events. We built it in Godot 4.7.2 with a 3D world and a simulation underneath it that accounts for resources as time moves forward.
 
-Build a top-down/isometric 3D colony where life support, power, water, food, construction, crew assignments, exploration, and emergencies interact. Player decisions trade resources, time, labor, and safety against one another.
+## Getting our first camp running
 
-Planned systems include:
+We began with the systems that keep the crew alive: oxygen generation, carbon dioxide removal, water recovery, solar power and batteries. We kept those calculations separate from the world and interface so a button changes the simulation through a command, rather than changing a number on the screen.
 
-- Oxygen generation, CO2 removal, water recovery, and habitat reserves.
-- Power generation, storage, distribution, and equipment maintenance.
-- Crew skills, health, fatigue, task assignments, and EVA planning.
-- Modular construction, greenhouses, resource extraction, and cargo recovery.
-- Environmental hazards, shielding, emergency response, and scientific exploration.
+Once those pieces were connected, we needed something to do with them. Our current mission starts from the title screen and walks us through placing a greenhouse, assigning an engineer to build it and assigning a botanist to tend it. The farm uses water, carbon dioxide and electricity to produce food and oxygen. After we get it working, an equipment incident gives us our first repair. Finishing that loop establishes our Level 1 camp.
 
-The aim is to advance the game as far as possible. The initial research report's scope limits are not project requirements.
+One problem we found while playing the exported build was that our scrubber could take the carbon dioxide before our farm got any. The farm then stopped producing and the objective could get stuck. We changed the resource routing so the farm uses available carbon dioxide before the remaining gas is scrubbed. We kept electrical priority separate, so that change does not put farming ahead of life support for power.
 
-## Current status
+## Giving our crew something to do
 
-The Godot 4.7.2 submission prototype opens from the normal title screen into a guided Level 1 camp mission: place a greenhouse, assign construction and botany specialists, produce food, and handle an equipment failure. Two interactive repair challenges use engineering skill and enforce a one-day retry lock after failure. Dust storms reduce solar output; solar radiation events offer shelter at the cost of crew work. The dark HUD shows essential resources, contextual actions, crew portraits and playback controls.
+We wanted our astronauts to matter beyond being names in a list. Engineers take construction work, and our botanist has a real tending job at the greenhouse. Engineering skill also changes the repair challenges, giving a specialist an easier task than someone without that training.
 
-The authored landing_plain map uses NASA reference crew rates and explicit gameplay assumptions. Reference-profile EVA and live-mission Save/Load remain unavailable. Furnished interiors, full daily routines, treatment, upgrades and supply deliveries remain future work. The separate v3 campaign save/scheduler foundation is tested but is not the live mission. See the [submission review](docs/overhaul/reviews/TAKEOVER_SUBMISSION_REVIEW.md), [science provenance](SCIENCE.md), [overhaul plan](docs/overhaul/README.md), and [slide screenshots](docs/evidence/submission_slides/README.md).
+We added two kinds of repair. Circuit repairs ask us to connect lettered leads to matching shapes. Solar repairs ask us to stop a moving indicator inside an alignment band. A failed attempt fully breaks that component and locks another attempt for one mission day. Some repair mistakes can injure the astronaut, with a recovery period before they can return to work.
 
-## Stack
+We still have more to do here. Our medic, pilot and geologist have specialties, but we have not finished a complete daily job system for every role. We also have not built the med bay treatment loop or the full eating and sleeping routines.
 
-- Engine: Godot 4.x, GDScript, Compatibility renderer.
-- Models: Blender to glTF/GLB.
-- Data: JSON or Godot Resource files.
-- Audio: WAV/OGG.
-- Repository: GitHub; planned CI: GitHub Actions.
-- Planned delivery: itch.io browser build and native desktop backup.
+## When Mars changes our plans
 
-## Repository structure
+Once our camp is established, dust storms can reduce solar generation. We can pause the farm to protect our power reserves or keep food production running and draw on the batteries. The storm has a forecast, a duration and a cooldown, so it becomes a decision we have time to respond to.
 
-```text
-mars-outpost/
-├── README.md
-├── SCIENCE.md
-├── GAME_DESIGN.md
-├── ATTRIBUTION.md
-├── project.godot
-├── assets/
-│   ├── models/
-│   ├── textures/
-│   ├── audio/
-│   └── nasa/
-├── data/
-│   ├── buildings/
-│   ├── crew/
-│   ├── events/
-│   └── tech/
-├── scenes/
-│   ├── world/
-│   ├── buildings/
-│   ├── crew/
-│   └── ui/
-├── scripts/
-│   ├── simulation/
-│   ├── systems/
-│   ├── crew/
-│   ├── tasks/
-│   ├── world/
-│   └── ui/
-└── tests/
+We also added a solar radiation event. We can shelter the crew to reduce the health penalty, but their work pauses while they are sheltered. That is the trade we wanted to show: protecting our astronauts costs us progress on the jobs outside. Our radiation numbers are a simplified game model, not a medical dose calculation or a live space-weather feed.
+
+## Making the game easier to read
+
+As we added systems, our interface started competing with the game. We moved toward dark panels, a small resource bar and a bottom navigation dock. We keep most details behind the relevant tab and give the current objective a direct action button. Our crew panel uses close portraits and separate lines for names and specialties. Playback uses drawn pause and speed icons so we can find time controls quickly.
+
+We took inspiration from how colony and city-building games keep common actions nearby while letting the world take up most of the screen. Our [design notes](DESIGN.md) record the visual choices. Our [screenshot pack](docs/evidence/submission_slides/README.md) shows the actual game, including construction, crew work, repairs and the two environmental events.
+
+## What we checked
+
+Our final local headless regression run passed, including 46 farm and repair checks, 29 dust-storm checks, 16 radiation checks, 331 campaign-foundation checks and 318 scheduler checks. Our menu, tutorial, world, simulation and compatibility checks passed too. We also ran focused native interface checks and captured the game through Godot's renderer. GitHub CI passed tests and Web, Windows and Linux exports for our submission PR.
+
+We kept the long campaign oracle out of the final submission-night rerun. The quick scheduler checks and a full detailed-day oracle are different checks, and we do not treat one as proof that we reran the other. Our [submission review](docs/overhaul/reviews/TAKEOVER_SUBMISSION_REVIEW.md) separates those results and records the remaining limits.
+
+## Running our game
+
+We open `project.godot` in Godot 4.7.2 and run the project to start at the title screen. New Game takes us through crew setup and the landing introduction into the camp mission. The repository's GitHub Actions workflow builds Web, Windows and Linux artifacts.
+
+For the headless regression checks, we run:
+
+```sh
+python tests/run_headless_checks.py --godot /path/to/godot --quick
 ```
 
-Empty directories contain `.gitkeep` files so Git preserves the scaffold. Repository housekeeping also includes `AGENTS.md`, `.gitignore`, and `.gitattributes`.
+Removing `--quick` also runs the longer detailed-day campaign oracle. Our authored fixture checks and science notes live alongside the tests so we can trace where our numbers came from.
 
-## Getting started
+## Where we go next
 
-Import `project.godot` in Godot 4.7.2 and press Play. The game starts on the **Mars Outpost Survival** title screen (`scenes/frontend/front_end.tscn`), with the title music looping. **New Game** opens the astronaut designer (name, skin tone, hair, eyes, facial hair, glasses, build, height, suit and trim), then a lineup of the six named crew and a skippable landing intro that leads into the training mission. **Load Game** opens a scenario directly (training or reference colony); colony saves wait on simulation persistence. **Settings** covers music volume, full screen and the intro. The colony itself is `scenes/world/main.tscn`, which still runs on its own for tests and the editor. Mission control overlays the world: a resource/status strip along the top, the crew roster on the left and a collapsible drawer (Jobs, Build, EVA, Systems, Guide) on the right. Clicking a module or salvage site opens it in the drawer. `F2` restarts synthetic training; `F3` restarts the authored/reference colony. `Space` pauses, `+`/`-` change speed, WASD or edge scrolling pans, middle-drag rotates and tilts, wheel or Z/X zooms, Home/End tilts and F recentres. Right-click cancels; 1/2/3 changes speed. `F1` shows diagnostics. World switches restart the colony; saves are not available yet.
+Our playable build is the first camp loop. Our larger plan includes connected habitat interiors, medical treatment, daily crew routines, upgrades and supply deliveries. We built a separate campaign save and scheduler foundation to support that work, but it is not yet the live mission. Save and Load stay unavailable in the current camp rather than pretending to preserve events they cannot restore.
 
-The colony opens paused on an interactive tutorial that greets your commander by name: press **Start tutorial**. One card at a time explains the next action and why, and a pulsing highlight points at the exact control or map spot to use. Every step advances only from your real selections and committed simulation results: a two-astronaut salvage spacewalk, placing and building a storage module, then (after an explicit restart into the reference colony) inspecting life support and finishing the starting repair. Mistakes such as an empty recall, a blocked cell or a cancelled job show a recovery hint instead of getting stuck. **Skip tutorial** switches to free play; the **Guide** tab can resume it, or restart it from a fresh training colony.
+We keep the full direction in our [overhaul plan](docs/overhaul/README.md). Our next step is to connect those systems carefully enough that the camp feels like a place our crew lives in, while keeping the decisions understandable for younger players.
 
-HUD text uses a 1280�720 logical canvas with a 16 px minimum; larger windows scale it up. The top strip prioritizes oxygen, water, power and battery. Full resource accounting is available under **Systems**. Crew details and mission pages scroll when space is limited.
+## Science and credits
 
-For the first training loop, pause, select two astronauts in the crew roster, then open **EVA** and launch the default salvage trip. Resume and wait for their return. In **Build**, choose the storage module and press **Choose a cell on the map**, then click an open cell (R rotates, Esc cancels); the coordinate fields remain for exact entry. In **Jobs**, select its construction job, suggest available crew and assign them. The finished module adds oxygen capacity. Cancel unfinished construction to recover its materials. On the reference map, assign crew to the initial repair jobs to restore damaged solar equipment.
+We use NASA reference crew rates in the authored landing scenario and label our gameplay assumptions separately. Our crop conversion, storm timing, repair difficulty and radiation health penalties are simplified mechanics. [SCIENCE.md](SCIENCE.md) explains the sources and assumptions, and [ATTRIBUTION.md](ATTRIBUTION.md) lists external assets and credits. This is an independent project and does not imply NASA endorsement.
 
-Run all headless checks with Python 3 and the installed console executable:
+## Tools we built with
 
-```powershell
-python tests/run_headless_checks.py --godot '<godot-console>' --benchmark
-```
-
-Read `GAME_DESIGN.md` for the design direction, `SCIENCE.md` before adding simulation quantities, and `ATTRIBUTION.md` when importing external assets.
-
-## Three-person implementation plan
-
-Start with the [shared product requirements](PRD.md), which define the interfaces, integration milestones, and acceptance criteria for all three contributors.
-
-Before implementing shared boundaries, read [SHARED_SIMULATION_SPEC.md](SHARED_SIMULATION_SPEC.md): the established v2 command payloads, snapshot schemas, fixed-step/pause rules, resource accounting, world queries, crew adapter, and save/load contract. This is the implementation baseline for all three tasks; the A1 foundation implements part of it, with later systems still to be built.
-
-The [simulation reconciliation](SIMULATION_RECONCILIATION.md) records the review decisions behind contract 2.0.0. [Fixture tooling](tests/simulation/tools/README.md) regenerates and checks the synthetic reference outputs; A1/A2 runtime conformance is tested, with remaining gameplay scenarios awaiting later packages.
-
-1. [Simulation and colony systems](TASK_01_SIMULATION.md): resources, life support, power, hazards, progression, and persistence.
-2. [3D world, construction, and integration](TASK_02_WORLD.md): terrain, camera, buildings, navigation services, assets, and delivery.
-3. [Crew management, EVA, and player interface](TASK_03_CREW_AND_UI.md): assignments, work, salvage expeditions, HUD, and onboarding.
-
-Each task starts at six work packages and 24 relative effort points. Rebalance after the first integrated loop using actual progress.
-
-## Development principles
-
-- Keep simulation logic separate from rendering and interface code.
-- Make simulation parameters data-driven and distinguish sourced science from gameplay assumptions.
-- Track provenance and credits for external assets and scientific sources.
-- Validate research claims against their original sources before using them as implementation requirements.
-
-This is an independent project and does not imply NASA endorsement.
+We used agentic tools, including Anthropic's Claude, OpenAI's Codex and Cursor, while building this project. These tools helped us develop code, work through implementation ideas, write documentation and run checks. We made the project decisions and reviewed the results as we brought our game together.

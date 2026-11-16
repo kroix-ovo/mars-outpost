@@ -1,12 +1,6 @@
 class_name SimulationBridge
 extends Node
-## Integration point between the world scene and the authoritative simulation.
-##
-## Loads immutable map data and building definitions, builds the headless WorldService, and
-## owns the current snapshot. Scenes subscribe to snapshot_changed and read; commands flow the
-## other way through submit_command. The backend is either Task 01's OutpostSimulation (when
-## scripts/simulation/simulation.gd exists and initializes) or the fixture stub for development.
-## Nothing in this node, or in any scene below it, changes resource balances.
+## I use this bridge to connect rendering to the backend without making the world scene own the resource ledger. I publish snapshots after simulation work is committed.
 
 signal snapshot_changed(snapshot: Dictionary)
 signal command_resolved(command_id: String, success: bool, reason: String)
