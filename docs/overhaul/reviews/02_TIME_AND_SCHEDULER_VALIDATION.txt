@@ -1,0 +1,85 @@
+# Package 2 validation output (2026-11-15, Godot 4.7.2 console, headless)
+
+## python tests/run_headless_checks.py --godot <godot> --benchmark
+CHECK tests/world/run_world.gd
+WORLD_PASS checks=679
+CHECK tests/simulation/run_a1.gd
+A1_BENCH commands=0 tick_ms=3.2334 resolve_ms=0.010 submit_ms=0.009
+A1_BENCH commands=250 tick_ms=3.2581 resolve_ms=49.303 submit_ms=11.914
+A1_BENCH commands=2000 tick_ms=3.3564 resolve_ms=402.189 submit_ms=80.154
+A1_PASS checks=14298
+CHECK tests/simulation/run_a2.gd
+A2_BENCH retained_commands=0 retained_effects=0 tick_ms=1.22123333333333 command_ms=0.254376
+A2_BENCH retained_commands=20000 retained_effects=20000 tick_ms=1.0784 command_ms=0.219328
+A2_PASS checks=41144
+CHECK tests/simulation/run_a3.gd
+A3_PASS checks=6718
+CHECK tests/world/run_integration.gd
+INTEGRATION_PASS checks=54
+CHECK tests/world/run_bridge_regressions.gd
+BRIDGE_PASS checks=25
+CHECK tests/crew_ui/run_crew_ui.gd
+Task 03: 85/85 checks passed.
+CHECK tests/crew_ui/run_a3_compatibility.gd
+A3_CREW_RESULT checks=80 failures=0
+A3_CREW_PASS
+CHECK tests/crew_ui/run_tutorial_mission.gd
+TUTORIAL_RESULT checks=111 failures=0
+TUTORIAL_PASS
+CHECK tests/frontend/run_frontend.gd
+FRONTEND_PASS checks=229
+CHECK tests/world/run_camera_controls.gd
+CAMERA_CONTROLS_RESULT checks=12 failures=0
+CAMERA_CONTROLS_PASS
+CHECK tests/simulation/run_a1.gd
+A1_BENCH commands=0 tick_ms=3.1252 resolve_ms=0.009 submit_ms=0.009
+A1_BENCH commands=250 tick_ms=3.0033 resolve_ms=48.412 submit_ms=8.808
+A1_BENCH commands=1000 tick_ms=3.0134 resolve_ms=183.703 submit_ms=40.001
+A1_BENCH commands=2000 tick_ms=2.9811 resolve_ms=469.638 submit_ms=82.683
+A1_BENCH commands=20000 tick_ms=3.2084 resolve_ms=4396.455 submit_ms=878.334
+A1_PASS checks=36570
+CHECK tests/campaign/run_foundation.gd
+CAMPAIGN_FOUNDATION_PASS checks=331
+CHECK tests/campaign/run_time.gd
+TIME_EQUIV battery_saturation tick=3000 events=3 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=11 auto_intervals=2 auto_replayed_ticks=2989 rejections=0
+TIME_EQUIV reserve_exhaustion tick=2500 events=12 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=18 auto_intervals=3 auto_replayed_ticks=2482 rejections=0
+TIME_EQUIV production_shortage_power tick=3000 events=6 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=27 auto_intervals=25 auto_replayed_ticks=2973 rejections=0
+TIME_EQUIV production_shortage_inputs tick=2000 events=3 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=32 auto_intervals=18 auto_replayed_ticks=1968 rejections=0
+TIME_EQUIV storage_overflow tick=2000 events=7 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=22 auto_intervals=17 auto_replayed_ticks=1978 rejections=0
+TIME_EQUIV crew_travel_and_labor tick=600 events=7 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=23 auto_intervals=5 auto_replayed_ticks=577 rejections=0
+TIME_EQUIV expedition tick=400 events=6 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=28 auto_intervals=4 auto_replayed_ticks=372 rejections=0
+TIME_EQUIV scheduled_rng_boundaries tick=16000 events=11 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=11 auto_intervals=6 auto_replayed_ticks=15989 rejections=0
+TIME_EQUIV unmodeled_hook_fallback tick=3000 events=3 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=3000 auto_intervals=0 auto_replayed_ticks=0 rejections=0
+TIME_EQUIV registered_hook_flow tick=5000 events=3 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=3 auto_intervals=1 auto_replayed_ticks=4997 rejections=0
+TIME_EQUIV ordinary_advance_20x tick=6000 events=1 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=12 auto_intervals=10 auto_replayed_ticks=5988 rejections=0
+TIME_FRAME simulated_s=172800 wall_ms=385.2 calls=36 detailed_ticks=76 aggregate_intervals=66 max_call_detailed_ticks=3 max_call_account_ticks=43936 max_call_ticks=6154 max_call_usec=13356
+TIME_HORIZON week simulated_s=604800 wall_ms=8727.3 detailed_ticks=110 aggregate_intervals=94 rejections=0 advance_calls=93 max_call_detailed_ticks=8 max_call_account_ticks=50000 max_call_usec=50748
+TIME_HORIZON shipment simulated_s=17280000 wall_ms=10944.7 detailed_ticks=2828 aggregate_intervals=2619 rejections=0 advance_calls=2428 max_call_detailed_ticks=8 max_call_account_ticks=50000 max_call_usec=50748
+TIME_FALLBACKS {"no_reference_tick":201,"state_changing":3,"transition_guard:storage_saturation:battery/building_000002/energy_kwh":5}
+TIME_EQUIV stable_day tick=86400 events=4 max_abs=0.0 max_rel=0.0 auto_detailed_ticks=16 auto_intervals=14 auto_replayed_ticks=86384 rejections=0
+TIME_DAY oracle_wall_ms=175800.9 oracle_detailed_ticks=86400 auto_wall_ms=58.2 auto_detailed_ticks=16 auto_aggregate_intervals=14 auto_max_call_detailed_ticks=3 auto_max_call_account_ticks=50000 auto_max_call_usec=9700
+CAMPAIGN_TIME_RESULT checks=332 failures=0 wall_s=423.5
+CAMPAIGN_TIME_PASS checks=332
+CHECK main scene (title)
+CHECK colony scene
+HEADLESS_PASS
+
+## python tests/campaign/run_time_oracle.py --godot <godot> --workers 7 --only week
+TIME_ORACLE_SEGMENT index=0 target_s=86400 stops=[["target_reached","",86400]]
+TIME_ORACLE_SEGMENT index=1 target_s=172800 stops=[["target_reached","",172800]]
+TIME_ORACLE_SEGMENT index=2 target_s=259200 stops=[["target_reached","",259200]]
+TIME_ORACLE_SEGMENT index=3 target_s=345600 stops=[["target_reached","",345600]]
+TIME_ORACLE_SEGMENT index=4 target_s=432000 stops=[["target_reached","",432000]]
+TIME_ORACLE_SEGMENT index=5 target_s=518400 stops=[["target_reached","",518400]]
+TIME_ORACLE_SEGMENT index=6 target_s=604800 stops=[["target_reached","",604800]]
+TIME_ORACLE_PRODUCED simulated_s=604800 wall_ms=448.5 detailed_ticks=107 aggregate_intervals=92 aggregate_ticks=604693 rejections=0 advance_calls=92 max_call_detailed_ticks=8 max_call_account_ticks=50000 max_call_usec=24060
+TIME_ORACLE_FALLBACKS {"no_reference_tick":7,"state_changing":3,"transition_guard:storage_saturation:battery/building_000002/energy_kwh":5}
+TIME_ORACLE_MATCH index=0 from_s=0 to_s=86400 detailed_ticks=86400 wall_ms=327430.2 stops=[["target_reached","",86400]]
+TIME_ORACLE_MATCH index=1 from_s=86400 to_s=172800 detailed_ticks=86400 wall_ms=327539.0 stops=[["target_reached","",172800]]
+TIME_ORACLE_MATCH index=2 from_s=172800 to_s=259200 detailed_ticks=86400 wall_ms=329831.5 stops=[["target_reached","",259200]]
+TIME_ORACLE_MATCH index=3 from_s=259200 to_s=345600 detailed_ticks=86400 wall_ms=327484.8 stops=[["target_reached","",345600]]
+TIME_ORACLE_MATCH index=4 from_s=345600 to_s=432000 detailed_ticks=86400 wall_ms=329392.6 stops=[["target_reached","",432000]]
+TIME_ORACLE_MATCH index=5 from_s=432000 to_s=518400 detailed_ticks=86400 wall_ms=327885.4 stops=[["target_reached","",518400]]
+TIME_ORACLE_MATCH index=6 from_s=518400 to_s=604800 detailed_ticks=86400 wall_ms=328480.5 stops=[["target_reached","",604800]]
+TIME_ORACLE_CHAIN_PASS week simulated_days=7 segments=7 matched=7 wall_s=333
+TIME_ORACLE_PASS

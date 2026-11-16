@@ -409,7 +409,7 @@ func _run() -> void:
 	check(step_id() == "shift_running" and hud._tour.finished and hud._tour_card.visible, "training hands over to a visible independent mission")
 	check("6 h 00 min" in hud._tour_step.action and "Press >" in hud._tour_step.action, "next mission gives a deadline and first action")
 	for entry in [[1, ">"], [5, ">>"], [20, ">>>"]]:
-		check(hud._speed_buttons[entry[0]].text == entry[1], "speed control uses arrows")
+		check(hud._speed_buttons[entry[0]].text.is_empty() and hud._skin.playback_icons[entry[0]].triangles == entry[1].length(), "speed control uses one, two or three drawn play triangles")
 	check("×" not in hud._clock.text and ":" in hud._clock.text, "clock shows colony hours and minutes without a multiplier")
 	# Placement geometry is cached, but affordability must use the latest balances.
 	var original_world = hud._world

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "campaign_default",
+  "metadata": {
+    "status": "campaign_time_profile",
+    "note": "Gameplay pacing and frame-work budgets for the campaign facade. Not a science value. Normal speed is 120 simulated seconds per real second (about 12 real minutes per mission day); the player multipliers are 1x, 5x and 20x of that. The campaign starts paused."
+  },
+  "base_rate_sim_s_per_real_s": 120,
+  "player_multipliers": [1, 5, 20],
+  "start_time_scale": 0,
+  "owns_time_pacing": true,
+  "max_ticks_per_advance": 0,
+  "max_detailed_ticks_per_advance": 8,
+  "max_aggregate_account_ticks_per_advance": 50000,
+  "guard_ticks": 2,
+  "min_aggregate_ticks": 4
+}

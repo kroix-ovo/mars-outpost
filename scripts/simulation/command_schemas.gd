@@ -13,6 +13,14 @@ const PAYLOADS = {
         "oxygen_kg_per_crew": "quantity", "battery_kwh_per_crew": "quantity"},
     "recall_eva": {"expedition_id": "id"},
     "set_time_scale": {"time_scale": "scale"},
+    # Submission slice: simulation-owned corrective repair challenges.
+    "trigger_fault_drill": {"building_id": "id"},
+    "start_repair_challenge": {"building_id": "id", "crew_id": "id"},
+    "repair_input": {"session_id": "id", "action": "repair_action", "value": "quantity"},
+    # Submission slice: opt-in dust storm response.
+    "set_storm_response": {"response": "storm_response"},
+    "start_storm_practice": {},
+    "set_radiation_shelter": {"enabled":"bool"},
 }
 
 static func number(value: Variant) -> bool:
@@ -54,6 +62,8 @@ static func validate(command: Dictionary) -> Dictionary:
         match schema[key]:
             "id": valid = identifier(value)
             "bool": valid = value is bool
+            "storm_response": valid = value is String and value in ["keep_farm", "save_power"]
+            "repair_action": valid = value is String and value in ["connect", "tick", "lock", "abandon"]
             "cell":
                 valid = cell(value)
                 if valid: normalized.payload[key] = [int(value[0]), int(value[1])]

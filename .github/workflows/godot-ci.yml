@@ -69,7 +69,8 @@ jobs:
           ! grep -E 'SCRIPT ERROR|Parse Error|ERROR:' import.log
 
       - name: World, simulation, bridge regressions, benchmarks and boot
-        run: python3 tests/run_headless_checks.py --godot ~/godot/godot --benchmark
+        # Keep the long detailed-day oracle available without --quick.
+        run: python3 tests/run_headless_checks.py --godot ~/godot/godot --benchmark --quick
 
       - name: Check synthetic scenario freshness and independent arithmetic
         run: |

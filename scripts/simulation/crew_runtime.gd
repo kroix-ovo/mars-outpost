@@ -6,6 +6,9 @@ const LifeSupport = preload("res://scripts/systems/life_support_system.gd")
 const Jobs = preload("res://scripts/tasks/crew_jobs.gd")
 const Record = preload("res://scripts/crew/crew_save_record.gd")
 const TERMINAL = ["completed", "failed", "cancelled"]
+# Submission slice (game settings): a botanist's tending shift and the harvest it brings in.
+const TEND_WORK_S := 300.0
+const TEND_HARVEST_KCAL := 1500.0
 var state: RefCounted
 var content: Dictionary
 var world: RefCounted
@@ -195,9 +198,22 @@ func labor(items: Array, inputs: Dictionary) -> Dictionary:
     for id in Jobs.sorted_ids(state.records.tasks):
         var task: Dictionary = state.records.tasks[id]
         if task.kind == "eva" or task.status in TERMINAL or task.completed_work_s < task.required_work_s: continue
-        if task.kind not in ["construct", "repair"]: return fail("module_unavailable", "Agriculture completion requires A4 production rules.")
+        if task.kind not in ["construct", "repair", "farm"]: return fail("module_unavailable", "Agriculture completion requires A4 production rules.")
         task.status = "completed"
         var building: Dictionary = state.records.buildings[task.target_id]
+        if task.kind == "farm":
+            # Tending done: the harvest enters shared food stock once, through the ledger.
+            var food: Dictionary = state.records.resources.food_kcal
+            var harvest := minf(TEND_HARVEST_KCAL, float(food.capacity) - float(food.amount))
+            var paid: Dictionary = ledger.apply_system({"effect_id": "harvest:" + id, "scope": "one_time", "owner_id": id, "kind": "production",
+                "debits": {"source/production/food_kcal": harvest}, "credits": {"base/food_kcal": harvest}})
+            if not paid.ok: return paid
+            for cid in task.assigned_crew_ids: state.records.crew[cid] = Jobs.release(state.records.crew[cid])
+            events.append({"type": "farm_tended", "entity_ids": [id, building.id], "data": {"task_id": id, "building_id": building.id, "harvest_kcal": harvest}})
+            events.append({"type": "task_completed", "entity_ids": [id], "data": {"task_id": id}})
+            var again := tending_job(building.id)
+            if not again.ok: return again
+            continue
         if task.kind == "construct":
             building.lifecycle = "commissioned"
             building.construction_progress = 1.0
@@ -205,10 +221,24 @@ func labor(items: Array, inputs: Dictionary) -> Dictionary:
             building.blocking_codes = []
             state.prepaid_build_costs.erase(id)
             events.append({"type": "building_commissioned", "entity_ids": [building.id], "data": {"building_id": building.id}})
+            if LifeSupport.validate_process(content.buildings[building.definition_id]).get("kind") == "farming":
+                var tending := tending_job(building.id)
+                if not tending.ok: return tending
         else: building.condition = 1.0
         for cid in task.assigned_crew_ids: state.records.crew[cid] = Jobs.release(state.records.crew[cid])
         events.append({"type": "task_completed", "entity_ids": [id], "data": {"task_id": id}})
     ledger.refresh_storage_capacity()
+    return ok()
+
+func tending_job(building_id: String) -> Dictionary:
+    ## A farm always has one open tending job for a botanist; it needs travel and real labor.
+    var template: Dictionary = adapter.get_task_template("farm", TEND_WORK_S)
+    if template.is_empty(): return ok()
+    if state.counters.task >= Schema.MAX_EXACT_INTEGER: return fail("invalid_state", "Entity counter exhausted.")
+    var task_id: String = state.allocate("task")
+    template.merge({"id": task_id, "target_id": building_id, "status": "queued", "assigned_crew_ids": [],
+        "completed_work_s": 0.0, "blocked_code": null, "expedition_id": null})
+    state.records.tasks[task_id] = template
     return ok()
 
 func drain_caches() -> Dictionary:

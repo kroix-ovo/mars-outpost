@@ -21,6 +21,12 @@ static func validate_process(definition: Dictionary) -> Dictionary:
         return {"ok": true, "kind": "recycling"}
     if Schema.exact_keys(inputs, ["co2_kg"]) and outputs.is_empty():
         return {"ok": true, "kind": "co2_removal"}
+    if Schema.exact_keys(inputs, ["potable_water_kg", "co2_kg"]) and Schema.exact_keys(outputs, ["food_kcal", "oxygen_kg"]):
+        # Greenhouse: a linear game-assumption conversion. Food is an energy unit, so only
+        # oxygen is checked against the mass taken in. Crops and harvest timing are not modeled.
+        if outputs.oxygen_kg > inputs.potable_water_kg + inputs.co2_kg:
+            return Schema.failure("invalid_value", "Greenhouse cannot release more oxygen mass than it takes in.")
+        return {"ok": true, "kind": "farming"}
     return Schema.failure("module_unavailable", "Only electrolysis, water recycling and CO2 removal execute in A3.")
 
 func run(state: RefCounted, content: Dictionary, ledger: RefCounted) -> Dictionary:

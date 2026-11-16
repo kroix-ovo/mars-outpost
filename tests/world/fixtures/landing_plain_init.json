@@ -16,7 +16,7 @@
   "definition_manifest": {
     "res://data/buildings/battery_bank_mk1.json": "f6b51a3423d716538ed958df8adc7717a4e045c50f36283e5b8d00a839569b2d",
     "res://data/buildings/co2_scrubber_mk1.json": "7c4b3b0802c1ed079b377e9a350ab894e467febe3913bfce120128e58f25a0cf",
-    "res://data/buildings/greenhouse_mk1.json": "fd16c037d3d7e8dc141197cfd4e3e6bfb4323daaefc9d51ef9a2ca3181b8b1ee",
+    "res://data/buildings/greenhouse_mk1.json": "346793bd8137abee87cd907bf637da55ff49b7e0af61fb4f814e5eb00e8989f8",
     "res://data/buildings/solar_array_mk1.json": "c2292ee240e9358e9a17d66c3d573c55fe3fd2fa9583253c8bedca1eb35d69d6",
     "res://data/buildings/storage_module_mk1.json": "81a35ab912609aadb98f0ca0ccb9ff8011b4ff3d1f28f85f198164f57f2553e8",
     "res://data/buildings/water_electrolyzer_mk1.json": "0ca56be3b0798af20b4064acfcae90fddd1d1ada565a6a37cea17247845a9a5d",

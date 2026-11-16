@@ -193,14 +193,22 @@ func _process(delta: float) -> void:
         var result: Dictionary
         if _backend.has_method("advance_budgeted"):
             var scale: int = snapshot.get("clock", {}).get("time_scale", 0)
-            var paced_delta := delta * float(PLAY_RATES.get(scale, 60.0)) / maxf(1.0, scale)
-            result = _backend.advance_budgeted(paced_delta, FRAME_WORK_USEC)
+            var owns_pacing: bool = _backend.has_method("get_capabilities") and _backend.get_capabilities().get("owns_time_pacing", false)
+            result = _backend.advance_budgeted(paced_delta(delta, scale, owns_pacing), FRAME_WORK_USEC)
         else:
             result = _backend.advance(delta * GAME_SECONDS_PER_REAL_SECOND)
         if not result.get("ok", false):
             last_error = result.duplicate(true)
             auto_advance = false # Preserve failed-tick backlog; avoid retrying every frame.
             simulation_failed.emit(last_error.duplicate(true))
+
+
+static func paced_delta(delta: float, scale: int, backend_owns_pacing: bool) -> float:
+    ## Legacy backends multiply by their 1/5/20 scale, so the wrapper supplies the rest of
+    ## the 60/120/240 play rate. A backend that owns pacing (the campaign facade applies
+    ## its own rate) receives real seconds, so time is never multiplied twice.
+    if backend_owns_pacing: return delta
+    return delta * float(PLAY_RATES.get(scale, 60.0)) / maxf(1.0, scale)
 
 
 # ---------------------------------------------------------------- backend selection

@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "status": "gameplay_abstraction",
+  "day_seconds": 86400,
+  "normal_speed": 120,
+  "shipment_days": 180,
+  "cargo_budget": 12,
+  "buildings": {
+    "core": {"name":"Habitat core", "kind":"wing", "cost":{"alloy":8,"electronics":2}, "hours":1, "power":0, "research":0},
+    "wing": {"name":"Pressurized wing", "kind":"wing", "cost":{"alloy":10}, "hours":2, "power":0, "research":0},
+    "airlock": {"name":"Airlock", "kind":"inside", "cost":{"alloy":3,"electronics":1}, "hours":0.5, "power":0.2, "research":0, "challenge":"pressure"},
+    "bunks": {"name":"Bunk room · 6 beds", "kind":"inside", "cost":{"alloy":3}, "hours":0.5, "power":0, "research":0},
+    "cafeteria": {"name":"Cafeteria", "kind":"inside", "cost":{"alloy":3,"electronics":1}, "hours":0.5, "power":0.3, "research":0},
+    "farm": {"name":"Hydroponic farm", "kind":"inside", "cost":{"alloy":5,"electronics":2}, "hours":1, "power":2, "research":0, "challenge":"irrigation"},
+    "medbay": {"name":"Med bay · 2 beds", "kind":"inside", "cost":{"alloy":4,"electronics":2}, "hours":0.5, "power":0.5, "research":0, "challenge":"medical"},
+    "life_support": {"name":"Life support", "kind":"inside", "cost":{"alloy":4,"electronics":2}, "hours":1, "power":1.5, "research":0, "challenge":"oxygen"},
+    "recycler": {"name":"Water recycler", "kind":"inside", "cost":{"alloy":4,"electronics":1}, "hours":1, "power":0.7, "research":0, "challenge":"water"},
+    "workshop": {"name":"Workshop", "kind":"inside", "cost":{"alloy":6,"electronics":2}, "hours":2, "power":1, "research":10, "challenge":"wiring"},
+    "solar": {"name":"Solar array", "kind":"outside", "cost":{"alloy":3,"electronics":1}, "hours":0.5, "power":-6, "research":0, "challenge":"solar"},
+    "generator": {"name":"Backup generator", "kind":"outside", "cost":{"alloy":4,"electronics":1}, "hours":0.5, "power":-10, "research":0, "challenge":"generator"},
+    "battery": {"name":"Battery bank", "kind":"outside", "cost":{"alloy":3,"electronics":1}, "hours":0.5, "power":0, "research":0, "challenge":"wiring"},
+    "storage": {"name":"Cargo store", "kind":"outside", "cost":{"alloy":5}, "hours":1, "power":0, "research":0},
+    "extractor": {"name":"Ice and mineral extractor", "kind":"outside", "cost":{"alloy":8,"electronics":2,"kits":1}, "hours":3, "power":2, "research":30, "challenge":"water"},
+    "laboratory": {"name":"Research laboratory", "kind":"inside", "cost":{"alloy":8,"electronics":3,"kits":1}, "hours":3, "power":1, "research":20, "challenge":"medical"}
+  },
+  "crops": {
+    "potato": {"name":"Potato", "days":12, "yield":300000, "water":2, "unlock":0, "seed":"seeds"},
+    "lettuce": {"name":"Lettuce", "days":5, "yield":50000, "water":1, "unlock":0, "seed":"seeds"},
+    "bean": {"name":"Drought-tolerant beans", "days":14, "yield":380000, "water":0.6, "unlock":15, "seed":"bean_seeds"},
+    "tomato": {"name":"Tomato", "days":10, "yield":260000, "water":2.5, "unlock":30, "seed":"tomato_seeds"},
+    "herb": {"name":"Medicinal crop", "days":8, "yield":35000, "water":1, "unlock":40, "seed":"herb_seeds"}
+  },
+  "specializations": {
+    "farm":["yield","efficiency","resilience"], "solar":["output","resilience","automation"],
+    "generator":["efficiency","output","resilience"], "battery":["capacity","output","resilience"],
+    "life_support":["output","efficiency","resilience"], "recycler":["output","efficiency","resilience"],
+    "medbay":["capacity","recovery","diagnostics"], "workshop":["output","efficiency","fabrication"]
+  },
+  "cargo": {
+    "parts":{"name":"Spare parts", "space":1,"items":{"alloy":15,"electronics":5}},
+    "seeds":{"name":"Seed bank", "space":1,"items":{"seeds":12}},
+    "beans":{"name":"Bean seed kit", "space":2,"items":{"bean_seeds":8}},
+    "tomatoes":{"name":"Tomato seed kit", "space":2,"items":{"tomato_seeds":8}},
+    "herbs":{"name":"Medicinal seed kit", "space":2,"items":{"herb_seeds":8}},
+    "medical":{"name":"Medical supplies", "space":1,"items":{"medicine":15}},
+    "hardware":{"name":"Specialist hardware", "space":3,"items":{"kits":4}},
+    "food":{"name":"Emergency rations", "space":2,"items":{"food_kcal":600000}},
+    "fuel":{"name":"Generator fuel", "space":1,"items":{"fuel":80}}
+  },
+  "events":[
+    {"id":"fault","name":"Equipment fault","weight":4,"cooldown_days":2},
+    {"id":"injury","name":"Workplace injury","weight":2,"cooldown_days":3},
+    {"id":"illness","name":"Short illness","weight":2,"cooldown_days":3},
+    {"id":"dust","name":"Dust front","weight":2,"cooldown_days":5},
+    {"id":"crop","name":"Crop contamination","weight":1,"cooldown_days":4},
+    {"id":"salvage","name":"Exposed cargo cache","weight":2,"cooldown_days":4},
+    {"id":"discovery","name":"Useful research finding","weight":2,"cooldown_days":4}
+  ]
+}

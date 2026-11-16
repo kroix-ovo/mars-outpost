@@ -21,6 +21,14 @@ The A3 reference profile adopts the parameters below with their stated scope. Sy
 | A3-DESIGN-MARGIN | Six crew, 20% nominal throughput margin; existing module kW | Game sizing rule derived from reference demand. No claim of measured machinery performance, validated reliability or continuous safety. | This game's design; calculations in [solution](docs/A3_RESEARCH_AND_SOLUTION.md) |
 | A3-OFF-NOMINAL | CO2 scales with O2 service; collected wastewater with min(water,food) service; overflow lost explicitly | Game abstraction to avoid modeled output with empty inputs. Human reserves, illness, death and recovery require later hazard/crew integration. Suit hardware, leakage and injury coefficients are not adopted. | This game's boundary policy, not a physiological source |
 
+## Submission gameplay abstractions
+
+The greenhouse performs a linear ledger conversion of water and CO2 to food and oxygen. Yield, tending bonuses and timing are gameplay assumptions. Process priority allocates available CO2 before residual scrubbing; electrical dispatch still prioritizes life support. This routing policy is not a measured crop model.
+
+Dust storms reduce solar output to 25% for a seeded two-to-four-hour game event. Forecast timing, probability and output factor are game settings, not Mars observations or a live weather feed.
+
+Solar radiation events are inspired by the need for shielding during solar particle events ([NASA radiation overview](https://www.nasa.gov/humans-in-space/space-radiation-wont-stop-nasas-human-exploration/)). The two-hour duration, 20-percentage-point unprotected health loss and 90% shelter reduction are compressed educational game settings, not medical dosimetry. The event does not calculate mSv or use live DONKI data. Sheltering pauses crew work, creating a labor-versus-health trade-off.
+
 ## Entry template
 
 ```text

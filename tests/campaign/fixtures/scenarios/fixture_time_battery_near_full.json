@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "id": "fixture_time_battery_near_full",
+  "description": "Sustainable stocks with a battery 0.1 kWh below capacity, so charge saturation happens within minutes.",
+  "metadata": {
+    "status": "synthetic_test_fixture"
+  },
+  "resource_registry_path": "res://tests/simulation/fixtures/definitions/resources.json",
+  "building_definition_paths": [
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_battery.json",
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_co2_scrubber.json",
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_electrolyzer.json",
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_generator.json",
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_storage_module.json",
+    "res://tests/simulation/fixtures/definitions/buildings/fixture_water_recycler.json"
+  ],
+  "crew_definition_path": "res://tests/simulation/fixtures/definitions/crew/fixture_crew.json",
+  "task_template_path": "res://tests/simulation/fixtures/definitions/crew/fixture_task_templates.json",
+  "map_path": "res://tests/simulation/fixtures/definitions/map/fixture_flat_16.json",
+  "starting_storage_capacity": {
+    "alloy": 50,
+    "electronics": 50,
+    "food_kcal": 400000000.0,
+    "hydrogen_kg": 1000000.0,
+    "oxygen_kg": 1000000.0,
+    "potable_water_kg": 1000000.0,
+    "raw_water_kg": 100.0,
+    "wastewater_kg": 50.0
+  },
+  "starting_inventory": {
+    "alloy": 6,
+    "co2_kg": 0.5,
+    "electronics": 2,
+    "food_kcal": 200000000.0,
+    "hydrogen_kg": 0.0,
+    "oxygen_kg": 120.0,
+    "potable_water_kg": 500000.0,
+    "raw_water_kg": 0.0,
+    "wastewater_kg": 1.0
+  },
+  "starting_buildings": [
+    {
+      "definition_id": "fixture_generator",
+      "cell": [
+        3,
+        3
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 1.0
+    },
+    {
+      "definition_id": "fixture_battery",
+      "cell": [
+        5,
+        3
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 1.0,
+      "battery_stored_kwh": 39.9
+    },
+    {
+      "definition_id": "fixture_electrolyzer",
+      "cell": [
+        7,
+        3
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 1.0
+    },
+    {
+      "definition_id": "fixture_water_recycler",
+      "cell": [
+        9,
+        3
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 1.0
+    },
+    {
+      "definition_id": "fixture_co2_scrubber",
+      "cell": [
+        11,
+        3
+      ],
+      "rotation_quarters": 0,
+      "enabled": true,
+      "condition": 1.0
+    }
+  ],
+  "site_definitions": {
+    "fixture_cargo_cache": {
+      "display_name": "Fixture Cargo Cache",
+      "metadata": {
+        "status": "synthetic_test_fixture"
+      }
+    }
+  },
+  "sites": [],
+  "scheduled_events": [],
+  "technology_unlocked_ids": []
+}
